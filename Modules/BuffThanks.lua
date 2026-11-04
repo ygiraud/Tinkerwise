@@ -138,7 +138,7 @@ function Refresh()
             local color = RAID_CLASS_COLORS[e.classFile]
             local colored = color and format("|c%s%s|r", color.colorStr or "ffffffff", e.name) or e.name
             b.text:SetText(colored .. " - " .. e.spell)
-            b.icon:SetTexture(GetSpellTexture(e.spell))
+            b.icon:SetTexture((GetSpellTexture(e.spell)))
             b:Show()
         else
             b.name, b.spell = nil, nil
@@ -160,9 +160,7 @@ local function AddEntry(name, spell, classFile)
     PlaySound(SOUNDKIT and SOUNDKIT.IG_CHAT_EMOTE_BUTTON or 852)
 end
 
--- Expire old entries.
-C_Timer.NewTicker(1, function()
-    if not db or #entries == 0 then return end
+local function ExpireEntries()
     local now, changed = GetTime(), false
     for i = #entries, 1, -1 do
         if now - entries[i].time > db.timeout then
@@ -171,7 +169,8 @@ C_Timer.NewTicker(1, function()
         end
     end
     if changed then Refresh() end
-end)
+end
+local ticker
 
 ---------------------------------------------------------------------------
 -- Detection
@@ -203,9 +202,19 @@ local function OnBuffed(sourceGUID, sourceName, spellName)
     end
 end
 
+-- The secure buttons hang from the anchor: it cannot move in combat.
+local positionPending = false
+local function ApplyPosition()
+    positionPending = InCombatLockdown()
+    if positionPending then return end
+    anchor:ClearAllPoints()
+    anchor:SetPoint(db.point, UIParent, db.point, db.x, db.y)
+end
+
 local events = CreateFrame("Frame")
 events:SetScript("OnEvent", function(_, event)
     if event == "PLAYER_REGEN_ENABLED" then
+        if positionPending then ApplyPosition() end
         if dirty then Refresh() end
         return
     end
@@ -222,15 +231,10 @@ end)
 -- Module
 ---------------------------------------------------------------------------
 
-local function ApplyPosition()
-    anchor:ClearAllPoints()
-    anchor:SetPoint(db.point, UIParent, db.point, db.x, db.y)
-end
-
-local mod = TW:NewModule("BuffThanks", {
+local mod =TW:NewModule("BuffThanks", {
     title = "Remerciements & rebuff",
     icon = "Interface\\Icons\\Spell_Holy_WordFortitude",
-    section = "Social",
+    section = "Groupe",
     desc = "Remercie automatiquement les joueurs qui vous buffent et affiche un bouton pour les buffer en retour en un clic (mage, prêtre, druide, paladin).",
     defaults = DEFAULTS,
     options = {
@@ -270,6 +274,7 @@ function mod:OnEnable()
     ApplyPosition()
     events:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
     events:RegisterEvent("PLAYER_REGEN_ENABLED")
+    ticker = C_Timer.NewTicker(1, ExpireEntries)
 end
 
 function mod:SetEditMode(on)
@@ -278,6 +283,7 @@ end
 
 function mod:OnDisable()
     events:UnregisterAllEvents()
+    if ticker then ticker:Cancel(); ticker = nil end
     wipe(entries)
     anchor:Hide()
     Refresh()

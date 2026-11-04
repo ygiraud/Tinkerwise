@@ -10,7 +10,6 @@ local TW = ns.TW
 local TITLE_FONT = "Fonts\\MORPHEUS.TTF"
 local BAND_H = 300
 local TEXT_RIGHT = 420 -- the rewards and buttons use the right part of the band
-local TOP_BAND_H = 90
 local SAVED_VIEW = 5     -- camera view slot used to restore the camera
 local CHARS_PER_SECOND = 45
 local CLOSE_DELAY = 0.15 -- the game closes and reopens the quest between two steps
@@ -37,7 +36,7 @@ local function Band(point)
     band:SetPoint(point .. "RIGHT")
     return band
 end
-Band("TOP"):SetHeight(TOP_BAND_H)
+local topBand = Band("TOP")
 local bottomBand = Band("BOTTOM")
 bottomBand:SetHeight(BAND_H)
 
@@ -161,13 +160,20 @@ end
 local fadeIn = 0
 local function Play()
     if playing then return true end
-    if InCombatLockdown() or not UIParent:IsShown() then return false end
+    if InCombatLockdown() then return false end
+    ns.FinishImmersionFade()
     playing, fadeIn = true, 0
+    -- Mode immersion keeps this window on screen while the interface is hidden.
+    QuestFrame:SetAlpha(0)
     scene:ClearAllPoints()
     scene:SetAllPoints(WorldFrame)
     scene:SetScale(UIParent:GetEffectiveScale())
     scene:SetAlpha(0)
     scene:Show()
+    topBand:SetHeight(scene:GetHeight() * db.letterboxSize / 100) -- same as the Mode immersion bars
+    local opacity = db.letterboxTranslucent and 0.92 or 1
+    topBand:SetColorTexture(0, 0, 0, opacity)
+    bottomBand:SetColorTexture(0, 0, 0, opacity)
     body:SetWidth(scene:GetWidth() - TEXT_RIGHT - 40)
     StartCamera()
     return true
@@ -179,7 +185,9 @@ local function Stop()
     playing = false
     tip:Hide()
     scene:Hide()
+    QuestFrame:SetAlpha(1)
     UIParent:SetAlpha(1)
+    ns.ImmersionLetterbox:SetAlpha(1)
     RestoreCamera()
 end
 
@@ -188,6 +196,7 @@ scene:SetScript("OnUpdate", function(_, elapsed)
         fadeIn = math.min(fadeIn + elapsed / 0.4, 1)
         scene:SetAlpha(fadeIn)
         UIParent:SetAlpha(1 - fadeIn)
+        ns.ImmersionLetterbox:SetAlpha(1 - fadeIn)
     end
     if shownBytes < #fullText then
         typed = typed + elapsed * CHARS_PER_SECOND
@@ -220,7 +229,8 @@ end)
 ---------------------------------------------------------------------------
 
 local function SetText(text)
-    fullText, shownBytes, typed = text or "", 0, 0
+    -- colour codes must not be cut by the writing effect
+    fullText, shownBytes, typed = (text or ""):gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", ""), 0, 0
     followText = true
     body:SetText("")
     scroll:SetVerticalScroll(0)
@@ -274,17 +284,16 @@ end
 
 local function Render(newKind)
     if not Play() then return end
-    if newKind ~= kind then choice = nil end
+    choice = nil
     kind = newKind
     title:SetText(GetTitleText() or "")
     if kind == "detail" then
         local objective = GetObjectiveText()
         local text = GetQuestText() or ""
         if objective and objective ~= "" then
-            text = text .. "\n\n|cffffd100Objectifs :|r " .. objective
+            text = text .. "\n\nObjectifs : " .. objective
         end
-        -- colour codes must not be cut by the writing effect
-        SetText(text:gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", ""))
+        SetText(text)
         primary:SetText("Accepter")
         primary:SetScript("OnClick", AcceptQuest)
         secondary:SetText("Refuser")
@@ -300,7 +309,7 @@ local function Render(newKind)
         primary:SetText("Terminer")
         primary:SetScript("OnClick", function()
             local count = GetNumQuestChoices()
-            GetQuestReward(count == 1 and 1 or choice)
+            GetQuestReward(count == 1 and 1 or choice or 0)
         end)
         secondary:SetText("Fermer")
         secondary:SetScript("OnClick", CloseQuest)
@@ -337,31 +346,22 @@ events:SetScript("OnEvent", function(_, event)
     end
 end)
 
-local mod = TW:NewModule("QuestScene", {
-    title = "Scène de quête",
-    icon = "Interface\\Icons\\INV_Misc_Book_09",
-    section = "Immersion",
-    defaultEnabled = false,
-    desc = "Quand vous ouvrez une quête ou que vous la rendez, l'interface s'efface, des bandes noires encadrent l'écran, la caméra tourne lentement et le texte s'écrit. Cliquez sur l'écran pour l'afficher d'un coup. Hors combat seulement. La caméra utilise l'emplacement de vue 5 du jeu.",
-    defaults = {
-        camera = true,
-        zoom = 8,
-    },
-    options = {
-        { type = "toggle", key = "camera", label = "Mouvement de caméra" },
-        { type = "slider", key = "zoom", label = "Rapprochement de la caméra", min = 0, max = 20, step = 1 },
-    },
-})
+-- Part of the "Mode immersion" module, which holds its options.
+ns.QuestScene = {}
 
-function mod:OnEnable()
-    db = self.db
+function ns.QuestScene.IsPlaying()
+    return playing
+end
+
+function ns.QuestScene.Enable(moduleDB)
+    db = moduleDB
     for _, e in ipairs({ "QUEST_DETAIL", "QUEST_PROGRESS", "QUEST_COMPLETE", "QUEST_FINISHED",
                          "QUEST_ITEM_UPDATE", "PLAYER_REGEN_DISABLED" }) do
         events:RegisterEvent(e)
     end
 end
 
-function mod:OnDisable()
+function ns.QuestScene.Disable()
     events:UnregisterAllEvents()
     Stop()
 end

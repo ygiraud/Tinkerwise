@@ -22,15 +22,7 @@ local PROFILES = {
 local db, profile
 local GREEN, RED, WHITE, SKY, VIOLET = { 0.3, 1, 0.3 }, { 1, 0.38, 0.38 }, { 1, 1, 1 }, { 0.65, 0.88, 1 }, { 0.8, 0.65, 1 }
 
-local function Comma(x) return (format("%.1f", x):gsub("%.", ",")) end
-
--- Classic physical damage reduction against an attacker of the given level.
-local function DamageReduction(armor, level)
-    if not armor or armor <= 0 then return 0 end
-    local k = 400 + 85 * level
-    if level >= 60 then k = k + 4.5 * 85 * (level - 59) end
-    return math.min(armor / (armor + k), 0.75)
-end
+local Comma, DamageReduction = ns.Comma, ns.DamageReduction
 
 ---------------------------------------------------------------------------
 -- Badges
@@ -43,30 +35,7 @@ holder:SetClampedToScreen(true)
 holder:Hide()
 
 local function CreateBadge(iconPath)
-    local f = CreateFrame("Frame", nil, holder, "BackdropTemplate")
-    f:SetSize(70, 22)
-    f:SetBackdrop({
-        bgFile = "Interface\\Tooltips\\UI-Tooltip-Background",
-        edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
-        tile = true, tileSize = 16, edgeSize = 12,
-        insets = { left = 3, right = 3, top = 3, bottom = 3 },
-    })
-    f:SetBackdropColor(0.05, 0.05, 0.05, 0.85)
-    f:SetBackdropBorderColor(1, 0.82, 0, 1)
-    f.icon = f:CreateTexture(nil, "ARTWORK")
-    f.icon:SetSize(16, 16)
-    f.icon:SetPoint("LEFT", 4, 0)
-    f.icon:SetTexture(iconPath)
-    f.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
-    f.text = f:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    f.text:SetPoint("LEFT", f.icon, "RIGHT", 4, 0)
-    function f:Set(text, c)
-        self.text:SetText(text)
-        self.text:SetTextColor(c[1], c[2], c[3])
-        self:SetWidth(math.max(56, self.text:GetStringWidth() + 30))
-        self.on = true
-    end
-    return f
+    return ns.CreateBadge(holder, iconPath)
 end
 
 -- Columns, bottom badge first.

@@ -235,7 +235,7 @@ local mod = TW:NewModule("Alerts", {
         { type = "toggle", key = "lowVignette", label = "Bord de l'écran rouge" },
         { type = "toggle", key = "lowSound", label = "Son d'alerte répété" },
         { type = "select", key = "lowSoundChoice", label = "Son (joué quand vous le choisissez)", values = SOUND_CHOICES },
-        { type = "toggle", key = "lowPotion", label = "Faire clignoter le Rappel potion" },
+        { type = "toggle", key = "lowPotion", label = "Faire clignoter le Rappel potion (module Rappel potion requis)" },
         { type = "execute", label = "Tester (4 s)", func = function()
             lowTestUntil = GetTime() + 4
             CheckAll()

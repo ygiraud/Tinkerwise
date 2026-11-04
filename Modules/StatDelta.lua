@@ -161,26 +161,7 @@ local db
 local frame = CreateFrame("Frame", "TinkerwiseStatDeltaFrame", UIParent)
 frame:Hide()
 frame:SetSize(220, 20)
-frame:SetClampedToScreen(true)
-frame:SetMovable(true)
-frame:EnableMouse(false)
-frame:RegisterForDrag("LeftButton")
-
-local bg = frame:CreateTexture(nil, "BACKGROUND")
-bg:SetAllPoints()
-bg:SetColorTexture(0, 0.6, 1, 0.4)
-bg:Hide()
-local dragLabel = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-dragLabel:SetPoint("CENTER")
-dragLabel:SetText("StatDelta - drag me")
-dragLabel:Hide()
-
-frame:SetScript("OnDragStart", frame.StartMoving)
-frame:SetScript("OnDragStop", function(self)
-    self:StopMovingOrSizing()
-    local point, _, _, x, y = self:GetPoint()
-    db.point, db.x, db.y = point, x, y
-end)
+TW:CreateMover(frame, function() return db end, "StatDelta - drag me", DEFAULTS)
 
 -- Gold "STATISTICS" header with a fading underline, shown while lines are visible.
 local header = frame:CreateFontString(nil, "OVERLAY")
@@ -369,17 +350,6 @@ end)
 -- Module
 ---------------------------------------------------------------------------
 
-local function ApplyPosition()
-    frame:ClearAllPoints()
-    frame:SetPoint(db.point, UIParent, db.point, db.x, db.y)
-end
-
-local function SetLocked(locked)
-    frame:EnableMouse(not locked)
-    bg:SetShown(not locked)
-    dragLabel:SetShown(not locked)
-end
-
 local function ClearLines()
     while #active > 0 do Release(#active) end
     header:Hide(); rule:Hide()
@@ -405,19 +375,14 @@ local mod = TW:NewModule("StatDelta", {
             ShowDelta({ key = "INT" }, 1, 25)
             ShowDelta({ key = "SPI" }, -2, 25)
         end },
-        { type = "execute", label = "Déplacer / Verrouiller", func = function()
-            SetLocked(frame:IsMouseEnabled())
-        end },
-        { type = "execute", label = "Réinitialiser la position", func = function()
-            db.point, db.x, db.y = DEFAULTS.point, DEFAULTS.x, DEFAULTS.y
-            ApplyPosition()
-        end },
+        { type = "execute", label = "Déplacer / Verrouiller", func = function() frame:ToggleMover() end },
+        { type = "execute", label = "Réinitialiser la position", func = function() frame:ResetPosition() end },
     },
 })
 
 function mod:OnEnable()
     db = self.db
-    ApplyPosition()
+    frame:ApplyPosition()
     frame:Show()
     events:RegisterEvent("PLAYER_ENTERING_WORLD")
     for _, e in ipairs(UNIT_EVENTS) do pcall(events.RegisterUnitEvent, events, e, "player") end
@@ -430,13 +395,13 @@ end
 function mod:OnDisable()
     events:UnregisterAllEvents()
     ready = false
-    SetLocked(true)
+    frame:Lock()
     ClearLines()
     frame:Hide()
 end
 
 function mod:SetEditMode(on)
-    SetLocked(not on)
+    frame:SetUnlocked(on)
 end
 
 function mod:OnOptionChanged()

@@ -195,7 +195,7 @@ end
 
 local mod = TW:NewModule("ItemCompare", {
     title = "Comparateur d'objets",
-    section = "Personnage",
+    section = "Objets",
     icon = "Interface\\Icons\\INV_Misc_Spyglass_02",
     desc = "Au survol d'un objet équipable, l'infobulle indique ce qu'il vous ferait gagner ou perdre par rapport à l'objet porté au même emplacement (les deux anneaux, bijoux ou armes à une main sont comparés séparément). Vert = gain, rouge = perte.",
     defaults = DEFAULTS,
@@ -209,5 +209,3 @@ function mod:OnEnable()
     db = self.db
     Hook() -- hooks cannot be removed; OnTooltipSetItem checks that the module is active
 end
-
-function mod:OnDisable() end

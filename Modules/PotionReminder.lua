@@ -23,7 +23,7 @@ local MIN_LEVEL = {
     [118] = 1, [858] = 3, [929] = 12, [1710] = 21, [3928] = 35, [13446] = 45,
     [2455] = 5, [3385] = 14, [3827] = 22, [6149] = 31, [13443] = 41, [13444] = 49,
 }
-ns.POTIONS, ns.POTION_MIN_LEVEL = POTIONS, MIN_LEVEL -- shared with the check-up
+ns.POTIONS = POTIONS -- shared with the check-up
 local KINDS = { "heal", "mana" }
 local GOLD = { 1, 0.82, 0.3 }
 
@@ -197,7 +197,7 @@ local function Schedule()
     pending = true
     C_Timer.After(0.2, function()
         pending = false
-        Refresh()
+        RefreshIfActive()
     end)
 end
 

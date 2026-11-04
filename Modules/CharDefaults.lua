@@ -80,7 +80,7 @@ local function ApplyProfile()
 end
 
 local function CharacterKey()
-    return UnitName("player") .. "-" .. GetRealmName()
+    return TW:PlayerName() .. "-" .. GetRealmName()
 end
 
 -- Characters already played when first seen are recorded but left untouched.
@@ -108,6 +108,7 @@ local mod = TW:NewModule("CharDefaults", {
     title = "Réglages par défaut",
     icon = "Interface\\Icons\\INV_Misc_Note_01",
     section = "Configuration",
+    defaultEnabled = true,
     accountWide = true,
     desc = "Garde la fouille automatique activée et prépare les nouveaux personnages (niveau 1) : barres d'action et profil du mode édition. Les personnages existants ne changent que si vous cliquez sur « Appliquer à ce personnage ».",
     defaults = {

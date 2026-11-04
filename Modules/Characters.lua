@@ -1,5 +1,6 @@
 -- Characters: gold, level, rested XP and last login of every character of the account.
 -- A character's data is saved while it is played; rested XP is then estimated from the elapsed time.
+-- Part of the "Mes personnages" module (see Bags.lua), whose saved table it shares.
 
 local _, ns = ...
 local TW = ns.TW
@@ -13,17 +14,12 @@ local db
 
 local function Save()
     if not db then return end
-    local key = UnitName("player") .. " - " .. GetRealmName()
-    db.chars[key] = {
-        name = UnitName("player"),
-        class = select(2, UnitClass("player")),
-        level = UnitLevel("player"),
-        money = GetMoney(),
-        rested = GetXPExhaustion() or 0,
-        xpMax = UnitXPMax("player"),
-        resting = IsResting(),
-        time = time(),
-    }
+    local c = ns.CurrentCharacter()
+    c.level = UnitLevel("player")
+    c.rested = GetXPExhaustion() or 0
+    c.xpMax = UnitXPMax("player")
+    c.resting = IsResting()
+    c.time = time()
 end
 
 local function RestedPercent(c)
@@ -94,8 +90,10 @@ local function Refresh()
     local list = {}
     local gold = 0
     for _, c in pairs(db.chars) do
-        list[#list + 1] = c
-        gold = gold + c.money
+        if c.level then -- not seen since this list exists: only its bags are known
+            list[#list + 1] = c
+            gold = gold + c.money
+        end
     end
     table.sort(list, function(a, b)
         if a.level ~= b.level then return a.level > b.level end
@@ -103,11 +101,10 @@ local function Refresh()
     end)
     for i, c in ipairs(list) do
         local row = Row(i)
-        local color = RAID_CLASS_COLORS[c.class]
-        row.cells[1]:SetText(color and format("|c%s%s|r", color.colorStr, c.name) or c.name)
+        row.cells[1]:SetText(ns.ClassColored(c))
         row.cells[2]:SetText(c.level)
         row.cells[3]:SetText(GetCoinTextureString(c.money))
-        row.cells[4]:SetText(format("%d %%", RestedPercent(c)))
+        row.cells[4]:SetText(c.level >= GetMaxPlayerLevel() and "----" or format("%d %%", RestedPercent(c)))
         row.cells[5]:SetText(Ago(time() - c.time))
         row:Show()
     end
@@ -125,20 +122,10 @@ end
 local events = CreateFrame("Frame")
 events:SetScript("OnEvent", Save)
 
-local mod = TW:NewModule("Characters", {
-    title = "Mes personnages",
-    icon = "Interface\\Icons\\INV_Misc_GroupNeedMore",
-    section = "Personnage",
-    accountWide = true,
-    desc = "Résume l'or, le niveau, l'XP reposée et la dernière connexion de vos personnages. Un personnage apparaît après sa première connexion et ses données datent de sa dernière session ; seul le repos est estimé d'après le temps écoulé. /twperso pour ouvrir.",
-    options = {
-        { type = "execute", label = "Afficher", func = Toggle },
-    },
-})
+ns.CharacterList = { Toggle = Toggle }
 
-function mod:OnEnable()
-    db = self.db
-    db.chars = db.chars or {}
+function ns.CharacterList.Enable(moduleDB)
+    db = moduleDB
     for _, e in ipairs({ "PLAYER_ENTERING_WORLD", "PLAYER_MONEY", "PLAYER_XP_UPDATE",
                          "PLAYER_LEVEL_UP", "PLAYER_UPDATE_RESTING", "PLAYER_LOGOUT" }) do
         events:RegisterEvent(e)
@@ -146,12 +133,12 @@ function mod:OnEnable()
     if IsLoggedIn() then Save() end
 end
 
-function mod:OnDisable()
+function ns.CharacterList.Disable()
     events:UnregisterAllEvents()
     if win then win:Hide() end
 end
 
-SLASH_TINKERWISEPERSO1 = "/twperso"
-SlashCmdList.TINKERWISEPERSO = function()
-    if mod.active then Toggle() else TW:Print("le module Mes personnages est désactivé (/tw).") end
+SLASH_TINKERWISECHARS1 = "/twchars"
+SlashCmdList.TINKERWISECHARS = function()
+    if TW.modules.Bags.active then Toggle() else TW:Print("le module Mes personnages est désactivé (/tw).") end
 end

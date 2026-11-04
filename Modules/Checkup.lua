@@ -86,18 +86,8 @@ local db
 -- Helpers
 ---------------------------------------------------------------------------
 
-local NumSlots = C_Container and C_Container.GetContainerNumSlots or GetContainerNumSlots
-local SlotItemID = C_Container and C_Container.GetContainerItemID or GetContainerItemID
+local NumSlots, ContainerItem = API.ContainerNumSlots, API.ContainerItem
 local FreeSlots = C_Container and C_Container.GetContainerNumFreeSlots or GetContainerNumFreeSlots
-
-local function SlotCount(bag, slot)
-    if C_Container and C_Container.GetContainerItemInfo then
-        local info = C_Container.GetContainerItemInfo(bag, slot)
-        return info and info.stackCount or 0
-    end
-    local _, count = GetContainerItemInfo(bag, slot)
-    return count or 0
-end
 
 local function ItemName(id)
     local name = GetItemInfo(id)
@@ -170,8 +160,8 @@ local function ScanBags()
             inv.total = inv.total + n
         end
         for slot = 1, n do
-            local id = SlotItemID(bag, slot)
-            if id then inv.counts[id] = (inv.counts[id] or 0) + SlotCount(bag, slot) end
+            local id, count = ContainerItem(bag, slot)
+            if id then inv.counts[id] = (inv.counts[id] or 0) + (count or 0) end
         end
     end
     return inv
@@ -185,7 +175,7 @@ local function Tip(cat, prio, text)
     cat.tips[#cat.tips + 1] = { prio = prio, text = text }
 end
 
-local function CheckArmor(want)
+local function CheckArmor()
     local cat = NewCategory("armor", "Armure")
     local sum, n, lowest, lowestSlot, broken, cost = 0, 0, 101, nil, 0, 0
     scanTip:SetOwner(WorldFrame, "ANCHOR_NONE")
@@ -277,8 +267,8 @@ local function CheckPotions(inv)
     local level = UnitLevel("player")
     local heal, mana, stones, bandages = 0, 0, 0, 0
     local healSet, manaSet = {}, {}
-    for _, id in ipairs(ns.POTIONS and ns.POTIONS.heal or {}) do healSet[id] = true end
-    for _, id in ipairs(ns.POTIONS and ns.POTIONS.mana or {}) do manaSet[id] = true end
+    for _, id in ipairs(ns.POTIONS.heal) do healSet[id] = true end
+    for _, id in ipairs(ns.POTIONS.mana) do manaSet[id] = true end
     for id, count in pairs(inv.counts) do
         if healSet[id] then heal = heal + count
         elseif manaSet[id] then mana = mana + count
@@ -414,7 +404,7 @@ local function RunScan()
     local want = {}
     local cats = {}
     local function add(c) if c then cats[#cats + 1] = c end end
-    add(CheckArmor(want))
+    add(CheckArmor())
     add(CheckFoodOrDrink(inv, "food", want))
     if UsesMana() then add(CheckFoodOrDrink(inv, "drink", want)) end
     add(CheckPotions(inv))
@@ -456,12 +446,7 @@ end
 local function Clamp01(x) return math.max(0, math.min(1, x)) end
 local function EaseOut(p) return 1 - (1 - p) ^ 3 end
 
--- "CONSEILS" -> "C O N S E I L S" (UTF-8 aware)
-local function Spaced(s)
-    local out = {}
-    for ch in s:gmatch("[%z\1-\127\194-\244][\128-\191]*") do out[#out + 1] = ch end
-    return table.concat(out, " ")
-end
+local Spaced = ns.Spaced
 
 local function PctColor(p)
     if p >= 80 then return 0.3, 1, 0.3 end
@@ -922,13 +907,20 @@ local TOWN_WARN_EVERY = 300    -- seconds between "leaving town" alerts
 local INSTANCE_RECHECK = 1800  -- seconds before the same instance triggers a check-up again
 local lastTownWarn, lastInstanceAt = -TOWN_WARN_EVERY, 0
 
+-- For delayed actions: the module may have been disabled in the meantime.
+local function IfActive(action)
+    return function()
+        if TW.modules.Checkup.active then action() end
+    end
+end
+
 local events = CreateFrame("Frame")
 events:SetScript("OnEvent", function(_, event)
     if event == "PLAYER_UPDATE_RESTING" then
         local resting = IsResting()
         if wasResting and not resting and db.autoRest and GetTime() - lastTownWarn >= TOWN_WARN_EVERY then
             lastTownWarn = GetTime()
-            C_Timer.After(1, WarnLeavingTown)
+            C_Timer.After(1, IfActive(WarnLeavingTown))
         end
         wasResting = resting
     elseif event == "PLAYER_ENTERING_WORLD" then
@@ -939,12 +931,12 @@ events:SetScript("OnEvent", function(_, event)
         if inInstance and (kind == "party" or kind == "raid") then
             -- Not again after a corpse run in the same instance.
             if db.autoInstance and (name ~= lastInstance or GetTime() - lastInstanceAt > INSTANCE_RECHECK) then
-                C_Timer.After(3, Open)
+                C_Timer.After(3, IfActive(Open))
             end
             lastInstance, lastInstanceAt = name, GetTime()
         end
     elseif event == "MERCHANT_SHOW" then
-        if db.merchant then C_Timer.After(0.3, MerchantHints) end
+        if db.merchant then C_Timer.After(0.3, IfActive(MerchantHints)) end
     end
 end)
 

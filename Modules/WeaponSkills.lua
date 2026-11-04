@@ -161,7 +161,6 @@ local mod = TW:NewModule("WeaponSkills", {
     icon = "Interface\\Icons\\INV_Sword_04",
     desc = "Suit vos compétences d'arme (maximum = niveau × 5) : affiche un panneau déplaçable avec une barre par arme (rouge sous 50 %, orange en retard, vert au maximum). Si une catégorie de compétences est repliée dans la fenêtre du jeu, ses lignes ne sont pas lues.",
     defaults = DEFAULTS,
-    defaultEnabled = false,
     options = {
         { type = "header", label = "Compétences suivies" },
         { type = "checklist", key = "ignored", items = function()

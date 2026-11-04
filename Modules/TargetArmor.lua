@@ -1,5 +1,5 @@
 -- TargetArmor: hovering the target frame shows armor debuffs on the target and, for monsters
--- whose armor you entered with /twarmure, its armor, how much of your physical damage it
+-- whose armor you entered with /twarmor, its armor, how much of your physical damage it
 -- absorbs and your weapon damage against it. The game does not expose monster armor, so
 -- nothing is estimated.
 
@@ -28,7 +28,7 @@ local ARMOR_DEBUFFS = {
 local db
 local WHITE, SKY, ORANGE, GREEN = { 1, 1, 1 }, { 0.65, 0.88, 1 }, { 1, 0.63, 0.13 }, { 0.3, 1, 0.3 }
 
-local function Comma(x) return (format("%.1f", x):gsub("%.", ",")) end
+local Comma, DamageReduction = ns.Comma, ns.DamageReduction
 
 local function NpcID(unit)
     local guid = UnitGUID(unit)
@@ -58,14 +58,6 @@ local function ArmorDebuffs(unit)
     return total, sunder
 end
 
--- Classic physical damage reduction against an attacker of the given level.
-local function DamageReduction(armor, level)
-    if not armor or armor <= 0 then return 0 end
-    local k = 400 + 85 * level
-    if level >= 60 then k = k + 4.5 * 85 * (level - 59) end
-    return math.min(armor / (armor + k), 0.75)
-end
-
 ---------------------------------------------------------------------------
 -- Badges, stacked above the target portrait
 ---------------------------------------------------------------------------
@@ -76,30 +68,7 @@ holder:SetSize(1, 1)
 holder:Hide()
 
 local function CreateBadge(iconPath)
-    local f = CreateFrame("Frame", nil, holder, "BackdropTemplate")
-    f:SetSize(70, 22)
-    f:SetBackdrop({
-        bgFile = "Interface\\Tooltips\\UI-Tooltip-Background",
-        edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
-        tile = true, tileSize = 16, edgeSize = 12,
-        insets = { left = 3, right = 3, top = 3, bottom = 3 },
-    })
-    f:SetBackdropColor(0.05, 0.05, 0.05, 0.85)
-    f:SetBackdropBorderColor(1, 0.82, 0, 1)
-    f.icon = f:CreateTexture(nil, "ARTWORK")
-    f.icon:SetSize(16, 16)
-    f.icon:SetPoint("LEFT", 4, 0)
-    f.icon:SetTexture(iconPath)
-    f.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
-    f.text = f:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    f.text:SetPoint("LEFT", f.icon, "RIGHT", 4, 0)
-    function f:Set(text, c)
-        self.text:SetText(text)
-        self.text:SetTextColor(c[1], c[2], c[3])
-        self:SetWidth(math.max(56, self.text:GetStringWidth() + 30))
-        self.on = true
-    end
-    return f
+    return ns.CreateBadge(holder, iconPath)
 end
 
 local badges = {
@@ -190,7 +159,7 @@ local mod = TW:NewModule("TargetArmor", {
     title = "Armure de la cible",
     icon = "Interface\\Icons\\Ability_Warrior_Sunder",
     section = "Combat",
-    desc = "Survolez le cadre de votre cible (monstre) pour voir les débuffs d'armure qu'elle subit (Fracasser armure, Lucioles, Exposer l'armure…).\n\nLe jeu ne donne pas l'armure des monstres : indiquez-la avec /twarmure 1234 (monstre ciblé) pour voir aussi son armure, le % de dégâts qu'elle retire à vos coups et vos dégâts contre elle. Retirer : /twarmure clear",
+    desc = "Survolez le cadre de votre cible (monstre) pour voir les débuffs d'armure qu'elle subit (Fracasser armure, Lucioles, Exposer l'armure…).\n\nLe jeu ne donne pas l'armure des monstres : indiquez-la avec /twarmor 1234 (monstre ciblé) pour voir aussi son armure, le % de dégâts qu'elle retire à vos coups et vos dégâts contre elle. Retirer : /twarmor clear",
     defaults = DEFAULTS,
     options = {
         { type = "toggle", key = "debuffs", label = "Afficher les débuffs d'armure" },
@@ -211,9 +180,9 @@ function mod:OnDisable()
     alpha = 0
 end
 
-SLASH_TINKERWISEARMOR1 = "/twarmure"
+SLASH_TINKERWISEARMOR1 = "/twarmor"
 SlashCmdList.TINKERWISEARMOR = function(input)
-    if not db then return TW:Print("le module Armure de la cible est désactivé (/tw).") end
+    if not mod.active then return TW:Print("le module Armure de la cible est désactivé (/tw).") end
     local id = NpcID("target")
     if not id then return TW:Print("ciblez un monstre d'abord.") end
     local arg = strtrim(input or ""):lower()
@@ -225,7 +194,7 @@ SlashCmdList.TINKERWISEARMOR = function(input)
         TW:Print(format("armure de %s fixée à %d.", UnitName("target"), tonumber(arg)))
     else
         local base = BaseArmor("target")
-        TW:Print(format("armure de %s : %s. Usage : /twarmure 1234 | clear",
+        TW:Print(format("armure de %s : %s. Usage : /twarmor 1234 | clear",
             UnitName("target"), base and tostring(base) or "inconnue"))
     end
 end

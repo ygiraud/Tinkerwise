@@ -5,7 +5,7 @@
 --   section            group name in the module list (default "Divers")
 --   icon               texture path shown in the configuration window
 --   defaults           table of saved settings (copied into mod.db)
---   defaultEnabled     false to start disabled (default true)
+--   defaultEnabled     true to start enabled (default: disabled)
 --   accountWide        true to share settings between characters (default: per character)
 --   options            list of option widgets (see Config.lua)
 --   OnEnable, OnDisable, OnOptionChanged(key)   callbacks
@@ -45,10 +45,79 @@ ns.API = {
     UnitDebuff = _G.UnitDebuff or function(unit, index)
         return AuraValues(C_UnitAuras.GetDebuffDataByIndex(unit, index))
     end,
+    ContainerNumSlots = _G.C_Container and _G.C_Container.GetContainerNumSlots or _G.GetContainerNumSlots,
+    -- itemID, stackCount, quality, hasNoValue of a bag slot (new and old APIs).
+    ContainerItem = function(bag, slot)
+        if C_Container and C_Container.GetContainerItemInfo then
+            local info = C_Container.GetContainerItemInfo(bag, slot)
+            if info then return info.itemID, info.stackCount, info.quality, info.hasNoValue end
+            return
+        end
+        local _, count, _, quality, _, _, _, _, noValue, id = GetContainerItemInfo(bag, slot)
+        return id, count, quality, noValue
+    end,
 }
+
+-- "OPTIONS" -> "O P T I O N S" (UTF-8 aware)
+function ns.Spaced(s)
+    local out = {}
+    for ch in s:gmatch("[%z\1-\127\194-\244][\128-\191]*") do out[#out + 1] = ch end
+    return table.concat(out, " ")
+end
+
+-- 12.5 -> "12,5"
+function ns.Comma(x)
+    return (format("%.1f", x):gsub("%.", ","))
+end
+
+-- Classic physical damage reduction against an attacker of the given level.
+function ns.DamageReduction(armor, level)
+    if not armor or armor <= 0 then return 0 end
+    local k = 400 + 85 * level
+    if level >= 60 then k = k + 4.5 * 85 * (level - 59) end
+    return math.min(armor / (armor + k), 0.75)
+end
+
+-- Small dark badge with a gold border, an icon and a text (badge:Set(text, color)).
+function ns.CreateBadge(parent, iconPath)
+    local f = CreateFrame("Frame", nil, parent, "BackdropTemplate")
+    f:SetSize(70, 22)
+    f:SetBackdrop({
+        bgFile = "Interface\\Tooltips\\UI-Tooltip-Background",
+        edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+        tile = true, tileSize = 16, edgeSize = 12,
+        insets = { left = 3, right = 3, top = 3, bottom = 3 },
+    })
+    f:SetBackdropColor(0.05, 0.05, 0.05, 0.85)
+    f:SetBackdropBorderColor(1, 0.82, 0, 1)
+    f.icon = f:CreateTexture(nil, "ARTWORK")
+    f.icon:SetSize(16, 16)
+    f.icon:SetPoint("LEFT", 4, 0)
+    f.icon:SetTexture(iconPath)
+    f.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+    f.text = f:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    f.text:SetPoint("LEFT", f.icon, "RIGHT", 4, 0)
+    function f:Set(text, c)
+        self.text:SetText(text)
+        self.text:SetTextColor(c[1], c[2], c[3])
+        self:SetWidth(math.max(56, self.text:GetStringWidth() + 30))
+        self.on = true
+    end
+    return f
+end
 
 function TW:Print(text)
     print("|cff33ccffTinkerwise|r: " .. text)
+end
+
+-- On WoW Forever characters have a main and a secondary name, and only both together are unique.
+-- UnitFullName gives that second name there, and the realm on the other clients.
+function TW:PlayerName()
+    local name, second = UnitFullName("player")
+    name = name or UnitName("player")
+    local realm = GetNormalizedRealmName and GetNormalizedRealmName()
+    if second and second ~= "" and second ~= realm then return name .. " " .. second end
+    return name
 end
 
 function TW:NewModule(key, info)
@@ -237,9 +306,6 @@ loader:SetScript("OnEvent", function(_, event, arg1)
         TinkerwiseDB.modules = TinkerwiseDB.modules or {}
         TinkerwiseCharDB = TinkerwiseCharDB or {}
         TinkerwiseCharDB.modules = TinkerwiseCharDB.modules or {}
-        -- Settings used to be account-wide: the first character to log in inherits them.
-        TinkerwiseCharDB.minimap = TinkerwiseCharDB.minimap or TinkerwiseDB.minimap
-        TinkerwiseDB.minimap = nil
         -- Forget the settings of modules that no longer exist.
         for _, store in ipairs({ TinkerwiseDB.modules, TinkerwiseCharDB.modules }) do
             for key in pairs(store) do
@@ -259,13 +325,18 @@ loader:SetScript("OnEvent", function(_, event, arg1)
             for k, v in pairs(mod.defaults or {}) do
                 if db[k] == nil then db[k] = v end
             end
-            -- Off-by-default modules start off once, even if saved as on; then the player's choice stays.
-            if mod.defaultEnabled == false and not db.defaultApplied then
+            -- Modules start off once, even if saved as on; then the player's choice stays.
+            if not mod.defaultEnabled and not db.defaultApplied then
                 db.enabled, db.defaultApplied = false, true
             end
             if db.enabled == nil then db.enabled = true end
             mod.db = db
         end
+        -- The minimap button position used to be saved outside its module, and account-wide
+        -- before that (the first character to log in inherits it). Moved once, then removed.
+        local oldMinimap = TinkerwiseCharDB.minimap or TinkerwiseDB.minimap
+        if oldMinimap and oldMinimap.angle then TW.modules.MinimapButton.db.angle = oldMinimap.angle end
+        TinkerwiseCharDB.minimap, TinkerwiseDB.minimap = nil, nil
     elseif event == "PLAYER_LOGIN" then
         for _, mod in ipairs(TW.order) do
             if mod.db.enabled then TW:SetModuleEnabled(mod, true) end

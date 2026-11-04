@@ -17,19 +17,8 @@ local TICK = 0.2
 local db
 local queue, gained, ticker = {}, 0, nil
 
-local NumSlots = C_Container and C_Container.GetContainerNumSlots or GetContainerNumSlots
+local NumSlots, ContainerItem = ns.API.ContainerNumSlots, ns.API.ContainerItem
 local UseItem = C_Container and C_Container.UseContainerItem or UseContainerItem
-
--- Returns quality, count, itemID, hasNoValue for a bag slot (new and old APIs).
-local function SlotInfo(bag, slot)
-    if C_Container and C_Container.GetContainerItemInfo then
-        local info = C_Container.GetContainerItemInfo(bag, slot)
-        if info then return info.quality, info.stackCount, info.itemID, info.hasNoValue end
-        return
-    end
-    local _, count, _, quality, _, _, _, _, noValue, id = GetContainerItemInfo(bag, slot)
-    return quality, count, id, noValue
-end
 
 local function StopSelling()
     if ticker then ticker:Cancel() end
@@ -43,7 +32,7 @@ local function SellTick()
         local entry = table.remove(queue, 1)
         if not entry then break end
         -- the slot may have changed since it was queued
-        local quality, _, id = SlotInfo(entry.bag, entry.slot)
+        local id, _, quality = ContainerItem(entry.bag, entry.slot)
         if quality == 0 and id == entry.id then
             UseItem(entry.bag, entry.slot)
             gained = gained + entry.value
@@ -74,7 +63,7 @@ local function SellJunk()
     local total, links = 0, {}
     for bag = 0, 4 do
         for slot = 1, NumSlots(bag) or 0 do
-            local quality, count, id, noValue = SlotInfo(bag, slot)
+            local id, count, quality, noValue = ContainerItem(bag, slot)
             if quality == 0 and id and not noValue then
                 local _, link, _, _, _, _, _, _, _, _, price = GetItemInfo(id)
                 local value = (price or 0) * (count or 1)
@@ -107,7 +96,7 @@ end)
 
 local mod = TW:NewModule("AutoVendor", {
     title = "Vendeur automatique",
-    section = "Préparation",
+    section = "Objets",
     icon = "Interface\\Icons\\INV_Misc_Coin_02",
     desc = "Chez un marchand, vend automatiquement les objets gris (camelote) et répare votre équipement. Le total gagné et le coût de réparation s'affichent dans le chat.",
     defaults = DEFAULTS,

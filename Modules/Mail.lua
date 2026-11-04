@@ -5,8 +5,10 @@ local _, ns = ...
 local TW = ns.TW
 
 local STEP = 0.4 -- seconds between two actions, leaving the server time to answer
+local MAX_TRIES = 5 -- an attachment still there after this many tries cannot be taken (unique item...)
 
-local ticker, button, bagsFull
+local ticker, button, bagsFull, skipped
+local tries = {} -- "mail:slot:link" -> number of tries
 
 local function Stop()
     if ticker then ticker:Cancel(); ticker = nil end
@@ -26,7 +28,15 @@ local function Step()
             if hasItem then
                 if hasFree then
                     for slot = 1, ATTACHMENTS_MAX_RECEIVE or 12 do
-                        if GetInboxItem(i, slot) then return TakeInboxItem(i, slot) end
+                        if GetInboxItem(i, slot) then
+                            local key = i .. ":" .. slot .. ":" .. (GetInboxItemLink(i, slot) or "")
+                            local count = tries[key] or 0
+                            if count < MAX_TRIES then
+                                tries[key] = count + 1
+                                return TakeInboxItem(i, slot)
+                            end
+                            skipped = true
+                        end
                     end
                 else
                     bagsFull = true
@@ -34,13 +44,16 @@ local function Step()
             end
         end
     end
-    TW:Print(bagsFull and "courrier : vos sacs sont pleins." or "courrier : tout est récupéré.")
+    TW:Print(bagsFull and "courrier : vos sacs sont pleins."
+        or skipped and "courrier : certains objets n'ont pas pu être récupérés."
+        or "courrier : tout est récupéré.")
     Stop()
 end
 
 local function Start()
     if ticker then return end
-    bagsFull = false
+    bagsFull, skipped = false, false
+    wipe(tries)
     button:Disable()
     ticker = C_Timer.NewTicker(STEP, Step)
 end
@@ -66,7 +79,7 @@ end)
 local mod = TW:NewModule("Mail", {
     title = "Courrier",
     icon = "Interface\\Icons\\INV_Letter_15",
-    section = "Social",
+    section = "Objets",
     desc = "Ajoute un bouton « Tout récupérer » à la boîte aux lettres : or et objets, sauf les envois contre remboursement. S'arrête quand les sacs sont pleins.",
 })
 

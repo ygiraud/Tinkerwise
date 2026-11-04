@@ -13,15 +13,17 @@ Copiez le dossier dans `World of Warcraft\_classic_era_\Interface\AddOns\`. Il d
 | `/tw` | Ouvre la configuration |
 | `/tw move` | Déplace les fenêtres de l'addon |
 | `/checkup` | Lance le check-up |
-| `/twperso` | Affiche Mes personnages |
+| `/twchars` | Affiche Mes personnages |
+| `/twbags` | Affiche les sacs et banques de vos personnages |
 
 ## Modules
 
-- **Préparation :** Check-up, Buffs manquants, Rappel potion, Vendeur automatique
-- **Personnage :** Changements de stats, Infos portrait, Comparateur d'objets, Compétences d'arme, Suivi de session, Mes personnages
+- **Préparation :** Check-up, Buffs manquants, Rappel potion
 - **Combat :** Alertes, Armure de la cible
-- **Social :** Remerciements & rebuff, Confort de groupe, Courrier
-- **Immersion :** Fondu de l'interface, Scène de quête
-- **Configuration :** Réglages par défaut
+- **Personnage :** Mes personnages, Changements de stats, Infos portrait, Compétences d'arme, Suivi de session
+- **Objets :** Comparateur d'objets, Vendeur automatique, Courrier
+- **Groupe :** Remerciements & rebuff, Confort de groupe
+- **Immersion :** Mode immersion (avec la scène de quête)
+- **Configuration :** Réglages par défaut, Bouton de la minicarte
 
-Les réglages sont enregistrés par personnage, sauf ceux de Réglages par défaut et Mes personnages, communs au compte.
+Les réglages sont enregistrés par personnage, sauf ceux de Réglages par défaut et Mes personnages, communs au compte. Tous les modules sont désactivés par défaut, sauf ceux de la section Configuration : activez ceux que vous voulez dans `/tw`.

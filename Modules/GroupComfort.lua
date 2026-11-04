@@ -60,7 +60,7 @@ end)
 local mod = TW:NewModule("GroupComfort", {
     title = "Confort de groupe",
     icon = "Interface\\Icons\\Spell_Holy_PrayerOfFortitude",
-    section = "Social",
+    section = "Groupe",
     desc = "Accepte automatiquement les invitations de groupe de vos amis et de votre guilde, les résurrections et, si vous le souhaitez, les invocations.",
     defaults = {
         invites = true,

@@ -121,7 +121,7 @@ local function Refresh()
     panel:SetHeight(42 + #rows * 15)
 end
 
-C_Timer.NewTicker(1, Refresh)
+local ticker
 
 ---------------------------------------------------------------------------
 -- Tracking
@@ -161,7 +161,6 @@ local mod = TW:NewModule("SessionStats", {
     icon = "Interface\\Icons\\INV_Misc_PocketWatch_01",
     desc = "Petit panneau qui affiche depuis la connexion : durée de jeu, XP gagnée, XP par heure, temps estimé avant le niveau suivant, or gagné ou perdu, monstres tués et quêtes rendues.",
     defaults = DEFAULTS,
-    defaultEnabled = false,
     options = {
         { type = "toggle", key = "showWindow", label = "Afficher le panneau" },
         { type = "toggle", key = "hideAtMax", label = "Masquer l'XP au niveau maximum" },
@@ -181,7 +180,10 @@ local mod = TW:NewModule("SessionStats", {
 function mod:OnEnable()
     db = self.db
     if not session.start then ResetSession() end
+    -- XP gained while the module was off does not count.
+    session.lastXP, session.lastMax = UnitXP("player"), UnitXPMax("player")
     panel:ApplyPosition()
+    ticker = C_Timer.NewTicker(1, Refresh)
     events:RegisterEvent("PLAYER_XP_UPDATE")
     events:RegisterEvent("PLAYER_MONEY")
     events:RegisterEvent("QUEST_TURNED_IN")
@@ -190,6 +192,7 @@ function mod:OnEnable()
 end
 
 function mod:OnDisable()
+    if ticker then ticker:Cancel(); ticker = nil end
     events:UnregisterAllEvents()
     panel:Lock()
     panel:Hide()

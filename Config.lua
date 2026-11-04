@@ -30,12 +30,7 @@ local rows, panels = {}, {}
 -- Helpers
 ---------------------------------------------------------------------------
 
--- "OPTIONS" -> "O P T I O N S" (UTF-8 aware)
-local function Spaced(s)
-    local out = {}
-    for ch in s:gmatch("[%z\1-\127\194-\244][\128-\191]*") do out[#out + 1] = ch end
-    return table.concat(out, " ")
-end
+local Spaced = ns.Spaced
 
 local function RoundMask(tex, parent)
     if not parent.CreateMaskTexture then return end
@@ -262,7 +257,7 @@ local function BuildPanel(mod)
     title:SetText(mod.title or mod.key)
 
     outer.switch = CreateSwitch(outer, function()
-        TW:SetModuleEnabled(mod, not mod.db.enabled)
+        TW:SetModuleEnabled(mod, not mod.active)
         TW:RefreshConfig()
     end)
     outer.switch:SetPoint("TOPRIGHT", -2, -8)
@@ -368,7 +363,7 @@ local function BuildPanel(mod)
                 w:SetPoint("TOPLEFT", card, "TOPLEFT", bx, cy - 2)
                 bx = bx + w:GetWidth() + 6
                 w:SetScript("OnClick", function() opt.func(mod) end)
-                function w:Refresh() self:SetEnabled(mod.db.enabled) end -- actions need an active module
+                function w:Refresh() self:SetEnabled(mod.active and true or false) end -- actions need an active module
                 lastWasButton = true
             elseif opt.type == "checklist" then
                 -- one box per item; db[key] holds the unticked names, so new items start ticked
@@ -470,12 +465,12 @@ local function BuildRow(mod, y, parent)
     row.pip.glow:SetPoint("CENTER")
     row.pip:SetScript("OnClick", function()
         PlaySound(SOUNDKIT.IG_MAINMENU_OPTION_CHECKBOX_ON)
-        TW:SetModuleEnabled(mod, not mod.db.enabled)
+        TW:SetModuleEnabled(mod, not mod.active)
         TW:RefreshConfig()
     end)
     row.pip:SetScript("OnEnter", function(self)
         GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-        GameTooltip:AddLine(mod.db.enabled and "Cliquer pour désactiver" or "Cliquer pour activer")
+        GameTooltip:AddLine(mod.active and "Cliquer pour désactiver" or "Cliquer pour activer")
         GameTooltip:Show()
     end)
     row.pip:SetScript("OnLeave", GameTooltip_Hide)
@@ -638,7 +633,7 @@ function TW:RefreshConfig()
     if not window then return end
     local active = 0
     for _, row in ipairs(rows) do
-        local on, isSel = row.mod.db.enabled, row.mod == selected
+        local on, isSel = row.mod.active, row.mod == selected
         if on then active = active + 1 end
         row.stripe:SetAlpha(isSel and 0.35 or 0)
         row.bar:SetShown(isSel)
@@ -664,7 +659,7 @@ function TW:RefreshConfig()
 
     local panel = selected and panels[selected.key]
     if panel then
-        panel.switch:SetOn(selected.db.enabled)
+        panel.switch:SetOn(selected.active)
         for _, w in ipairs(panel.widgets) do
             if w.Refresh then w:Refresh() end
         end

@@ -3,7 +3,7 @@
 ## Notes: Personal collection of small tools. /tw to configure.
 ## Notes-frFR: Collection d'outils personnels. /tw pour configurer.
 ## Author: Yoan
-## Version: 1.0.0
+## Version: 0.1.0
 ## IconTexture: Interface\Icons\INV_Misc_Wrench_01
 ## SavedVariables: TinkerwiseDB
 ## SavedVariablesPerCharacter: TinkerwiseCharDB
@@ -12,19 +12,20 @@ Core.lua
 Modules\Checkup.lua
 Modules\MissingBuffs.lua
 Modules\PotionReminder.lua
-Modules\AutoVendor.lua
-Modules\StatDelta.lua
-Modules\PortraitInfo.lua
-Modules\ItemCompare.lua
-Modules\WeaponSkills.lua
-Modules\SessionStats.lua
 Modules\Alerts.lua
 Modules\TargetArmor.lua
+Modules\Bags.lua
+Modules\Characters.lua
+Modules\StatDelta.lua
+Modules\PortraitInfo.lua
+Modules\WeaponSkills.lua
+Modules\SessionStats.lua
+Modules\ItemCompare.lua
+Modules\AutoVendor.lua
+Modules\Mail.lua
 Modules\BuffThanks.lua
 Modules\GroupComfort.lua
-Modules\Mail.lua
-Modules\Characters.lua
-Modules\UIFade.lua
+Modules\Immersion.lua
 Modules\QuestScene.lua
 Modules\CharDefaults.lua
 Config.lua
