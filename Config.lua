@@ -12,6 +12,7 @@
 --   { type = "checklist", key, items }  items() returns names; db[key] holds the unticked ones
 
 local _, ns = ...
+local L = ns.L
 local TW = ns.TW
 
 local WIDTH, HEIGHT = 880, 640
@@ -200,12 +201,12 @@ local function CreateSwitch(parent, onClick)
         if on then
             self:SetBackdropColor(0.05, 0.25, 0.05, 0.95)
             self:SetBackdropBorderColor(0.3, 1, 0.3, 1)
-            self.text:SetText(Spaced("ACTIVÉ"))
+            self.text:SetText(Spaced(L["ON"]))
             self.text:SetTextColor(0.4, 1, 0.4)
         else
             self:SetBackdropColor(0.12, 0.1, 0.08, 0.95)
             self:SetBackdropBorderColor(0.5, 0.45, 0.4, 1)
-            self.text:SetText(Spaced("DÉSACTIVÉ"))
+            self.text:SetText(Spaced(L["OFF"]))
             self.text:SetTextColor(0.6, 0.55, 0.5)
         end
     end
@@ -247,7 +248,7 @@ local function BuildPanel(mod)
 
     local section = outer:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
     section:SetPoint("TOPLEFT", iconHolder, "TOPRIGHT", 14, 0)
-    section:SetText(Spaced((mod.section or "Divers"):upper()))
+    section:SetText(Spaced((mod.section or L["Misc"]):upper()))
     section:SetTextColor(0.8, 0.7, 0.5)
 
     local title = outer:CreateFontString(nil, "OVERLAY")
@@ -325,7 +326,7 @@ local function BuildPanel(mod)
         if opt.type == "header" then
             OpenCard(opt.label)
         else
-            if not card then OpenCard("Réglages") end
+            if not card then OpenCard(L["Settings"]) end
             if opt.type ~= "execute" and lastWasButton then
                 cy = cy - 30
                 lastWasButton = false
@@ -472,7 +473,7 @@ local function BuildRow(mod, y, parent)
     end)
     row.pip:SetScript("OnEnter", function(self)
         GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-        GameTooltip:AddLine(mod.active and "Cliquer pour désactiver" or "Cliquer pour activer")
+        GameTooltip:AddLine(mod.active and L["Click to disable"] or L["Click to enable"])
         GameTooltip:Show()
     end)
     row.pip:SetScript("OnLeave", GameTooltip_Hide)
@@ -527,7 +528,7 @@ local function BuildWindow()
     tagline:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 2, -2)
     tagline:SetTextColor(0.8, 0.7, 0.5)
     local version = (C_AddOns and C_AddOns.GetAddOnMetadata or GetAddOnMetadata)("Tinkerwise", "Version") or ""
-    tagline:SetText(Spaced("BOÎTE À OUTILS PERSONNELLE") .. "   |cff998866v" .. version .. "|r")
+    tagline:SetText(Spaced(L["PERSONAL TOOLBOX"]) .. "   |cff998866v" .. version .. "|r")
 
     local headRule = GoldRule(window)
     headRule:SetPoint("TOPLEFT", 22, -80)
@@ -544,7 +545,7 @@ local function BuildWindow()
 
     local sections, bySection = {}, {}
     for _, mod in ipairs(TW.order) do
-        local section = mod.section or "Divers"
+        local section = mod.section or L["Misc"]
         if not bySection[section] then
             bySection[section] = {}
             sections[#sections + 1] = section
@@ -584,12 +585,12 @@ local function BuildWindow()
     local close = CreateFrame("Button", nil, window, "UIPanelButtonTemplate")
     close:SetSize(100, 22)
     close:SetPoint("BOTTOMRIGHT", -22, 16)
-    close:SetText("Fermer")
+    close:SetText(L["Close"])
     close:SetScript("OnClick", function() window:Hide() end)
     local edit = CreateFrame("Button", nil, window, "UIPanelButtonTemplate")
     edit:SetSize(160, 22)
     edit:SetPoint("RIGHT", close, "LEFT", -6, 0)
-    edit:SetText("Déplacer les fenêtres")
+    edit:SetText(L["Move windows"])
     edit:SetScript("OnClick", function() TW:SetEditMode(true) end)
 
     -- Resize grip, bottom right. The size is saved per character.
@@ -657,7 +658,7 @@ function TW:RefreshConfig()
             row.pip.glow:Hide()
         end
     end
-    footer:SetText(Spaced(format("%d / %d MODULES ACTIFS", active, #rows)))
+    footer:SetText(Spaced(format(L["%d / %d ACTIVE MODULES"], active, #rows)))
 
     local panel = selected and panels[selected.key]
     if panel then

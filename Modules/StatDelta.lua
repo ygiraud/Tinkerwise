@@ -1,6 +1,7 @@
 -- StatDelta: shows stat changes (+/-) when gear, buffs, forms, talents or level change.
 
 local _, ns = ...
+local L = ns.L
 local TW = ns.TW
 
 local DEFAULTS = {
@@ -18,7 +19,7 @@ local DEFAULTS = {
 -- Labels
 ---------------------------------------------------------------------------
 
-local L = {
+local STAT_NAMES = {
     STR = "Strength", AGI = "Agility", STA = "Stamina", INT = "Intellect", SPI = "Spirit",
     HEALTH = "Health", MANA = "Mana", ARMOR = "Armor", DEFENSE = "Defense",
     AP = "Attack Power", RAP = "Ranged Attack Power", DPS = "Main Hand DPS",
@@ -32,7 +33,7 @@ local L = {
 }
 
 if GetLocale() == "frFR" then
-    L = {
+    STAT_NAMES = {
         STR = "Force", AGI = "Agilité", STA = "Endurance", INT = "Intelligence", SPI = "Esprit",
         HEALTH = "Vie", MANA = "Mana", ARMOR = "Armure", DEFENSE = "Défense",
         AP = "Puissance d'attaque", RAP = "Puissance d'attaque à distance", DPS = "DPS main droite",
@@ -70,11 +71,11 @@ local STATS = {
     { key = "RUN", unit = " %", noRel = true },
 }
 for i, school in ipairs(SCHOOLS) do
-    STATS[#STATS + 1] = { key = "DMG_" .. school, label = format(L.SCHOOLDMG, L[school]) }
+    STATS[#STATS + 1] = { key = "DMG_" .. school, label = format(STAT_NAMES.SCHOOLDMG, STAT_NAMES[school]) }
 end
 for i, school in ipairs(SCHOOLS) do
     if school ~= "HOLY" then
-        STATS[#STATS + 1] = { key = "RES_" .. school, label = format(L.RESIST, L[school]) }
+        STATS[#STATS + 1] = { key = "RES_" .. school, label = format(STAT_NAMES.RESIST, STAT_NAMES[school]) }
     end
 end
 
@@ -161,14 +162,14 @@ local db
 local frame = CreateFrame("Frame", "TinkerwiseStatDeltaFrame", UIParent)
 frame:Hide()
 frame:SetSize(220, 20)
-TW:CreateMover(frame, function() return db end, "StatDelta - drag me", DEFAULTS)
+TW:CreateMover(frame, function() return db end, L["Stat Changes - drag me"], DEFAULTS)
 
 -- Gold "STATISTICS" header with a fading underline, shown while lines are visible.
 local header = frame:CreateFontString(nil, "OVERLAY")
 header:SetFont(STANDARD_TEXT_FONT, 13, "OUTLINE") -- a font must be set before SetText
 header:SetPoint("TOPLEFT", frame, "TOPLEFT", 2, 0)
 header:SetTextColor(1, 0.82, 0)
-header:SetText(GetLocale() == "frFR" and "STATISTIQUES" or "STATISTICS")
+header:SetText(L["STATISTICS"])
 header:Hide()
 
 local rule = frame:CreateTexture(nil, "ARTWORK")
@@ -262,7 +263,7 @@ end
 
 local function ShowDelta(def, d, old)
     local num = FormatDelta(def, d)
-    local label = def.label or L[def.key]
+    local label = def.label or STAT_NAMES[def.key]
     -- Relative change, e.g. "(+8%)", for flat stats with a non-zero previous value.
     if not def.pct and not def.noRel and old and old > 0 then
         local rel = d / old * 100
@@ -356,27 +357,27 @@ local function ClearLines()
 end
 
 local mod = TW:NewModule("StatDelta", {
-    title = "Changements de stats",
+    title = L["Stat Changes"],
     icon = "Interface\\Icons\\Spell_Nature_Strength",
-    section = "Personnage",
-    desc = "Affiche les gains et pertes de stats quand vous changez d'équipement, recevez ou perdez un buff, changez de forme ou de talents.",
+    section = L["Character"],
+    desc = L["Shows stat gains and losses when you change gear, gain or lose a buff, or change form or talents."],
     defaults = DEFAULTS,
     options = {
-        { type = "slider", key = "size", label = "Taille du texte", min = 8, max = 40, step = 1 },
-        { type = "slider", key = "hold", label = "Durée d'affichage (s)", min = 1, max = 15, step = 0.5 },
-        { type = "slider", key = "maxLines", label = "Nombre de lignes max", min = 3, max = 30, step = 1 },
-        { type = "toggle", key = "chat", label = "Écrire aussi les changements dans le chat" },
-        { type = "toggle", key = "hidePrimary", label = "Masquer force, agilité, endurance, intelligence, esprit" },
-        { type = "toggle", key = "muteSwap", label = "Ignorer les changements d'arme en combat" },
-        { type = "execute", label = "Tester", func = function()
+        { type = "slider", key = "size", label = L["Text size"], min = 8, max = 40, step = 1 },
+        { type = "slider", key = "hold", label = L["Display duration (s)"], min = 1, max = 15, step = 0.5 },
+        { type = "slider", key = "maxLines", label = L["Maximum lines"], min = 3, max = 30, step = 1 },
+        { type = "toggle", key = "chat", label = L["Also write changes to chat"] },
+        { type = "toggle", key = "hidePrimary", label = L["Hide strength, agility, stamina, intellect, spirit"] },
+        { type = "toggle", key = "muteSwap", label = L["Ignore weapon swaps in combat"] },
+        { type = "execute", label = L["Test"], func = function()
             ShowDelta({ key = "HEALTH" }, 15, 115)
             ShowDelta({ key = "MANA" }, 26, 216)
             ShowDelta({ key = "MP5", dec = true }, 2.5, 31)
             ShowDelta({ key = "INT" }, 1, 25)
             ShowDelta({ key = "SPI" }, -2, 25)
         end },
-        { type = "execute", label = "Déplacer / Verrouiller", func = function() frame:ToggleMover() end },
-        { type = "execute", label = "Réinitialiser la position", func = function() frame:ResetPosition() end },
+        { type = "execute", label = L["Move / Lock"], func = function() frame:ToggleMover() end },
+        { type = "execute", label = L["Reset position"], func = function() frame:ResetPosition() end },
     },
 })
 

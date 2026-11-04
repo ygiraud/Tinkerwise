@@ -2,6 +2,7 @@
 -- on your action bars yet. Drag the icon onto a bar and it fades out.
 
 local _, ns = ...
+local L = ns.L
 local TW = ns.TW
 local GetItemInfo, GetItemCount, GetItemIcon = ns.API.GetItemInfo, ns.API.GetItemCount, ns.API.GetItemIcon
 
@@ -72,12 +73,12 @@ end
 local container = CreateFrame("Frame", "TinkerwisePotionFrame", UIParent)
 container:SetSize(88, 40)
 container:Hide()
-TW:CreateMover(container, function() return db end, "Rappel potion", DEFAULTS)
+TW:CreateMover(container, function() return db end, L["Potion Reminder"], DEFAULTS)
 
 local hint = container:CreateFontString(nil, "OVERLAY", "GameFontNormal")
 hint:SetPoint("TOP", container, "BOTTOM", 0, -6)
 hint:SetTextColor(GOLD[1], GOLD[2], GOLD[3])
-hint:SetText("Glisse-moi dans ta barre")
+hint:SetText(L["Drag me to your bar"])
 
 local buttons = {}
 for i, kind in ipairs(KINDS) do
@@ -111,7 +112,7 @@ for i, kind in ipairs(KINDS) do
         if not self.itemID then return end
         GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
         GameTooltip:SetHyperlink("item:" .. self.itemID)
-        GameTooltip:AddLine("Glisser sur une barre d'action", GOLD[1], GOLD[2], GOLD[3])
+        GameTooltip:AddLine(L["Drag onto an action bar"], GOLD[1], GOLD[2], GOLD[3])
         GameTooltip:Show()
     end)
     b:SetScript("OnLeave", GameTooltip_Hide)
@@ -209,26 +210,26 @@ events:SetScript("OnEvent", Schedule)
 ---------------------------------------------------------------------------
 
 local mod = TW:NewModule("PotionReminder", {
-    title = "Rappel potion",
+    title = L["Potion Reminder"],
     icon = "Interface\\Icons\\INV_Potion_54",
-    section = "Préparation",
-    desc = "Affiche la meilleure potion de soins / de mana utilisable de vos sacs quand elle n'est pas dans vos barres d'action. Glissez l'icône sur une barre : elle disparaît.",
+    section = L["Preparation"],
+    desc = L["Shows the best usable healing / mana potion in your bags when it isn't on your action bars. Drag the icon onto a bar and it disappears."],
     defaults = DEFAULTS,
     options = {
-        { type = "toggle", key = "heal", label = "Potions de soins" },
-        { type = "toggle", key = "mana", label = "Potions de mana" },
-        { type = "toggle", key = "hint", label = "Afficher « Glisse-moi dans ta barre »" },
-        { type = "slider", key = "size", label = "Taille de l'icône", min = 24, max = 80, step = 2 },
-        { type = "execute", label = "Aperçu (5 s)", func = function()
+        { type = "toggle", key = "heal", label = L["Healing potions"] },
+        { type = "toggle", key = "mana", label = L["Mana potions"] },
+        { type = "toggle", key = "hint", label = L["Show \"Drag me to your bar\""] },
+        { type = "slider", key = "size", label = L["Icon size"], min = 24, max = 80, step = 2 },
+        { type = "execute", label = L["Preview (5 s)"], func = function()
             previewUntil = GetTime() + 5
             Refresh()
             C_Timer.After(5.1, RefreshIfActive)
         end },
-        { type = "execute", label = "Déplacer / Verrouiller", func = function()
+        { type = "execute", label = L["Move / Lock"], func = function()
             container:ToggleMover()
             Refresh()
         end },
-        { type = "execute", label = "Réinitialiser la position", func = function() container:ResetPosition() end },
+        { type = "execute", label = L["Reset position"], func = function() container:ResetPosition() end },
     },
 })
 

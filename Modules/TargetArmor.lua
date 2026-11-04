@@ -4,6 +4,7 @@
 -- nothing is estimated.
 
 local _, ns = ...
+local L = ns.L
 local TW = ns.TW
 local UnitDebuff = ns.API.UnitDebuff
 
@@ -86,8 +87,8 @@ local function Update()
 
     local minus, sunder = ArmorDebuffs(unit)
     if db.debuffs and minus > 0 then
-        local text = "-" .. minus .. " armure (débuffs)"
-        if sunder > 0 then text = text .. format(" · Fracasser x%d", sunder) end
+        local text = "-" .. minus .. L[" armor (debuffs)"]
+        if sunder > 0 then text = text .. format(L[" · Sunder x%d"], sunder) end
         badges.debuff:Set(text, ORANGE)
     end
 
@@ -95,10 +96,10 @@ local function Update()
     local base = BaseArmor(unit)
     if not base then return end
     local armor = math.max(base - minus, 0)
-    badges.armor:Set(armor .. " armure", minus > 0 and GREEN or WHITE)
+    badges.armor:Set(armor .. L[" armor"], minus > 0 and GREEN or WHITE)
 
     local dr = DamageReduction(armor, UnitLevel("player"))
-    badges.reduc:Set("-" .. Comma(dr * 100) .. " % à vos coups", SKY)
+    badges.reduc:Set("-" .. Comma(dr * 100) .. L[" % to your hits"], SKY)
 
     if db.damage then
         local _, class = UnitClass("player")
@@ -113,7 +114,7 @@ local function Update()
         end
         if lo then
             badges.damage.icon:SetTexture(icon or "Interface\\Icons\\INV_Sword_04")
-            badges.damage:Set(format("%d - %d dégâts contre elle", lo * (1 - dr), hi * (1 - dr)), WHITE)
+            badges.damage:Set(format(L["%d - %d damage against it"], lo * (1 - dr), hi * (1 - dr)), WHITE)
         end
     end
 end
@@ -156,14 +157,14 @@ end)
 watcher:Hide()
 
 local mod = TW:NewModule("TargetArmor", {
-    title = "Armure de la cible",
+    title = L["Target Armor"],
     icon = "Interface\\Icons\\Ability_Warrior_Sunder",
     section = "Combat",
-    desc = "Survolez le cadre de votre cible (monstre) pour voir les débuffs d'armure qu'elle subit (Fracasser armure, Lucioles, Exposer l'armure…).\n\nLe jeu ne donne pas l'armure des monstres : indiquez-la avec /twarmor 1234 (monstre ciblé) pour voir aussi son armure, le % de dégâts qu'elle retire à vos coups et vos dégâts contre elle. Retirer : /twarmor clear",
+    desc = L["Hover over your target's frame (monster) to see its armor debuffs (Sunder Armor, Faerie Fire, Expose Armor…).\n\nThe game doesn't provide monster armor: enter it with /twarmor 1234 (with the monster targeted) to also see its armor, the % of damage it removes from your hits and your damage against it. Remove: /twarmor clear"],
     defaults = DEFAULTS,
     options = {
-        { type = "toggle", key = "debuffs", label = "Afficher les débuffs d'armure" },
-        { type = "toggle", key = "damage", label = "Afficher vos dégâts contre la cible" },
+        { type = "toggle", key = "debuffs", label = L["Show armor debuffs"] },
+        { type = "toggle", key = "damage", label = L["Show your damage against the target"] },
     },
 })
 
@@ -182,19 +183,19 @@ end
 
 SLASH_TINKERWISEARMOR1 = "/twarmor"
 SlashCmdList.TINKERWISEARMOR = function(input)
-    if not mod.active then return TW:Print("le module Armure de la cible est désactivé (/tw).") end
+    if not mod.active then return TW:Print(L["the Target Armor module is disabled (/tw)."]) end
     local id = NpcID("target")
-    if not id then return TW:Print("ciblez un monstre d'abord.") end
+    if not id then return TW:Print(L["target a monster first."]) end
     local arg = strtrim(input or ""):lower()
     if arg == "clear" then
         db.custom[id] = nil
-        TW:Print(format("correction retirée pour %s.", UnitName("target")))
+        TW:Print(format(L["override removed for %s."], UnitName("target")))
     elseif tonumber(arg) then
         db.custom[id] = tonumber(arg)
-        TW:Print(format("armure de %s fixée à %d.", UnitName("target"), tonumber(arg)))
+        TW:Print(format(L["%s's armor set to %d."], UnitName("target"), tonumber(arg)))
     else
         local base = BaseArmor("target")
-        TW:Print(format("armure de %s : %s. Usage : /twarmor 1234 | clear",
-            UnitName("target"), base and tostring(base) or "inconnue"))
+        TW:Print(format(L["%s's armor: %s. Usage: /twarmor 1234 | clear"],
+            UnitName("target"), base and tostring(base) or L["unknown"]))
     end
 end

@@ -2,6 +2,7 @@
 -- in a searchable window and adds who owns what to item tooltips.
 
 local _, ns = ...
+local L = ns.L
 local TW = ns.TW
 local API = ns.API
 
@@ -58,10 +59,10 @@ end
 -- "Sacs 3  Banque 5", leaving out the empty places.
 local function Places(bags, bank, equip, mail)
     local parts = {}
-    if (bags or 0) > 0 then parts[#parts + 1] = "Sacs " .. bags end
-    if (bank or 0) > 0 then parts[#parts + 1] = "Banque " .. bank end
-    if (equip or 0) > 0 then parts[#parts + 1] = "Porté " .. equip end
-    if (mail or 0) > 0 then parts[#parts + 1] = "Courrier " .. mail end
+    if (bags or 0) > 0 then parts[#parts + 1] = L["Bags "] .. bags end
+    if (bank or 0) > 0 then parts[#parts + 1] = L["Bank "] .. bank end
+    if (equip or 0) > 0 then parts[#parts + 1] = L["Worn "] .. equip end
+    if (mail or 0) > 0 then parts[#parts + 1] = L["Mail "] .. mail end
     return table.concat(parts, "  ")
 end
 
@@ -197,7 +198,7 @@ local function Build()
     win:SetScript("OnDragStart", win.StartMoving)
     win:SetScript("OnDragStop", win.StopMovingOrSizing)
     win:Hide()
-    TW:SkinDialog(win, "Sacs")
+    TW:SkinDialog(win, L["Bags"])
     tinsert(UISpecialFrames, "TinkerwiseBagsFrame")
 
     search = CreateFrame("EditBox", nil, win, "InputBoxTemplate")
@@ -208,7 +209,7 @@ local function Build()
     search:SetScript("OnEscapePressed", search.ClearFocus)
     local hint = win:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
     hint:SetPoint("BOTTOMLEFT", search, "TOPLEFT", -4, 2)
-    hint:SetText("Rechercher un objet")
+    hint:SetText(L["Search for an item"])
 
     listScroll = CreateFrame("ScrollFrame", nil, win, "UIPanelScrollFrameTemplate")
     listScroll:SetPoint("TOPLEFT", LIST_W + 36, -78)
@@ -223,7 +224,7 @@ local function Build()
     local forget = CreateFrame("Button", nil, win, "UIPanelButtonTemplate")
     forget:SetSize(170, 22)
     forget:SetPoint("BOTTOMRIGHT", -24, 18)
-    forget:SetText("Oublier ce personnage")
+    forget:SetText(L["Forget this character"])
     forget:SetScript("OnClick", function()
         if not selectedKey then return end
         db.chars[selectedKey] = nil
@@ -245,10 +246,10 @@ local function Build()
         text:SetPoint("LEFT", check, "RIGHT", 2, 0)
         text:SetText(label)
     end
-    Filter("showBags", "Sacs", 24, -34)
-    Filter("showBank", "Banque", 110, -34)
-    Filter("showMail", "Courrier", 24, -58)
-    Filter("showWorn", "Portés", 110, -58)
+    Filter("showBags", L["Bags"], 24, -34)
+    Filter("showBank", L["Bank"], 110, -34)
+    Filter("showMail", L["Mail"], 24, -58)
+    Filter("showWorn", L["Worn"], 110, -58)
 end
 
 -- Totals of the shown characters: { [id] = { bags, bank, equip, mail } }.
@@ -284,7 +285,7 @@ function Refresh()
     local keys = SortedKeys()
     local allButton = CharButton(1)
     allButton.key = nil
-    allButton.name:SetText("Tous les personnages")
+    allButton.name:SetText(L["All characters"])
     allButton.mark:SetShown(selectedKey == nil)
     allButton:Show()
     for i, key in ipairs(keys) do
@@ -319,7 +320,7 @@ function Refresh()
         local r = ItemRow(i)
         r.itemID = item.id
         r.icon:SetTexture(API.GetItemIcon(item.id))
-        r.name:SetText(item.name or "Chargement…")
+        r.name:SetText(item.name or L["Loading…"])
         if item.quality and GetItemQualityColor then
             -- Only three values: the fourth is a color string, not an alpha.
             local red, green, blue = GetItemQualityColor(item.quality)
@@ -335,11 +336,11 @@ function Refresh()
     local selected = selectedKey and db.chars[selectedKey]
     win.forget:SetShown(selected ~= nil)
     if selected and not selected.bankTime then
-        footer:SetText("Banque pas encore ouverte avec ce personnage")
+        footer:SetText(L["Bank not yet opened on this character"])
     elseif selected then
-        footer:SetText("Banque vue le " .. date("%d/%m/%Y", selected.bankTime))
+        footer:SetText(L["Bank last seen "] .. date(L["%m/%d/%Y"], selected.bankTime))
     else
-        footer:SetText("Or total : " .. GetCoinTextureString(gold))
+        footer:SetText(L["Total gold: "] .. GetCoinTextureString(gold))
     end
 end
 
@@ -433,7 +434,7 @@ local function ShowGold(owner)
     CurrentCharacter() -- brings the current money up to date
     local total = 0
     GameTooltip:SetOwner(owner, "ANCHOR_TOPLEFT")
-    GameTooltip:AddLine("Or de vos personnages")
+    GameTooltip:AddLine(L["Your characters' gold"])
     for _, key in ipairs(SortedKeys()) do
         local c = db.chars[key]
         total = total + (c.money or 0)
@@ -499,16 +500,16 @@ events:SetScript("OnEvent", function(_, event)
 end)
 
 local mod = TW:NewModule("Bags", {
-    title = "Mes personnages",
+    title = L["My Characters"],
     icon = "Interface\\Icons\\INV_Misc_GroupNeedMore",
-    section = "Personnage",
+    section = L["Character"],
     accountWide = true,
-    desc = "Résume l'or, le niveau, l'XP reposée et la dernière connexion de vos personnages (/twchars), et mémorise leurs sacs, trousseau, équipement, banque et courrier (/twbags), avec une recherche et le détail de qui possède quoi dans les infobulles. Un personnage apparaît après sa première connexion. Sacs et équipement se mettent à jour quand il joue, la banque et le courrier quand il les ouvre ; seul le repos est estimé d'après le temps écoulé.",
+    desc = L["Summarizes your characters' gold, level, rested XP and last login (/twchars), and remembers their bags, keyring, gear, bank and mail (/twbags), with search and tooltips showing who owns what. A character appears after their first login. Bags and gear update when they play, bank and mail when they open them; only rested XP is estimated, from elapsed time."],
     defaults = { tooltip = true, showBags = true, showBank = true, showMail = false, showWorn = false },
     options = {
-        { type = "toggle", key = "tooltip", label = "Afficher les possesseurs dans les infobulles" },
-        { type = "execute", label = "Afficher les personnages", func = function() ns.CharacterList.Toggle() end },
-        { type = "execute", label = "Afficher les sacs", func = Toggle },
+        { type = "toggle", key = "tooltip", label = L["Show owners in tooltips"] },
+        { type = "execute", label = L["Show characters"], func = function() ns.CharacterList.Toggle() end },
+        { type = "execute", label = L["Show bags"], func = Toggle },
     },
 })
 
@@ -537,5 +538,5 @@ end
 
 SLASH_TINKERWISEBAGS1 = "/twbags"
 SlashCmdList.TINKERWISEBAGS = function()
-    if mod.active then Toggle() else TW:Print("le module Sacs est désactivé (/tw).") end
+    if mod.active then Toggle() else TW:Print(L["the Bags module is disabled (/tw)."]) end
 end

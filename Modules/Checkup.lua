@@ -3,6 +3,7 @@
 -- dungeon, and points out what a merchant sells that you are missing.
 
 local _, ns = ...
+local L = ns.L
 local TW = ns.TW
 local API = ns.API
 local GetSpellInfo, GetItemInfo, GetItemInfoInstant = API.GetSpellInfo, API.GetItemInfo, API.GetItemInfoInstant
@@ -55,7 +56,7 @@ local REAGENTS = {
     MAGE = { { 17020, 56, 60, 5 }, { 17031, 20, 60, 2 }, { 17032, 40, 60, 1 }, { 17056, 12, 60, 5 } },
     PRIEST = { { 17028, 48, 59, 5 }, { 17029, 60, 60, 5 }, { 17056, 34, 60, 5 } },
     SHAMAN = { { 17030, 30, 60, 1, true } },
-    WARLOCK = { { 6265, 10, 60, 3, true, "Récupérez des %s en achevant des monstres avec Siphon d'âme (%d / %d)." } },
+    WARLOCK = { { 6265, 10, 60, 3, true, L["Collect %s by finishing off monsters with Drain Soul (%d / %d)."] } },
     ROGUE = { { 5140, 22, 60, 5 } },
     PALADIN = { { 17033, 30, 60, 1 }, { 21177, 52, 60, 10 } },
     DRUID = { { 17034, 20, 29, 1 }, { 17035, 30, 39, 1 }, { 17036, 40, 49, 1 }, { 17037, 50, 59, 1 },
@@ -92,7 +93,7 @@ local FreeSlots = C_Container and C_Container.GetContainerNumFreeSlots or GetCon
 local function ItemName(id)
     local name = GetItemInfo(id)
     if not name and C_Item and C_Item.RequestLoadItemDataByID then C_Item.RequestLoadItemDataByID(id) end
-    return name or ("objet #" .. id)
+    return name or (L["item #"] .. id)
 end
 
 local function ItemLink(id)
@@ -176,7 +177,7 @@ local function Tip(cat, prio, text)
 end
 
 local function CheckArmor()
-    local cat = NewCategory("armor", "Armure")
+    local cat = NewCategory("armor", L["Armor"])
     local sum, n, lowest, lowestSlot, broken, cost = 0, 0, 101, nil, 0, 0
     scanTip:SetOwner(WorldFrame, "ANCHOR_NONE")
     for _, slot in ipairs(DURA_SLOTS) do
@@ -193,39 +194,39 @@ local function CheckArmor()
     scanTip:Hide()
     if n == 0 then
         cat.status, cat.pct = OK, 100
-        cat.lines[1] = "Aucune pièce avec durabilité."
+        cat.lines[1] = L["No item with durability."]
         return cat
     end
     local avg = sum / n
     cat.pct = broken > 0 and avg * 0.5 or avg
-    cat.lines[1] = format("Durabilité moyenne : %d %%", avg + 0.5)
-    cat.lines[2] = format("Plus usée : %s (%d %%)", GetInventoryItemLink("player", lowestSlot) or "?", lowest + 0.5)
-    if broken > 0 then cat.lines[#cat.lines + 1] = RED .. broken .. " pièce(s) cassée(s)|r" end
+    cat.lines[1] = format(L["Average durability: %d %%"], avg + 0.5)
+    cat.lines[2] = format(L["Most worn: %s (%d %%)"], GetInventoryItemLink("player", lowestSlot) or "?", lowest + 0.5)
+    if broken > 0 then cat.lines[#cat.lines + 1] = RED .. broken .. L[" broken item(s)|r"] end
     local money = GetMoney()
     if cost > 0 then
-        cat.lines[#cat.lines + 1] = "Réparation estimée : " .. GetCoinTextureString(cost)
+        cat.lines[#cat.lines + 1] = L["Estimated repair: "] .. GetCoinTextureString(cost)
     end
-    cat.lines[#cat.lines + 1] = "Votre or : " .. GetCoinTextureString(money)
+    cat.lines[#cat.lines + 1] = L["Your gold: "] .. GetCoinTextureString(money)
 
     if broken > 0 or lowest < 10 then
         cat.status = BAD
-        Tip(cat, 100, format("Réparez votre équipement (pièce la plus usée : %d %%).", lowest + 0.5))
+        Tip(cat, 100, format(L["Repair your gear (most worn item: %d %%)."], lowest + 0.5))
     elseif lowest < db.dura then
         cat.status = WARN
-        Tip(cat, 60, format("Pensez à réparer bientôt (pièce la plus usée : %d %%).", lowest + 0.5))
+        Tip(cat, 60, format(L["Consider repairing soon (most worn item: %d %%)."], lowest + 0.5))
     else
         cat.status = OK
     end
     if cost > money then
         cat.status = BAD
-        Tip(cat, 90, "Vous n'avez pas assez d'or pour tout réparer.")
+        Tip(cat, 90, L["You don't have enough gold to repair everything."])
     end
     return cat
 end
 
 local function CheckFoodOrDrink(inv, kind, want)
-    local cat = NewCategory(kind, kind == "food" and "Vivres" or "Eau")
-    local word = kind == "food" and "nourriture" or "boisson"
+    local cat = NewCategory(kind, kind == "food" and L["Food"] or L["Water"])
+    local word = kind == "food" and L["food"] or L["drink"]
     local level = UnitLevel("player")
     local total, bestMin, bestId = 0, -1, nil
     for id, count in pairs(inv.counts) do
@@ -237,20 +238,20 @@ local function CheckFoodOrDrink(inv, kind, want)
     end
     local minimum = kind == "food" and db.food or db.drink
     local tier = Tier(level)
-    cat.lines[1] = format("%d %s(s)", total, word)
-    if bestId then cat.lines[2] = format("Meilleure : %s (niv. %d)", ItemLink(bestId), bestMin) end
+    cat.lines[1] = format(L["%d %s item(s)"], total, word)
+    if bestId then cat.lines[2] = format(L["Best: %s (lvl %d)"], ItemLink(bestId), bestMin) end
 
     cat.status = OK
     if total == 0 and level >= 5 then
         cat.status = BAD
-        Tip(cat, 80, format("Vous n'avez aucune %s.", word))
+        Tip(cat, 80, format(L["You have no %s."], word))
     elseif total < minimum and level >= 5 then
         cat.status = WARN
-        Tip(cat, 50, format("Plus que %d %s(s) : faites des réserves.", total, word))
+        Tip(cat, 50, format(L["Only %d %s item(s) left: stock up."], total, word))
     end
     if bestId and bestMin < tier - 10 then
         cat.status = math.min(cat.status, WARN)
-        Tip(cat, 40, format("Votre %s (niv. %d) est faible pour votre niveau : prenez celle de niveau %d.", word, bestMin, tier))
+        Tip(cat, 40, format(L["Your %s (lvl %d) is weak for your level: get the level %d one."], word, bestMin, tier))
     end
     if level < 5 then
         cat.pct = 100
@@ -275,21 +276,21 @@ local function CheckPotions(inv)
         elseif HEALTHSTONES[id] then stones = stones + count
         elseif BANDAGES[id] then bandages = bandages + count end
     end
-    cat.lines[1] = format("Potions de soins : %d   ·   Pierres de soins : %d", heal, stones)
-    cat.lines[2] = format("Bandages : %d", bandages) .. (UsesMana() and format("   ·   Potions de mana : %d", mana) or "")
+    cat.lines[1] = format(L["Healing potions: %d   ·   Healthstones: %d"], heal, stones)
+    cat.lines[2] = format(L["Bandages: %d"], bandages) .. (UsesMana() and format(L["   ·   Mana potions: %d"], mana) or "")
 
     local healing = heal + stones
     cat.pct = math.min(healing / 2, 1) * 100
     if healing == 0 then
         cat.status = level >= 10 and BAD or WARN
-        Tip(cat, 70, "Aucune potion de soins : gardez-en au moins deux pour les urgences.")
+        Tip(cat, 70, L["No healing potions: keep at least two for emergencies."])
     elseif healing < 2 then
         cat.status = WARN
-        Tip(cat, 35, "Une seule potion de soins : prévoyez-en une deuxième.")
+        Tip(cat, 35, L["Only one healing potion: get a second one."])
     else
         cat.status = OK
     end
-    if bandages == 0 and level >= 10 then Tip(cat, 15, "Des bandages permettent de se soigner sans mana entre deux combats.") end
+    if bandages == 0 and level >= 10 then Tip(cat, 15, L["Bandages let you heal without mana between fights."]) end
     return cat
 end
 
@@ -297,7 +298,7 @@ local function CheckAmmo(inv, want)
     local kind = AmmoType()
     local _, class = UnitClass("player")
     if class ~= "HUNTER" or not kind then return end
-    local cat = NewCategory("ammo", "Munitions")
+    local cat = NewCategory("ammo", L["Ammo"])
     local level = UnitLevel("player")
     local total, bestLevel = 0, -1
     for id, count in pairs(inv.counts) do
@@ -308,24 +309,24 @@ local function CheckAmmo(inv, want)
         end
     end
     local best = BestVendorAmmo(kind, level)
-    cat.lines[1] = format("%d %s", total, kind == "arrow" and "flèches" or "balles")
-    if best then cat.lines[2] = format("Conseillé à votre niveau : %s (niv. %d)", ItemLink(best[1]), best[2]) end
+    cat.lines[1] = format("%d %s", total, kind == "arrow" and L["arrows"] or L["bullets"])
+    if best then cat.lines[2] = format(L["Recommended for your level: %s (lvl %d)"], ItemLink(best[1]), best[2]) end
     if not inv.quiver and level >= 10 then
-        cat.lines[#cat.lines + 1] = ORANGE .. "Aucun carquois / giberne équipé|r"
-        Tip(cat, 30, "Un carquois ou une giberne accélère vos tirs et libère de la place.")
+        cat.lines[#cat.lines + 1] = ORANGE .. L["No quiver / ammo pouch equipped|r"]
+        Tip(cat, 30, L["A quiver or ammo pouch speeds up your shots and frees up space."])
     end
 
     cat.status = OK
     if total == 0 then
         cat.status = BAD
-        Tip(cat, 95, "Vous n'avez plus de munitions !")
+        Tip(cat, 95, L["You are out of ammo!"])
     elseif total < db.ammo then
         cat.status = WARN
-        Tip(cat, 55, format("Plus que %d munitions : rachetez-en.", total))
+        Tip(cat, 55, format(L["Only %d ammo left: buy more."], total))
     end
     if best and total > 0 and bestLevel < best[2] then
         cat.status = math.min(cat.status, WARN)
-        Tip(cat, 45, format("Passez à %s (niv. %d) : plus de dégâts à chaque tir.", ItemName(best[1]), best[2]))
+        Tip(cat, 45, format(L["Switch to %s (lvl %d): more damage per shot."], ItemName(best[1]), best[2]))
     end
     cat.pct = math.min(total / db.ammo, 1) * 100
     if best and total > 0 and bestLevel < best[2] then cat.pct = cat.pct * 0.7 end
@@ -338,7 +339,7 @@ local function CheckReagents(want)
     local level = UnitLevel("player")
     local list = REAGENTS[class]
     if not list then return end
-    local cat = NewCategory("reagents", "Composants")
+    local cat = NewCategory("reagents", L["Reagents"])
     cat.status = OK
     local fill, n = 0, 0
     for _, r in ipairs(list) do
@@ -351,7 +352,7 @@ local function CheckReagents(want)
             if count < need then
                 local status = (count == 0 and critical) and BAD or WARN
                 cat.status = math.min(cat.status, status)
-                Tip(cat, critical and 75 or 25, format(farmTip or "Rachetez des %s (%d / %d).", ItemName(id), count, need))
+                Tip(cat, critical and 75 or 25, format(farmTip or L["Buy more %s (%d / %d)."], ItemName(id), count, need))
                 if not farmTip then -- only vendor reagents are suggested at merchants
                     want.reagents = want.reagents or {}
                     want.reagents[id] = true
@@ -367,35 +368,35 @@ end
 local function CheckElixirs(inv)
     local level = UnitLevel("player")
     if level < 20 then return end
-    local cat = NewCategory("elixirs", "Élixirs")
+    local cat = NewCategory("elixirs", L["Elixirs"])
     local total = 0
     for id, count in pairs(inv.counts) do
         if ELIXIRS[id] then total = total + count end
     end
-    cat.lines[1] = total > 0 and format("%d élixir(s) dans vos sacs", total) or "Aucun élixir"
+    cat.lines[1] = total > 0 and format(L["%d elixir(s) in your bags"], total) or L["No elixirs"]
     cat.pct = math.min(total / 2, 1) * 100 -- informative only, not counted in the score
-    if total == 0 and level >= 30 then Tip(cat, 10, "Un élixir ou deux aident pour les donjons et les élites.") end
+    if total == 0 and level >= 30 then Tip(cat, 10, L["An elixir or two helps in dungeons and against elites."]) end
     return cat
 end
 
 local function CheckBags(inv)
-    local cat = NewCategory("bags", "Sacs")
+    local cat = NewCategory("bags", L["Bags"])
     local used = inv.total > 0 and (inv.total - inv.free) / inv.total * 100 or 0
-    cat.lines[1] = format("Places libres : %d / %d (pleins à %d %%)", inv.free, inv.total, used + 0.5)
+    cat.lines[1] = format(L["Free slots: %d / %d (%d %% full)"], inv.free, inv.total, used + 0.5)
     local equipped = 0
     for bag = 1, 4 do if (NumSlots(bag) or 0) > 0 then equipped = equipped + 1 end end
-    cat.lines[2] = format("Sacs équipés : %d / 4", equipped)
+    cat.lines[2] = format(L["Bags equipped: %d / 4"], equipped)
     cat.pct = (inv.free >= db.slots or db.slots == 0) and 100 or inv.free / db.slots * 100
     if inv.free == 0 then
         cat.status = BAD
-        Tip(cat, 85, "Vos sacs sont pleins : vendez ou détruisez quelques objets.")
+        Tip(cat, 85, L["Your bags are full: sell or destroy some items."])
     elseif inv.free < db.slots then
         cat.status = WARN
-        Tip(cat, 40, format("Seulement %d place(s) libre(s) dans vos sacs.", inv.free))
+        Tip(cat, 40, format(L["Only %d free slot(s) in your bags."], inv.free))
     else
         cat.status = OK
     end
-    if equipped < 4 then Tip(cat, 20, "Il vous reste des emplacements de sac vides.") end
+    if equipped < 4 then Tip(cat, 20, L["You still have empty bag slots."]) end
     return cat
 end
 
@@ -423,9 +424,9 @@ local function RunScan()
 end
 
 local function Verdict(score)
-    if score >= 85 then return "PRÊT POUR L'AVENTURE", 0.2, 1, 0.2 end
-    if score >= 55 then return "PRÊT, AVEC RÉSERVES", 1, 0.63, 0.13 end
-    return "PRÉPARATION INSUFFISANTE", 1, 0.25, 0.25
+    if score >= 85 then return L["READY FOR ADVENTURE"], 0.2, 1, 0.2 end
+    if score >= 55 then return L["READY, WITH CAVEATS"], 1, 0.63, 0.13 end
+    return L["NOT PREPARED"], 1, 0.25, 0.25
 end
 
 ---------------------------------------------------------------------------
@@ -542,7 +543,7 @@ scoreText:SetPoint("TOP", ring, "BOTTOM", 0, -10)
 local scoreLabel = win:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
 scoreLabel:SetPoint("TOP", scoreText, "BOTTOM", 0, -2)
 scoreLabel:SetTextColor(0.75, 0.68, 0.55)
-scoreLabel:SetText("préparation")
+scoreLabel:SetText(L["readiness"])
 
 local function SetRing(value, r, g, b)
     local filled = math.floor(value / 100 * TICKS + 0.5)
@@ -566,7 +567,7 @@ local title = win:CreateFontString(nil, "OVERLAY")
 title:SetFont(TITLE_FONT, 30, "")
 title:SetPoint("TOPLEFT", subtitle, "BOTTOMLEFT", 0, -2)
 title:SetTextColor(1, 0.9, 0.7)
-title:SetText("Bilan")
+title:SetText(L["Summary"])
 
 local banner = CreateFrame("Frame", nil, win, "BackdropTemplate")
 banner:SetSize(RIGHT_W, 30)
@@ -591,7 +592,7 @@ local scanning = win:CreateFontString(nil, "OVERLAY")
 scanning:SetFont(TITLE_FONT, 15, "")
 scanning:SetTextColor(GOLD[1], GOLD[2], GOLD[3])
 scanning:SetPoint("CENTER", banner, "CENTER")
-scanning:SetText("Inspection du paquetage...")
+scanning:SetText(L["Inspecting your pack..."])
 
 local rows = {}
 local function Row(i)
@@ -644,12 +645,12 @@ end
 
 local refresh = CreateFrame("Button", nil, win, "UIPanelButtonTemplate")
 refresh:SetSize(100, 22)
-refresh:SetText("Relancer")
+refresh:SetText(L["Rerun"])
 
 local closeButton = CreateFrame("Button", nil, win, "UIPanelButtonTemplate")
 closeButton:SetSize(100, 22)
 closeButton:SetPoint("BOTTOMRIGHT", -20, 18)
-closeButton:SetText("Fermer")
+closeButton:SetText(L["Close"])
 closeButton:SetScript("OnClick", function() win:Hide() end)
 refresh:SetPoint("RIGHT", closeButton, "LEFT", -6, 0)
 
@@ -688,7 +689,7 @@ win:SetScript("OnUpdate", function(_, elapsed)
             end
         end
     end
-    subtitle:SetText(Spaced(format("%d ÉTAPES VÉRIFIÉES", started)))
+    subtitle:SetText(Spaced(format(L["%d STEPS CHECKED"], started)))
 
     -- 2. the ring fills while the categories come in
     local rp = Clamp01(t / anim.bannerStart)
@@ -770,7 +771,7 @@ local function Render(result)
     local n = math.min(3, #result.tips)
     for i = 1, math.max(n, 1) do
         local fs = TipLine(i)
-        fs:SetText(n == 0 and "« Tout est en ordre. Bonne aventure ! »" or ("« " .. result.tips[i].text .. " »"))
+        fs:SetText(n == 0 and L["“All in order. Good adventuring!”"] or (L["“"] .. result.tips[i].text .. L["”"]))
         fs:ClearAllPoints()
         fs:SetPoint("TOPLEFT", win, "TOPLEFT", X, y)
         fs:SetAlpha(0)
@@ -852,8 +853,8 @@ chatButton:SetScript("OnClick", function(_, mouse)
 end)
 chatButton:SetScript("OnEnter", function(self)
     GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-    GameTooltip:AddLine("Check-up avant l'aventure")
-    GameTooltip:AddLine("Clic gauche : lancer le check-up", 1, 1, 1)
+    GameTooltip:AddLine(L["Pre-adventure check-up"])
+    GameTooltip:AddLine(L["Left-click: run the check-up"], 1, 1, 1)
     GameTooltip:Show()
 end)
 chatButton:SetScript("OnLeave", GameTooltip_Hide)
@@ -874,7 +875,7 @@ local function WarnLeavingTown()
     end
     if #bad == 0 then return end
     table.sort(bad, function(a, b) return a.prio > b.prio end)
-    RaidNotice_AddMessage(RaidWarningFrame, "Tinkerwise : " .. bad[1].text, ChatTypeInfo["RAID_WARNING"])
+    RaidNotice_AddMessage(RaidWarningFrame, L["Tinkerwise: "] .. bad[1].text, ChatTypeInfo["RAID_WARNING"])
     if db.sound then PlaySound(SOUNDKIT.RAID_WARNING, "Master") end
     for _, t in ipairs(bad) do TW:Print(RED .. t.text .. "|r") end
 end
@@ -895,11 +896,11 @@ local function MerchantHints()
         end
     end
     if #links > 0 then
-        TW:Print("ce marchand vend ce qu'il vous manque : " .. table.concat(links, " "))
+        TW:Print(L["this merchant sells what you need: "] .. table.concat(links, " "))
     end
     if CanMerchantRepair() then
         local cost = GetRepairAllCost()
-        if cost and cost > 0 then TW:Print("réparation : " .. GetCoinTextureString(cost)) end
+        if cost and cost > 0 then TW:Print(L["repair: "] .. GetCoinTextureString(cost)) end
     end
 end
 
@@ -996,29 +997,29 @@ end
 local mod = TW:NewModule("Checkup", {
     title = "Check-up",
     icon = "Interface\\Icons\\INV_Misc_Note_01",
-    section = "Préparation",
-    desc = "Vérifie que vous êtes prêt à partir : durabilité et coût de réparation, nourriture et eau adaptées à votre niveau, potions, munitions adaptées à votre niveau, composants de classe, élixirs et place dans les sacs. Bouton au-dessus du chat, clic droit sur le bouton de la minicarte, ou /checkup.",
+    section = L["Preparation"],
+    desc = L["Checks that you're ready to go: durability and repair cost, food and water suited to your level, potions, ammo suited to your level, class reagents, elixirs and bag space. Button above the chat, right-click on the minimap button, or /checkup."],
     defaults = DEFAULTS,
     options = {
-        { type = "execute", label = "Lancer le check-up", func = function() Open() end },
-        { type = "execute", label = "Déplacer / Verrouiller", func = function() SetUnlocked(not unlocked) end },
-        { type = "execute", label = "Réinitialiser la position", func = function() ResetPosition() end },
-        { type = "header", label = "Seuils" },
-        { type = "slider", key = "dura", label = "Durabilité minimale (%)", min = 10, max = 90, step = 5 },
-        { type = "slider", key = "food", label = "Nourriture minimale", min = 0, max = 40, step = 1 },
-        { type = "slider", key = "drink", label = "Boissons minimales", min = 0, max = 40, step = 1 },
-        { type = "slider", key = "ammo", label = "Munitions minimales (chasseur)", min = 200, max = 3000, step = 100 },
-        { type = "slider", key = "slots", label = "Places libres minimales", min = 0, max = 20, step = 1 },
-        { type = "header", label = "Automatique" },
-        { type = "toggle", key = "autoRest", label = "Alerte en quittant une ville / auberge" },
-        { type = "toggle", key = "autoInstance", label = "Check-up en entrant dans un donjon / raid" },
-        { type = "toggle", key = "merchant", label = "Signaler chez le marchand ce qu'il vous manque" },
-        { type = "toggle", key = "chatButton", label = "Bouton au-dessus du chat" },
-        { type = "toggle", key = "sound", label = "Sons" },
-        { type = "toggle", key = "quick", label = "Animation rapide" },
-        { type = "select", key = "centerIcon", label = "Image au centre de l'anneau", values = {
-            { "class", "Emblème de classe" },
-            { "portrait", "Mon portrait" },
+        { type = "execute", label = L["Run the check-up"], func = function() Open() end },
+        { type = "execute", label = L["Move / Lock"], func = function() SetUnlocked(not unlocked) end },
+        { type = "execute", label = L["Reset position"], func = function() ResetPosition() end },
+        { type = "header", label = L["Thresholds"] },
+        { type = "slider", key = "dura", label = L["Minimum durability (%)"], min = 10, max = 90, step = 5 },
+        { type = "slider", key = "food", label = L["Minimum food"], min = 0, max = 40, step = 1 },
+        { type = "slider", key = "drink", label = L["Minimum drinks"], min = 0, max = 40, step = 1 },
+        { type = "slider", key = "ammo", label = L["Minimum ammo (hunter)"], min = 200, max = 3000, step = 100 },
+        { type = "slider", key = "slots", label = L["Minimum free slots"], min = 0, max = 20, step = 1 },
+        { type = "header", label = L["Automatic"] },
+        { type = "toggle", key = "autoRest", label = L["Alert when leaving a city / inn"] },
+        { type = "toggle", key = "autoInstance", label = L["Check-up when entering a dungeon / raid"] },
+        { type = "toggle", key = "merchant", label = L["At a merchant, report what you need"] },
+        { type = "toggle", key = "chatButton", label = L["Button above the chat"] },
+        { type = "toggle", key = "sound", label = L["Sounds"] },
+        { type = "toggle", key = "quick", label = L["Fast animation"] },
+        { type = "select", key = "centerIcon", label = L["Image in the center of the ring"], values = {
+            { "class", L["Class emblem"] },
+            { "portrait", L["My portrait"] },
         } },
     },
 })
@@ -1057,5 +1058,5 @@ end
 
 SLASH_TINKERWISECHECKUP1 = "/checkup"
 SlashCmdList.TINKERWISECHECKUP = function()
-    if mod.active then Open() else TW:Print("le module Check-up est désactivé (/tw).") end
+    if mod.active then Open() else TW:Print(L["the Check-up module is disabled (/tw)."]) end
 end

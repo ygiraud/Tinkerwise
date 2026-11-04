@@ -2,7 +2,7 @@
 --
 -- A module is declared with TW:NewModule(key, info) where info may contain:
 --   title, desc        shown in the configuration window
---   section            group name in the module list (default "Divers")
+--   section            group name in the module list (default "Misc")
 --   icon               texture path shown in the configuration window
 --   defaults           table of saved settings (copied into mod.db)
 --   alwaysEnabled      true for a module that is always on and cannot be disabled (default: starts disabled)
@@ -12,6 +12,7 @@
 --   SetEditMode(on)    unlock / lock the module's movable frames
 
 local ADDON, ns = ...
+local L = ns.L
 
 local TW = { modules = {}, order = {} }
 ns.TW = TW
@@ -65,9 +66,10 @@ function ns.Spaced(s)
     return table.concat(out, " ")
 end
 
--- 12.5 -> "12,5"
+-- 12.5 -> "12,5" in French, "12.5" otherwise
 function ns.Comma(x)
-    return (format("%.1f", x):gsub("%.", ","))
+    local text = format("%.1f", x)
+    return GetLocale() == "frFR" and (text:gsub("%.", ",")) or text
 end
 
 -- Classic physical damage reduction against an attacker of the given level.
@@ -138,7 +140,7 @@ function TW:SetModuleEnabled(mod, enabled)
             local ok, err = pcall(mod.OnEnable, mod)
             if not ok then
                 mod.active = false
-                self:Print(format("le module « %s » n'a pas pu démarrer.", mod.title or mod.key))
+                self:Print(format(L["the \"%s\" module could not start."], mod.title or mod.key))
                 geterrorhandler()(err)
                 return
             end
@@ -224,7 +226,7 @@ function TW:CreateMover(frame, getDB, label, default)
     tex:SetColorTexture(0, 0.6, 1, 0.4)
     local text = overlay:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
     text:SetPoint("BOTTOM", overlay, "TOP", 0, 2)
-    text:SetText(label or "Glisser pour déplacer")
+    text:SetText(label or L["Drag to move"])
 
     overlay:SetScript("OnDragStart", function() frame:StartMoving() end)
     overlay:SetScript("OnDragStop", function()
@@ -271,17 +273,17 @@ local function BuildEditBar()
     editBar:SetBackdropBorderColor(1, 0.82, 0, 1)
     local text = editBar:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     text:SetPoint("LEFT", 14, 0)
-    text:SetText("Déplacer les fenêtres : glissez-les")
+    text:SetText(L["Move windows: drag them"])
     local done = CreateFrame("Button", nil, editBar, "UIPanelButtonTemplate")
     done:SetSize(90, 22)
     done:SetPoint("RIGHT", -10, 0)
-    done:SetText("Terminer")
+    done:SetText(L["Finish"])
     done:SetScript("OnClick", function() TW:SetEditMode(false) end)
 end
 
 function TW:SetEditMode(on)
     if on and InCombatLockdown() then
-        return self:Print("impossible de déplacer les fenêtres en combat.")
+        return self:Print(L["cannot move windows in combat."])
     end
     self.editMode = on and true or false
     for _, mod in ipairs(self.order) do
@@ -300,7 +302,7 @@ loader:SetScript("OnEvent", function(_, event, arg1)
     if event == "PLAYER_REGEN_DISABLED" then
         if TW.editMode then
             TW:SetEditMode(false)
-            TW:Print("déplacement des fenêtres terminé : vous entrez en combat.")
+            TW:Print(L["window moving ended: you entered combat."])
         end
     elseif event == "ADDON_LOADED" and arg1 == ADDON then
         TinkerwiseDB = TinkerwiseDB or {}

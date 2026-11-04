@@ -1,6 +1,7 @@
 -- WeaponSkills: follows weapon skills (they cap at level x 5) in a movable panel with skill bars.
 
 local _, ns = ...
+local L = ns.L
 local TW = ns.TW
 
 local DEFAULTS = {
@@ -83,13 +84,13 @@ panel:SetBackdrop({
 panel:SetBackdropColor(0.06, 0.04, 0.02, 0.85)
 panel:SetBackdropBorderColor(1, 0.82, 0, 0.9)
 panel:Hide()
-TW:CreateMover(panel, function() return db end, "Compétences d'arme", DEFAULTS)
+TW:CreateMover(panel, function() return db end, L["Weapon Skills"], DEFAULTS)
 
 local title = panel:CreateFontString(nil, "OVERLAY")
 title:SetFont("Fonts\\MORPHEUS.TTF", 16, "")
 title:SetTextColor(1, 0.9, 0.7)
 title:SetPoint("TOPLEFT", 12, -10)
-title:SetText("Compétences d'arme")
+title:SetText(L["Weapon Skills"])
 
 local bars = {}
 local function Bar(i)
@@ -139,10 +140,10 @@ local function PrintLagging(always)
         if s.rank < s.max then lagging[#lagging + 1] = s end
     end
     if #lagging == 0 then
-        if always then TW:Print("toutes vos compétences d'arme sont au maximum.") end
+        if always then TW:Print(L["all your weapon skills are maxed."]) end
         return
     end
-    TW:Print(format("%d compétence(s) d'arme en retard :", #lagging))
+    TW:Print(format(L["%d weapon skill(s) behind:"], #lagging))
     for _, s in ipairs(lagging) do
         print(format("   %s%s : %d / %d|r", Hex(Color(s.rank, s.max)), s.name, s.rank, s.max))
     end
@@ -156,26 +157,26 @@ events:SetScript("OnEvent", RefreshPanel)
 ---------------------------------------------------------------------------
 
 local mod = TW:NewModule("WeaponSkills", {
-    title = "Compétences d'arme",
-    section = "Personnage",
+    title = L["Weapon Skills"],
+    section = L["Character"],
     icon = "Interface\\Icons\\INV_Sword_04",
-    desc = "Suit vos compétences d'arme (maximum = niveau × 5) : affiche un panneau déplaçable avec une barre par arme (rouge sous 50 %, orange en retard, vert au maximum). Si une catégorie de compétences est repliée dans la fenêtre du jeu, ses lignes ne sont pas lues.",
+    desc = L["Tracks your weapon skills (maximum = level × 5): shows a movable panel with one bar per weapon (red below 50 %, orange when behind, green at maximum). If a skill category is collapsed in the game's window, its lines aren't read."],
     defaults = DEFAULTS,
     options = {
-        { type = "header", label = "Compétences suivies" },
+        { type = "header", label = L["Tracked skills"] },
         { type = "checklist", key = "ignored", items = function()
             local names = {}
             for _, s in ipairs(ReadSkills(true)) do names[#names + 1] = s.name end
             return names
         end },
-        { type = "header", label = "Actions" },
-        { type = "execute", label = "Lister dans le chat", func = function() PrintLagging(true) end },
-        { type = "execute", label = "Déplacer / Verrouiller", func = function()
+        { type = "header", label = L["Actions"] },
+        { type = "execute", label = L["List in chat"], func = function() PrintLagging(true) end },
+        { type = "execute", label = L["Move / Lock"], func = function()
             panel:ToggleMover()
             if panel:IsUnlocked() then panel:Show() end
             RefreshPanel()
         end },
-        { type = "execute", label = "Réinitialiser la position", func = function() panel:ResetPosition() end },
+        { type = "execute", label = L["Reset position"], func = function() panel:ResetPosition() end },
     },
 })
 

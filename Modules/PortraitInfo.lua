@@ -2,6 +2,7 @@
 -- armor, physical damage reduction, weapon damage / DPS and spell power.
 
 local _, ns = ...
+local L = ns.L
 local TW = ns.TW
 
 local DEFAULTS = {
@@ -95,7 +96,7 @@ local function Update()
         local _, eff, _, pos, neg = UnitArmor("player")
         local net = (pos or 0) + (neg or 0)
         armorB:Set(eff, net < 0 and RED or net > 0 and GREEN or WHITE)
-        reducB:Set("-" .. Comma(DamageReduction(eff, level) * 100) .. " % dégâts", SKY)
+        reducB:Set("-" .. Comma(DamageReduction(eff, level) * 100) .. L[" % damage"], SKY)
     end
 
     if db.melee and profile.ranged and UnitRangedDamage then
@@ -124,10 +125,10 @@ local function Update()
             crit = math.max(crit, GetSpellCritChance and GetSpellCritChance(school) or 0)
         end
         local heal = GetSpellBonusHealing and GetSpellBonusHealing()
-        local text = sp .. " puissance"
-        if heal and heal ~= sp then text = text .. " · " .. heal .. " soins" end
+        local text = sp .. L[" power"]
+        if heal and heal ~= sp then text = text .. " · " .. heal .. L[" healing"] end
         spellB:Set(text, VIOLET)
-        scritB:Set(Comma(crit) .. " % crit. sorts", WHITE)
+        scritB:Set(Comma(crit) .. L[" % spell crit"], WHITE)
     end
 
     Layout()
@@ -151,20 +152,20 @@ end)
 watcher:Hide()
 
 local mod = TW:NewModule("PortraitInfo", {
-    title = "Infos portrait",
+    title = L["Portrait Info"],
     icon = "Interface\\Icons\\INV_Shield_06",
-    section = "Personnage",
-    desc = "Survolez votre cadre de personnage pour voir à côté du portrait votre armure, la réduction des dégâts physiques (contre votre cible), les dégâts et le DPS de votre arme, et votre puissance des sorts. Les infos affichées s'adaptent à votre classe.",
+    section = L["Character"],
+    desc = L["Hover over your player frame to see, next to the portrait, your armor, physical damage reduction (against your target), weapon damage and DPS, and spell power. The information shown adapts to your class."],
     defaults = DEFAULTS,
     options = {
-        { type = "toggle", key = "defense", label = "Armure et réduction des dégâts" },
-        { type = "toggle", key = "melee", label = "Dégâts et DPS de l'arme" },
-        { type = "toggle", key = "spell", label = "Puissance et critique des sorts" },
+        { type = "toggle", key = "defense", label = L["Armor and damage reduction"] },
+        { type = "toggle", key = "melee", label = L["Weapon damage and DPS"] },
+        { type = "toggle", key = "spell", label = L["Spell power and crit"] },
         { type = "select", key = "position", label = "Position", values = {
-            { "top", "Dessus" },
-            { "bottom", "Dessous" },
-            { "left", "Gauche" },
-            { "right", "Droite" },
+            { "top", L["Top"] },
+            { "bottom", L["Bottom"] },
+            { "left", L["Left"] },
+            { "right", L["Right"] },
         } },
     },
 })

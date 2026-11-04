@@ -2,6 +2,7 @@
 -- in the same slot(s): one line per stat, green for gains, red for losses.
 
 local _, ns = ...
+local L = ns.L
 local TW = ns.TW
 local GetItemInfoInstant, GetItemInfo = ns.API.GetItemInfoInstant, ns.API.GetItemInfo
 
@@ -28,10 +29,10 @@ local ORDER = {
     "ITEM_MOD_DAMAGE_PER_SECOND_SHORT",
 }
 local FALLBACK = {
-    ITEM_MOD_STRENGTH_SHORT = "Force", ITEM_MOD_AGILITY_SHORT = "Agilité",
-    ITEM_MOD_STAMINA_SHORT = "Endurance", ITEM_MOD_INTELLECT_SHORT = "Intelligence",
-    ITEM_MOD_SPIRIT_SHORT = "Esprit", RESISTANCE0_NAME = "Armure",
-    ITEM_MOD_DAMAGE_PER_SECOND_SHORT = "Dégâts par seconde",
+    ITEM_MOD_STRENGTH_SHORT = L["Strength"], ITEM_MOD_AGILITY_SHORT = L["Agility"],
+    ITEM_MOD_STAMINA_SHORT = L["Stamina"], ITEM_MOD_INTELLECT_SHORT = L["Intellect"],
+    ITEM_MOD_SPIRIT_SHORT = L["Spirit"], RESISTANCE0_NAME = L["Armor"],
+    ITEM_MOD_DAMAGE_PER_SECOND_SHORT = L["Damage per second"],
 }
 
 local db
@@ -56,7 +57,7 @@ end
 local function AddComparison(tooltip, newStats, equippedLink)
     local old = equippedLink and Stats(equippedLink) or {}
     tooltip:AddLine(" ")
-    tooltip:AddLine(equippedLink and ("Par rapport à : " .. equippedLink) or "Emplacement vide", 1, 0.82, 0)
+    tooltip:AddLine(equippedLink and (L["Compared to: "] .. equippedLink) or L["Empty slot"], 1, 0.82, 0)
 
     -- union of stat keys, known ones first in a stable order
     local keys, seen = {}, {}
@@ -80,7 +81,7 @@ local function AddComparison(tooltip, newStats, equippedLink)
             if d > 0 then tooltip:AddLine(text, 0.2, 1, 0.2) else tooltip:AddLine(text, 1, 0.25, 0.25) end
         end
     end
-    if not any then tooltip:AddLine("Aucune différence de caractéristiques", 0.7, 0.7, 0.7) end
+    if not any then tooltip:AddLine(L["No stat difference"], 0.7, 0.7, 0.7) end
 end
 
 -- What each class can learn. Item subclasses: armor 1 cloth, 2 leather, 3 mail, 4 plate,
@@ -147,14 +148,14 @@ local function OnTooltipSetItem(tooltip)
     local classID, subclassID = select(6, GetItemInfoInstant(link))
     if not ClassCanUse(class, classID, subclassID) then
         tooltip:AddLine(" ")
-        tooltip:AddLine("Votre classe ne peut pas porter cet objet", 1, 0.25, 0.25)
+        tooltip:AddLine(L["Your class cannot use this item"], 1, 0.25, 0.25)
         tooltip:Show()
         return
     end
     local required = RequiredLevel(link, class, classID, subclassID)
     if required > UnitLevel("player") then
         tooltip:AddLine(" ")
-        tooltip:AddLine(format("Portable au niveau %d", required), 1, 0.63, 0.13)
+        tooltip:AddLine(format(L["Usable at level %d"], required), 1, 0.63, 0.13)
     end
 
     local newStats = Stats(link)
@@ -194,14 +195,14 @@ local function Hook()
 end
 
 local mod = TW:NewModule("ItemCompare", {
-    title = "Comparateur d'objets",
-    section = "Objets",
+    title = L["Item Comparison"],
+    section = L["Items"],
     icon = "Interface\\Icons\\INV_Misc_Spyglass_02",
-    desc = "Au survol d'un objet équipable, l'infobulle indique ce qu'il vous ferait gagner ou perdre par rapport à l'objet porté au même emplacement (les deux anneaux, bijoux ou armes à une main sont comparés séparément). Vert = gain, rouge = perte.",
+    desc = L["When hovering over equippable items, the tooltip shows what you would gain or lose compared to the item worn in the same slot (both rings, trinkets or one-handed weapons are compared separately). Green = gain, red = loss."],
     defaults = DEFAULTS,
     options = {
-        { type = "toggle", key = "shiftOnly", label = "Comparer seulement en maintenant Maj" },
-        { type = "toggle", key = "percent", label = "Afficher la variation en %" },
+        { type = "toggle", key = "shiftOnly", label = L["Compare only while holding Shift"] },
+        { type = "toggle", key = "percent", label = L["Show the change in %"] },
     },
 })
 

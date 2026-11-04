@@ -2,6 +2,7 @@
 -- (action bars, Blizzard edit mode layout). Each character is only set up once.
 
 local _, ns = ...
+local L = ns.L
 local TW = ns.TW
 
 local NEW_CHARACTER_LEVEL = 1
@@ -12,7 +13,7 @@ local db
 local function CheckAutoLoot()
     if db.autoLoot and GetCVar("autoLootDefault") ~= "1" then
         SetCVar("autoLootDefault", "1")
-        TW:Print("fouille automatique activée.")
+        TW:Print(L["auto loot enabled."])
     end
 end
 
@@ -45,7 +46,7 @@ local function ApplyLayout()
     local wanted = strtrim(db.layout or "")
     if wanted == "" then return true end
     if not (C_EditMode and C_EditMode.GetLayouts and C_EditMode.SetActiveLayout) then
-        TW:Print("le mode édition de Blizzard n'existe pas sur cette version du jeu.")
+        TW:Print(L["Blizzard's Edit Mode does not exist in this game version."])
         return true
     end
     -- Active layout indexes count Blizzard's presets first, then the saved layouts.
@@ -66,13 +67,13 @@ local function ApplyLayout()
             return true
         end
     end
-    TW:Print(format("profil de mode édition « %s » introuvable.", wanted))
+    TW:Print(format(L["Edit Mode profile \"%s\" not found."], wanted))
     return false
 end
 
 local function ApplyProfile()
     if InCombatLockdown() then
-        TW:Print("impossible d'appliquer les réglages en combat.")
+        TW:Print(L["cannot apply settings in combat."])
         return false
     end
     ApplyActionBars()
@@ -91,7 +92,7 @@ local function CheckNewCharacter()
         db.seen[key] = true
     elseif ApplyProfile() then
         db.seen[key] = true
-        TW:Print("réglages par défaut appliqués à ce nouveau personnage.")
+        TW:Print(L["default settings applied to this new character."])
     end
 end
 
@@ -105,12 +106,12 @@ events:SetScript("OnEvent", function()
 end)
 
 local mod = TW:NewModule("CharDefaults", {
-    title = "Réglages par défaut",
+    title = L["Default Settings"],
     icon = "Interface\\Icons\\INV_Misc_Note_01",
     section = "Configuration",
     alwaysEnabled = true,
     accountWide = true,
-    desc = "Garde la fouille automatique activée et prépare les nouveaux personnages (niveau 1) : barres d'action et profil du mode édition. Les personnages existants ne changent que si vous cliquez sur « Appliquer à ce personnage ».",
+    desc = L["Keeps auto loot on and sets up new characters (level 1): action bars and Edit Mode profile. Existing characters only change if you click \"Apply to this character\"."],
     defaults = {
         autoLoot = true,
         applyBars = true,
@@ -124,23 +125,23 @@ local mod = TW:NewModule("CharDefaults", {
         layout = "",
     },
     options = {
-        { type = "toggle", key = "autoLoot", label = "Toujours activer la fouille automatique" },
-        { type = "header", label = "Barres d'action" },
-        { type = "toggle", key = "applyBars", label = "Régler les barres d'action" },
-        { type = "toggle", key = "bar2", label = "Barre d'actions 2" },
-        { type = "toggle", key = "bar3", label = "Barre d'actions 3" },
-        { type = "toggle", key = "bar4", label = "Barre d'actions 4" },
-        { type = "toggle", key = "bar5", label = "Barre d'actions 5" },
-        { type = "toggle", key = "bar6", label = "Barre d'actions 6", recentOnly = true },
-        { type = "toggle", key = "bar7", label = "Barre d'actions 7", recentOnly = true },
-        { type = "toggle", key = "bar8", label = "Barre d'actions 8", recentOnly = true },
-        { type = "header", label = "Mode édition de Blizzard" },
-        { type = "input", key = "layout", label = "Nom du profil (vide = ne rien changer)" },
-        { type = "execute", label = "Appliquer à ce personnage", func = function()
+        { type = "toggle", key = "autoLoot", label = L["Always enable auto loot"] },
+        { type = "header", label = L["Action bars"] },
+        { type = "toggle", key = "applyBars", label = L["Set up action bars"] },
+        { type = "toggle", key = "bar2", label = L["Action bar 2"] },
+        { type = "toggle", key = "bar3", label = L["Action bar 3"] },
+        { type = "toggle", key = "bar4", label = L["Action bar 4"] },
+        { type = "toggle", key = "bar5", label = L["Action bar 5"] },
+        { type = "toggle", key = "bar6", label = L["Action bar 6"], recentOnly = true },
+        { type = "toggle", key = "bar7", label = L["Action bar 7"], recentOnly = true },
+        { type = "toggle", key = "bar8", label = L["Action bar 8"], recentOnly = true },
+        { type = "header", label = L["Blizzard Edit Mode"] },
+        { type = "input", key = "layout", label = L["Profile name (empty = change nothing)"] },
+        { type = "execute", label = L["Apply to this character"], func = function()
             if not db then return end
             if ApplyProfile() then
                 db.seen[CharacterKey()] = true
-                TW:Print("réglages appliqués.")
+                TW:Print(L["settings applied."])
             end
         end },
     },

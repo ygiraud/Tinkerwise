@@ -4,6 +4,7 @@
 -- not offered. In combat the normal key behavior stays, as protected frames cannot be detached.
 
 local _, ns = ...
+local L = ns.L
 local TW = ns.TW
 
 local DEFAULTS = {
@@ -108,7 +109,7 @@ local log = CreateFrame("Frame", "TinkerwiseLootLog")
 log:SetSize(280, MAX_LOOT * ROW_H)
 log:SetFrameStrata("HIGH")
 log:Hide()
-TW:CreateMover(log, function() return db end, "Butin (mode immersion)", DEFAULTS)
+TW:CreateMover(log, function() return db end, L["Loot (immersion mode)"], DEFAULTS)
 
 local tip = CreateFrame("GameTooltip", "TinkerwiseLootLogTip", nil, "GameTooltipTemplate")
 tip:SetFrameStrata("TOOLTIP")
@@ -342,37 +343,37 @@ events:SetScript("OnEvent", function(_, event, message)
 end)
 
 local mod = TW:NewModule("Immersion", {
-    title = "Mode immersion",
+    title = L["Immersion Mode"],
     icon = "Interface\\Icons\\Spell_Shadow_Twilight",
     section = "Immersion",
-    desc = "La touche qui masque l'interface (Alt+Z par défaut) la fait disparaître en fondu et peut garder quelques éléments à l'écran. Votre butin s'affiche quelques secondes, avec le détail de l'objet au survol. En combat, la touche garde son comportement normal.\n\nLa scène de quête, en option, met en scène les quêtes que vous ouvrez ou rendez, interface affichée ou masquée : bandes noires, caméra qui tourne lentement et texte qui s'écrit. Cliquez sur l'écran pour l'afficher d'un coup. Hors combat seulement. La caméra utilise l'emplacement de vue 5 du jeu.",
+    desc = L["The key that hides the interface (Alt+Z by default) fades it out and can keep a few elements on screen. Your loot shows for a few seconds, with item details on hover. In combat, the key behaves normally.\n\nThe optional quest scene stages the quests you open or turn in, with the interface shown or hidden: black bars, a slowly turning camera and text that writes itself. Click the screen to show it all at once. Out of combat only. The camera uses the game's view slot 5."],
     defaults = DEFAULTS,
     options = {
-        { type = "slider", key = "duration", label = "Durée du fondu (s)", min = 0.1, max = 2, step = 0.1 },
-        { type = "header", label = "Rester affiché" },
-        { type = "toggle", key = "keepMinimap", label = "Minicarte" },
-        { type = "toggle", key = "keepPlayer", label = "Cadre du personnage" },
-        { type = "toggle", key = "keepTarget", label = "Cadre de la cible" },
-        { type = "toggle", key = "keepNameplates", label = "Barres de vie au-dessus des unités (nameplates)" },
-        { type = "toggle", key = "keepChat", label = "Fenêtre de chat principale" },
-        { type = "toggle", key = "keepTinkerwise", label = "Fenêtres et alertes de Tinkerwise" },
-        { type = "header", label = "Bandes noires" },
-        { type = "toggle", key = "letterbox", label = "Afficher des bandes noires" },
-        { type = "slider", key = "letterboxSize", label = "Hauteur de chaque bande (% de l'écran)", min = 5, max = 20, step = 1 },
-        { type = "toggle", key = "letterboxTranslucent", label = "Bandes légèrement transparentes" },
-        { type = "header", label = "Scène de quête" },
-        { type = "toggle", key = "questScene", label = "Mettre en scène les quêtes" },
-        { type = "toggle", key = "camera", label = "Mouvement de caméra" },
-        { type = "slider", key = "zoom", label = "Rapprochement de la caméra", min = 0, max = 20, step = 1 },
-        { type = "header", label = "Butin" },
-        { type = "toggle", key = "lootLog", label = "Afficher ce que je ramasse" },
-        { type = "slider", key = "lootHold", label = "Durée d'affichage (s)", min = 2, max = 20, step = 1 },
-        { type = "execute", label = "Déplacer / Verrouiller", func = function()
+        { type = "slider", key = "duration", label = L["Fade duration (s)"], min = 0.1, max = 2, step = 0.1 },
+        { type = "header", label = L["Keep visible"] },
+        { type = "toggle", key = "keepMinimap", label = L["Minimap"] },
+        { type = "toggle", key = "keepPlayer", label = L["Player frame"] },
+        { type = "toggle", key = "keepTarget", label = L["Target frame"] },
+        { type = "toggle", key = "keepNameplates", label = L["Nameplates"] },
+        { type = "toggle", key = "keepChat", label = L["Main chat window"] },
+        { type = "toggle", key = "keepTinkerwise", label = L["Tinkerwise windows and alerts"] },
+        { type = "header", label = L["Black bars"] },
+        { type = "toggle", key = "letterbox", label = L["Show black bars"] },
+        { type = "slider", key = "letterboxSize", label = L["Height of each bar (% of screen)"], min = 5, max = 20, step = 1 },
+        { type = "toggle", key = "letterboxTranslucent", label = L["Slightly transparent bars"] },
+        { type = "header", label = L["Quest scene"] },
+        { type = "toggle", key = "questScene", label = L["Stage quests"] },
+        { type = "toggle", key = "camera", label = L["Camera movement"] },
+        { type = "slider", key = "zoom", label = L["Camera zoom"], min = 0, max = 20, step = 1 },
+        { type = "header", label = L["Loot"] },
+        { type = "toggle", key = "lootLog", label = L["Show what I pick up"] },
+        { type = "slider", key = "lootHold", label = L["Display duration (s)"], min = 2, max = 20, step = 1 },
+        { type = "execute", label = L["Move / Lock"], func = function()
             log:SetScale(UIParent:GetEffectiveScale())
             log:ToggleMover()
             RenderLog()
         end },
-        { type = "execute", label = "Réinitialiser la position", func = function() log:ResetPosition() end },
+        { type = "execute", label = L["Reset position"], func = function() log:ResetPosition() end },
     },
 })
 

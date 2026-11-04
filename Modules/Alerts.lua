@@ -2,6 +2,7 @@
 -- low armor (pulsing message). Each alert can be turned on or off on its own.
 
 local _, ns = ...
+local L = ns.L
 local TW = ns.TW
 
 local DEFAULTS = {
@@ -24,13 +25,13 @@ local DEFAULTS = {
 }
 
 local SOUND_CHOICES = {
-    { 12867, "Alarme" },
-    { 12889, "Alarme aiguë" },
-    { 416, "Cri de murloc" },
-    { 847, "Échec de quête" },
-    { 8174, "Drapeau JcJ" },
-    { 8959, "Alerte de raid" },
-    { 3175, "Ping de la minicarte" },
+    { 12867, L["Alarm"] },
+    { 12889, L["High-pitched alarm"] },
+    { 416, L["Murloc cry"] },
+    { 847, L["Quest failed"] },
+    { 8174, L["PvP flag"] },
+    { 8959, L["Raid warning"] },
+    { 3175, L["Minimap ping"] },
 }
 local LOW_REPEAT = 3   -- seconds between low health sounds
 local FLASH_EVERY = 1  -- seconds between potion reminder flashes
@@ -149,7 +150,7 @@ local frame = CreateFrame("Frame", "TinkerwiseArmorAlertFrame", UIParent)
 frame:SetSize(260, 64)
 frame:SetFrameStrata("HIGH")
 frame:Hide()
-TW:CreateMover(frame, function() return db end, "Alerte armure", DEFAULTS)
+TW:CreateMover(frame, function() return db end, L["Armor alert"], DEFAULTS)
 
 local glow = frame:CreateTexture(nil, "BACKGROUND")
 glow:SetTexture("Interface\\Buttons\\UI-ActionButton-Border")
@@ -167,7 +168,7 @@ local title = frame:CreateFontString(nil, "OVERLAY")
 title:SetFont(STANDARD_TEXT_FONT, 22, "OUTLINE")
 title:SetTextColor(1, 0.2, 0.2)
 title:SetPoint("TOPLEFT", icon, "TOPRIGHT", 8, 2)
-title:SetText("ARMURE CRITIQUE")
+title:SetText(L["CRITICAL ARMOR"])
 
 local value = frame:CreateFontString(nil, "OVERLAY")
 value:SetFont(STANDARD_TEXT_FONT, 14, "OUTLINE")
@@ -186,7 +187,7 @@ frame:SetScript("OnUpdate", function(_, elapsed)
 end)
 
 local function SetArmorValue(eff, base)
-    value:SetText(format("Armure : %d / %d (%d %%)", eff, base, base > 0 and math.floor(eff / base * 100 + 0.5) or 0))
+    value:SetText(format(L["Armor: %d / %d (%d %%)"], eff, base, base > 0 and math.floor(eff / base * 100 + 0.5) or 0))
 end
 
 local function CheckArmor()
@@ -223,48 +224,48 @@ end
 local ticker
 
 local mod = TW:NewModule("Alerts", {
-    title = "Alertes",
+    title = L["Alerts"],
     section = "Combat",
     icon = "Interface\\Icons\\Ability_Warrior_Challange",
-    desc = "Vie basse : le bord de l'écran bat en rouge comme un cœur, avec une alarme répétée. Aggro : le bord pulse lentement en orange, avec un son unique. Armure : message rouge quand un effet fait tomber votre armure.",
+    desc = L["Low health: the screen edge beats red like a heart, with a repeating alarm. Aggro: the edge slowly pulses orange, with a single sound. Armor: a red message when an effect drops your armor."],
     defaults = DEFAULTS,
     options = {
-        { type = "header", label = "Vie basse" },
-        { type = "toggle", key = "lowOn", label = "Activer" },
-        { type = "slider", key = "lowThreshold", label = "Seuil de vie (%)", min = 10, max = 60, step = 5 },
-        { type = "toggle", key = "lowVignette", label = "Bord de l'écran rouge" },
-        { type = "toggle", key = "lowSound", label = "Son d'alerte répété" },
-        { type = "select", key = "lowSoundChoice", label = "Son (joué quand vous le choisissez)", values = SOUND_CHOICES },
-        { type = "toggle", key = "lowPotion", label = "Faire clignoter le Rappel potion (module Rappel potion requis)" },
-        { type = "execute", label = "Tester (4 s)", func = function()
+        { type = "header", label = L["Low health"] },
+        { type = "toggle", key = "lowOn", label = L["Enable"] },
+        { type = "slider", key = "lowThreshold", label = L["Health threshold (%)"], min = 10, max = 60, step = 5 },
+        { type = "toggle", key = "lowVignette", label = L["Red screen edge"] },
+        { type = "toggle", key = "lowSound", label = L["Repeating alert sound"] },
+        { type = "select", key = "lowSoundChoice", label = L["Sound (plays when you choose it)"], values = SOUND_CHOICES },
+        { type = "toggle", key = "lowPotion", label = L["Flash the Potion Reminder (requires the Potion Reminder module)"] },
+        { type = "execute", label = L["Test (4 s)"], func = function()
             lowTestUntil = GetTime() + 4
             CheckAll()
         end },
         { type = "header", label = "Aggro" },
-        { type = "toggle", key = "aggroOn", label = "Activer" },
-        { type = "toggle", key = "aggroGroupOnly", label = "Seulement en groupe / raid" },
-        { type = "toggle", key = "aggroIgnoreTanks", label = "Désactiver pour les guerriers et druides (tanks)" },
-        { type = "toggle", key = "aggroSound", label = "Jouer un son d'alerte" },
-        { type = "select", key = "aggroSoundChoice", label = "Son (joué quand vous le choisissez)", values = SOUND_CHOICES },
-        { type = "execute", label = "Tester (3 s)", func = function()
+        { type = "toggle", key = "aggroOn", label = L["Enable"] },
+        { type = "toggle", key = "aggroGroupOnly", label = L["Only in a group / raid"] },
+        { type = "toggle", key = "aggroIgnoreTanks", label = L["Disable for warriors and druids (tanks)"] },
+        { type = "toggle", key = "aggroSound", label = L["Play an alert sound"] },
+        { type = "select", key = "aggroSoundChoice", label = L["Sound (plays when you choose it)"], values = SOUND_CHOICES },
+        { type = "execute", label = L["Test (3 s)"], func = function()
             aggroTestUntil = GetTime() + 3
             CheckAll()
         end },
-        { type = "header", label = "Armure" },
-        { type = "toggle", key = "armorOn", label = "Activer" },
-        { type = "slider", key = "armorRatio", label = "Seuil d'alerte (% de l'armure normale)", min = 10, max = 90, step = 5 },
-        { type = "toggle", key = "armorSound", label = "Jouer un son d'alerte" },
-        { type = "select", key = "armorAlarm", label = "Son (joué quand vous le choisissez)", values = SOUND_CHOICES },
-        { type = "execute", label = "Tester (4 s)", func = function()
+        { type = "header", label = L["Armor"] },
+        { type = "toggle", key = "armorOn", label = L["Enable"] },
+        { type = "slider", key = "armorRatio", label = L["Alert threshold (% of normal armor)"], min = 10, max = 90, step = 5 },
+        { type = "toggle", key = "armorSound", label = L["Play an alert sound"] },
+        { type = "select", key = "armorAlarm", label = L["Sound (plays when you choose it)"], values = SOUND_CHOICES },
+        { type = "execute", label = L["Test (4 s)"], func = function()
             armorTestUntil = GetTime() + 4
             if db and db.armorSound then PlaySound(db.armorAlarm, "Master") end
             CheckAll()
         end },
-        { type = "execute", label = "Déplacer / Verrouiller", func = function()
+        { type = "execute", label = L["Move / Lock"], func = function()
             frame:ToggleMover()
             CheckAll()
         end },
-        { type = "execute", label = "Réinitialiser la position", func = function() frame:ResetPosition() end },
+        { type = "execute", label = L["Reset position"], func = function() frame:ResetPosition() end },
     },
 })
 

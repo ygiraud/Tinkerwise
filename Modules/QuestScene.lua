@@ -5,6 +5,7 @@
 -- with the NPC. The scene covers the whole screen, so the invisible interface takes no clicks.
 
 local _, ns = ...
+local L = ns.L
 local TW = ns.TW
 
 local TITLE_FONT = "Fonts\\MORPHEUS.TTF"
@@ -69,7 +70,7 @@ body:SetSpacing(4)
 
 local scrollHint = scene:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
 scrollHint:SetPoint("BOTTOMLEFT", bottomBand, "BOTTOMLEFT", 40, 14)
-scrollHint:SetText("Molette : faire défiler")
+scrollHint:SetText(L["Mouse wheel: scroll"])
 scrollHint:Hide()
 
 local followText = true -- the view follows the writing until the player scrolls
@@ -291,27 +292,27 @@ local function Render(newKind)
         local objective = GetObjectiveText()
         local text = GetQuestText() or ""
         if objective and objective ~= "" then
-            text = text .. "\n\nObjectifs : " .. objective
+            text = text .. L["\n\nObjectives: "] .. objective
         end
         SetText(text)
-        primary:SetText("Accepter")
+        primary:SetText(L["Accept"])
         primary:SetScript("OnClick", AcceptQuest)
-        secondary:SetText("Refuser")
+        secondary:SetText(L["Decline"])
         secondary:SetScript("OnClick", DeclineQuest)
     elseif kind == "progress" then
         SetText(GetProgressText())
-        primary:SetText("Continuer")
+        primary:SetText(L["Continue"])
         primary:SetScript("OnClick", CompleteQuest)
-        secondary:SetText("Fermer")
+        secondary:SetText(L["Close"])
         secondary:SetScript("OnClick", CloseQuest)
     else
         SetText(GetRewardText())
-        primary:SetText("Terminer")
+        primary:SetText(L["Finish"])
         primary:SetScript("OnClick", function()
             local count = GetNumQuestChoices()
             GetQuestReward(count == 1 and 1 or choice or 0)
         end)
-        secondary:SetText("Fermer")
+        secondary:SetText(L["Close"])
         secondary:SetScript("OnClick", CloseQuest)
     end
     ShowRewards()

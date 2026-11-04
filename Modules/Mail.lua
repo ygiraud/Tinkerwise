@@ -2,6 +2,7 @@
 -- cash-on-delivery mail, and stops when the bags are full.
 
 local _, ns = ...
+local L = ns.L
 local TW = ns.TW
 
 local STEP = 0.4 -- seconds between two actions, leaving the server time to answer
@@ -44,9 +45,9 @@ local function Step()
             end
         end
     end
-    TW:Print(bagsFull and "courrier : vos sacs sont pleins."
-        or skipped and "courrier : certains objets n'ont pas pu être récupérés."
-        or "courrier : tout est récupéré.")
+    TW:Print(bagsFull and L["mail: your bags are full."]
+        or skipped and L["mail: some items could not be collected."]
+        or L["mail: everything collected."])
     Stop()
 end
 
@@ -62,7 +63,7 @@ local function BuildButton()
     button = CreateFrame("Button", "TinkerwiseMailButton", InboxFrame, "UIPanelButtonTemplate")
     button:SetSize(120, 22)
     button:SetPoint("BOTTOM", InboxFrame, "BOTTOM", -10, 100)
-    button:SetText("Tout récupérer")
+    button:SetText(L["Take All"])
     button:SetScript("OnClick", Start)
 end
 
@@ -77,10 +78,10 @@ events:SetScript("OnEvent", function(_, event)
 end)
 
 local mod = TW:NewModule("Mail", {
-    title = "Courrier",
+    title = L["Mail"],
     icon = "Interface\\Icons\\INV_Letter_15",
-    section = "Objets",
-    desc = "Ajoute un bouton « Tout récupérer » à la boîte aux lettres : or et objets, sauf les envois contre remboursement. S'arrête quand les sacs sont pleins.",
+    section = L["Items"],
+    desc = L["Adds a \"Take All\" button to the mailbox: gold and items, except cash-on-delivery mail. Stops when your bags are full."],
 })
 
 function mod:OnEnable()

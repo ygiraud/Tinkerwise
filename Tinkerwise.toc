@@ -3,11 +3,13 @@
 ## Notes: Personal collection of small tools. /tw to configure.
 ## Notes-frFR: Collection d'outils personnels. /tw pour configurer.
 ## Author: Yoan
-## Version: 0.1.0
+## Version: 0.2.0
 ## IconTexture: Interface\Icons\INV_Misc_Wrench_01
 ## SavedVariables: TinkerwiseDB
 ## SavedVariablesPerCharacter: TinkerwiseCharDB
 
+Locale.lua
+Locales\frFR.lua
 Core.lua
 Modules\Checkup.lua
 Modules\MissingBuffs.lua

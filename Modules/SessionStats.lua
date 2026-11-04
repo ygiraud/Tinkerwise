@@ -2,6 +2,7 @@
 -- hour, estimated time to level, gold won or lost, kills and quests turned in.
 
 local _, ns = ...
+local L = ns.L
 local TW = ns.TW
 
 local DEFAULTS = {
@@ -90,22 +91,22 @@ end
 local function Refresh()
     if not db or not panel:IsShown() then return end
     local elapsed = GetTime() - session.start
-    local rows = { { "Durée", FormatTime(elapsed) } }
+    local rows = { { L["Time"], FormatTime(elapsed) } }
 
     if not (db.hideAtMax and AtMaxLevel()) then
         local perHour = elapsed > 0 and session.xp / elapsed * 3600 or 0
         local missing = UnitXPMax("player") - UnitXP("player")
-        rows[#rows + 1] = { "XP gagnée", FormatNumber(session.xp) }
-        rows[#rows + 1] = { "XP / heure", FormatNumber(perHour) }
-        rows[#rows + 1] = { "Niveau suivant", session.xp > 0 and FormatTime(missing / session.xp * elapsed) or "-" }
+        rows[#rows + 1] = { L["XP gained"], FormatNumber(session.xp) }
+        rows[#rows + 1] = { L["XP / hour"], FormatNumber(perHour) }
+        rows[#rows + 1] = { L["Next level"], session.xp > 0 and FormatTime(missing / session.xp * elapsed) or "-" }
     end
 
     local diff = GetMoney() - session.money
     local money = diff >= 0 and ("|cff33ff33+|r " .. GetCoinTextureString(diff))
         or ("|cffff4040-|r " .. GetCoinTextureString(-diff))
-    rows[#rows + 1] = { "Or", money }
-    rows[#rows + 1] = { "Monstres tués", session.kills }
-    rows[#rows + 1] = { "Quêtes rendues", session.quests }
+    rows[#rows + 1] = { L["Gold"], money }
+    rows[#rows + 1] = { L["Monsters killed"], session.kills }
+    rows[#rows + 1] = { L["Quests turned in"], session.quests }
 
     for i, row in ipairs(rows) do
         local l = Line(i)
@@ -156,24 +157,24 @@ local function ApplyShown()
 end
 
 local mod = TW:NewModule("SessionStats", {
-    title = "Suivi de session",
-    section = "Personnage",
+    title = L["Session Tracker"],
+    section = L["Character"],
     icon = "Interface\\Icons\\INV_Misc_PocketWatch_01",
-    desc = "Petit panneau qui affiche depuis la connexion : durée de jeu, XP gagnée, XP par heure, temps estimé avant le niveau suivant, or gagné ou perdu, monstres tués et quêtes rendues.",
+    desc = L["A small panel showing, since login: play time, XP gained, XP per hour, estimated time to next level, gold gained or lost, monsters killed and quests turned in."],
     defaults = DEFAULTS,
     options = {
-        { type = "toggle", key = "showWindow", label = "Afficher le panneau" },
-        { type = "toggle", key = "hideAtMax", label = "Masquer l'XP au niveau maximum" },
-        { type = "execute", label = "Nouvelle session", func = function()
+        { type = "toggle", key = "showWindow", label = L["Show the panel"] },
+        { type = "toggle", key = "hideAtMax", label = L["Hide XP at max level"] },
+        { type = "execute", label = L["New session"], func = function()
             ResetSession()
             Refresh()
-            TW:Print("nouvelle session commencée.")
+            TW:Print(L["new session started."])
         end },
-        { type = "execute", label = "Déplacer / Verrouiller", func = function()
+        { type = "execute", label = L["Move / Lock"], func = function()
             panel:ToggleMover()
             ApplyShown()
         end },
-        { type = "execute", label = "Réinitialiser la position", func = function() panel:ResetPosition() end },
+        { type = "execute", label = L["Reset position"], func = function() panel:ResetPosition() end },
     },
 })
 

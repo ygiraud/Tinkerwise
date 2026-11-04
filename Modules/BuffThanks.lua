@@ -1,13 +1,14 @@
 -- BuffThanks: thanks players who buff you and offers a one-click button to buff them back.
 
 local _, ns = ...
+local L = ns.L
 local TW = ns.TW
 local GetSpellInfo, GetSpellTexture = ns.API.GetSpellInfo, ns.API.GetSpellTexture
 
 local DEFAULTS = {
     thank = true,          -- thank automatically
     thankMode = "emote",   -- "emote" or "whisper"
-    message = "Merci pour %s !",
+    message = L["Thanks for the %s!"],
     throttle = 120,        -- seconds before thanking the same player again
     ignoreGroup = true,    -- don't thank party/raid members (raid buffs spam)
     rebuff = true,         -- show the buff-back button
@@ -68,7 +69,7 @@ anchorBg:SetAllPoints()
 anchorBg:SetColorTexture(0, 0.6, 1, 0.4)
 local anchorLabel = anchor:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
 anchorLabel:SetPoint("CENTER")
-anchorLabel:SetText("Rebuff - glisser ici")
+anchorLabel:SetText(L["Rebuff - drag here"])
 
 local entries = {}   -- { name, spell, classFile, time }
 local buttons = {}
@@ -115,8 +116,8 @@ for i = 1, MAX_BUTTONS do
     b:SetScript("OnEnter", function(self)
         GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
         GameTooltip:AddLine(self.name or "")
-        GameTooltip:AddLine("Clic gauche : lancer " .. (self.spell or ""), 1, 1, 1)
-        GameTooltip:AddLine("Clic droit : ignorer", 1, 1, 1)
+        GameTooltip:AddLine(L["Left-click: cast "] .. (self.spell or ""), 1, 1, 1)
+        GameTooltip:AddLine(L["Right-click: ignore"], 1, 1, 1)
         GameTooltip:Show()
     end)
     b:SetScript("OnLeave", GameTooltip_Hide)
@@ -192,7 +193,7 @@ local function OnBuffed(sourceGUID, sourceName, spellName)
             local ok, text = pcall(format, db.message, spellName)
             SendChatMessage(ok and text or db.message, "WHISPER", nil, sourceName)
         else
-            SendChatMessage(format("remercie %s pour %s.", sourceName, spellName), "EMOTE")
+            SendChatMessage(format(L["thanks %s for %s."], sourceName, spellName), "EMOTE")
         end
     end
 
@@ -232,35 +233,35 @@ end)
 ---------------------------------------------------------------------------
 
 local mod =TW:NewModule("BuffThanks", {
-    title = "Remerciements & rebuff",
+    title = L["Thanks & Rebuff"],
     icon = "Interface\\Icons\\Spell_Holy_WordFortitude",
-    section = "Groupe",
-    desc = "Remercie automatiquement les joueurs qui vous buffent et affiche un bouton pour les buffer en retour en un clic (mage, prêtre, druide, paladin).",
+    section = L["Group"],
+    desc = L["Automatically thanks players who buff you and shows a button to buff them back in one click (mage, priest, druid, paladin)."],
     defaults = DEFAULTS,
     options = {
-        { type = "toggle", key = "thank", label = "Remercier automatiquement" },
-        { type = "select", key = "thankMode", label = "Façon de remercier", values = {
+        { type = "toggle", key = "thank", label = L["Thank automatically"] },
+        { type = "select", key = "thankMode", label = L["How to thank"], values = {
             { "emote", "Emote" },
-            { "whisper", "Chuchoter" },
+            { "whisper", L["Whisper"] },
         } },
-        { type = "input", key = "message", label = "Message chuchoté (%s = nom du buff)" },
-        { type = "slider", key = "throttle", label = "Délai avant de remercier à nouveau (s)", min = 10, max = 600, step = 10 },
-        { type = "toggle", key = "ignoreGroup", label = "Ignorer les membres du groupe / raid" },
-        { type = "toggle", key = "rebuff", label = "Proposer de buffer en retour" },
-        { type = "slider", key = "timeout", label = "Durée du bouton de rebuff (s)", min = 10, max = 300, step = 10 },
-        { type = "execute", label = "Tester le bouton", func = function()
+        { type = "input", key = "message", label = L["Whisper message (%s = buff name)"] },
+        { type = "slider", key = "throttle", label = L["Delay before thanking again (s)"], min = 10, max = 600, step = 10 },
+        { type = "toggle", key = "ignoreGroup", label = L["Ignore group / raid members"] },
+        { type = "toggle", key = "rebuff", label = L["Offer to buff back"] },
+        { type = "slider", key = "timeout", label = L["Rebuff button duration (s)"], min = 10, max = 300, step = 10 },
+        { type = "execute", label = L["Test the button"], func = function()
             local spell = PickBuff("WARRIOR")
             if spell then
                 AddEntry(UnitName("player"), spell, select(2, UnitClass("player")))
             else
-                TW:Print("votre classe n'a pas de buff à offrir.")
+                TW:Print(L["your class has no buff to offer."])
             end
         end },
-        { type = "execute", label = "Déplacer / Verrouiller", func = function()
+        { type = "execute", label = L["Move / Lock"], func = function()
             if InCombatLockdown() then return end
             anchor:SetShown(not anchor:IsShown())
         end },
-        { type = "execute", label = "Réinitialiser la position", func = function()
+        { type = "execute", label = L["Reset position"], func = function()
             db.point, db.x, db.y = DEFAULTS.point, DEFAULTS.x, DEFAULTS.y
             ApplyPosition()
         end },

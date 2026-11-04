@@ -1,6 +1,7 @@
 -- GroupComfort: accepts group invitations from friends and guildmates, resurrections and summons.
 
 local _, ns = ...
+local L = ns.L
 local TW = ns.TW
 
 local db
@@ -36,13 +37,13 @@ events:SetScript("OnEvent", function(_, event, name)
         if db.invites and (IsFriend(name) or IsGuildmate(name)) then
             AcceptGroup()
             HidePopups("PARTY_INVITE")
-            TW:Print(format("invitation de %s acceptée.", name))
+            TW:Print(format(L["invitation from %s accepted."], name))
         end
     elseif event == "RESURRECT_REQUEST" then
         if db.resurrect and not (db.resurrectSafe and UnitAffectingCombat(name)) then
             AcceptResurrect()
             HidePopups("RESURRECT", "RESURRECT_NO_SICKNESS", "RESURRECT_NO_TIMER")
-            TW:Print(format("résurrection de %s acceptée.", name))
+            TW:Print(format(L["resurrection from %s accepted."], name))
         end
     elseif event == "CONFIRM_SUMMON" then
         if db.summon then
@@ -52,16 +53,16 @@ events:SetScript("OnEvent", function(_, event, name)
                 ConfirmSummon()
             end
             HidePopups("CONFIRM_SUMMON")
-            TW:Print("invocation acceptée.")
+            TW:Print(L["summon accepted."])
         end
     end
 end)
 
 local mod = TW:NewModule("GroupComfort", {
-    title = "Confort de groupe",
+    title = L["Group Comfort"],
     icon = "Interface\\Icons\\Spell_Holy_PrayerOfFortitude",
-    section = "Groupe",
-    desc = "Accepte automatiquement les invitations de groupe de vos amis et de votre guilde, les résurrections et, si vous le souhaitez, les invocations.",
+    section = L["Group"],
+    desc = L["Automatically accepts group invitations from your friends and guild, resurrections and, if you wish, summons."],
     defaults = {
         invites = true,
         resurrect = true,
@@ -69,10 +70,10 @@ local mod = TW:NewModule("GroupComfort", {
         summon = false,
     },
     options = {
-        { type = "toggle", key = "invites", label = "Invitations des amis et de la guilde" },
-        { type = "toggle", key = "resurrect", label = "Résurrections" },
-        { type = "toggle", key = "resurrectSafe", label = "Pas si celui qui vous relève est en combat" },
-        { type = "toggle", key = "summon", label = "Invocations" },
+        { type = "toggle", key = "invites", label = L["Invitations from friends and guild"] },
+        { type = "toggle", key = "resurrect", label = L["Resurrections"] },
+        { type = "toggle", key = "resurrectSafe", label = L["Not if the resurrecting player is in combat"] },
+        { type = "toggle", key = "summon", label = L["Summons"] },
     },
 })
 

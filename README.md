@@ -2,6 +2,8 @@
 
 Boîte à outils personnelle pour World of Warcraft Classic Era : des modules indépendants, à activer ou désactiver dans une seule fenêtre de configuration. Elle vise aussi WoW Forever, où elle n'a pas encore été testée.
 
+L'interface est disponible en anglais et en français, selon la langue du jeu. Les autres langues affichent l'anglais.
+
 ## Installation
 
 Copiez le dossier dans `World of Warcraft\_classic_era_\Interface\AddOns\`. Il doit s'appeler exactement `Tinkerwise`. Relancez ensuite le jeu.

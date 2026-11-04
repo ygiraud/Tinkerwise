@@ -2,6 +2,7 @@
 -- Selling is spread over several ticks so the server does not drop sales.
 
 local _, ns = ...
+local L = ns.L
 local TW = ns.TW
 local GetItemInfo = ns.API.GetItemInfo
 
@@ -40,7 +41,7 @@ local function SellTick()
     end
     if #queue == 0 then
         StopSelling()
-        if gained > 0 then TW:Print("camelote vendue : " .. GetCoinTextureString(gained)) end
+        if gained > 0 then TW:Print(L["junk sold: "] .. GetCoinTextureString(gained)) end
     end
 end
 
@@ -49,11 +50,11 @@ local function Repair()
     local cost, canRepair = GetRepairAllCost()
     if not canRepair or not cost or cost == 0 then return end
     if cost > GetMoney() then
-        TW:Print("pas assez d'or pour réparer (" .. GetCoinTextureString(cost) .. ").")
+        TW:Print(L["not enough gold to repair ("] .. GetCoinTextureString(cost) .. ").")
         return
     end
     RepairAllItems()
-    TW:Print("équipement réparé : " .. GetCoinTextureString(cost))
+    TW:Print(L["gear repaired: "] .. GetCoinTextureString(cost))
 end
 
 local function SellJunk()
@@ -77,7 +78,7 @@ local function SellJunk()
     end
     if #queue == 0 then return end
     if db.printOnly then
-        TW:Print(format("camelote à vendre (%s) : %s", GetCoinTextureString(total), table.concat(links, " ")))
+        TW:Print(format(L["junk to sell (%s): %s"], GetCoinTextureString(total), table.concat(links, " ")))
         wipe(queue)
         return
     end
@@ -95,15 +96,15 @@ events:SetScript("OnEvent", function(_, event)
 end)
 
 local mod = TW:NewModule("AutoVendor", {
-    title = "Vendeur automatique",
-    section = "Objets",
+    title = L["Auto Vendor"],
+    section = L["Items"],
     icon = "Interface\\Icons\\INV_Misc_Coin_02",
-    desc = "Chez un marchand, vend automatiquement les objets gris (camelote) et répare votre équipement. Le total gagné et le coût de réparation s'affichent dans le chat.",
+    desc = L["At a merchant, automatically sells gray items (junk) and repairs your gear. The total earned and the repair cost are shown in chat."],
     defaults = DEFAULTS,
     options = {
-        { type = "toggle", key = "sell", label = "Vendre les objets gris" },
-        { type = "toggle", key = "printOnly", label = "Seulement lister la camelote (ne rien vendre)" },
-        { type = "toggle", key = "repair", label = "Réparer automatiquement" },
+        { type = "toggle", key = "sell", label = L["Sell gray items"] },
+        { type = "toggle", key = "printOnly", label = L["Only list junk (sell nothing)"] },
+        { type = "toggle", key = "repair", label = L["Repair automatically"] },
     },
 })
 

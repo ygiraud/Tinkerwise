@@ -3,6 +3,7 @@
 -- Part of the "Mes personnages" module (see Bags.lua), whose saved table it shares.
 
 local _, ns = ...
+local L = ns.L
 local TW = ns.TW
 
 local HOURS_PER_REST_STEP = 8
@@ -30,9 +31,9 @@ local function RestedPercent(c)
 end
 
 local function Ago(seconds)
-    if seconds < 3600 then return "à l'instant" end
-    if seconds < 86400 then return format("il y a %d h", seconds / 3600) end
-    return format("il y a %d j", seconds / 86400)
+    if seconds < 3600 then return L["just now"] end
+    if seconds < 86400 then return format(L["%d h ago"], seconds / 3600) end
+    return format(L["%d d ago"], seconds / 86400)
 end
 
 ---------------------------------------------------------------------------
@@ -71,13 +72,13 @@ local function Build()
     win:SetScript("OnDragStart", win.StartMoving)
     win:SetScript("OnDragStop", win.StopMovingOrSizing)
     win:Hide()
-    TW:SkinDialog(win, "Mes personnages")
+    TW:SkinDialog(win, L["My Characters"])
     tinsert(UISpecialFrames, "TinkerwiseCharactersFrame")
 
     local head = CreateFrame("Frame", nil, win)
     head:SetSize(560, ROW_H)
     head:SetPoint("TOPLEFT", 24, -48)
-    for i, text in ipairs({ "Personnage", "Niv.", "Or", "Repos (≈)", "Vu" }) do
+    for i, text in ipairs({ L["Character"], L["Lvl"], L["Gold"], L["Rested (≈)"], L["Seen"] }) do
         Cell(head, i, "GameFontNormal"):SetText(text)
     end
     total = win:CreateFontString(nil, "OVERLAY", "GameFontNormal")
@@ -109,7 +110,7 @@ local function Refresh()
         row:Show()
     end
     for i = #list + 1, #rows do rows[i]:Hide() end
-    total:SetText("Total : " .. GetCoinTextureString(gold))
+    total:SetText(L["Total: "] .. GetCoinTextureString(gold))
     win:SetHeight(120 + #list * ROW_H)
 end
 
@@ -140,5 +141,5 @@ end
 
 SLASH_TINKERWISECHARS1 = "/twchars"
 SlashCmdList.TINKERWISECHARS = function()
-    if TW.modules.Bags.active then Toggle() else TW:Print("le module Mes personnages est désactivé (/tw).") end
+    if TW.modules.Bags.active then Toggle() else TW:Print(L["the My Characters module is disabled (/tw)."]) end
 end
