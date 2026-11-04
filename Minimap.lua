@@ -69,7 +69,7 @@ mod = TW:NewModule("MinimapButton", {
     title = "Bouton de la minicarte",
     icon = "Interface\\Icons\\INV_Misc_Wrench_01",
     section = "Configuration",
-    defaultEnabled = true,
+    alwaysEnabled = true,
     desc = "Affiche le bouton de Tinkerwise autour de la minicarte et choisit l'action du clic droit et du Ctrl + clic. Si le module de cette action est désactivé, ces clics ouvrent la configuration.",
     defaults = { clickAction = "checkup", angle = 200 },
     options = {

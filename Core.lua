@@ -5,7 +5,7 @@
 --   section            group name in the module list (default "Divers")
 --   icon               texture path shown in the configuration window
 --   defaults           table of saved settings (copied into mod.db)
---   defaultEnabled     true to start enabled (default: disabled)
+--   alwaysEnabled      true for a module that is always on and cannot be disabled (default: starts disabled)
 --   accountWide        true to share settings between characters (default: per character)
 --   options            list of option widgets (see Config.lua)
 --   OnEnable, OnDisable, OnOptionChanged(key)   callbacks
@@ -129,6 +129,7 @@ function TW:NewModule(key, info)
 end
 
 function TW:SetModuleEnabled(mod, enabled)
+    if mod.alwaysEnabled then enabled = true end
     mod.db.enabled = enabled and true or false
     if enabled and not mod.active then
         mod.active = true
@@ -326,7 +327,9 @@ loader:SetScript("OnEvent", function(_, event, arg1)
                 if db[k] == nil then db[k] = v end
             end
             -- Modules start off once, even if saved as on; then the player's choice stays.
-            if not mod.defaultEnabled and not db.defaultApplied then
+            if mod.alwaysEnabled then
+                db.enabled = true
+            elseif not db.defaultApplied then
                 db.enabled, db.defaultApplied = false, true
             end
             if db.enabled == nil then db.enabled = true end

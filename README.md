@@ -26,4 +26,4 @@ Copiez le dossier dans `World of Warcraft\_classic_era_\Interface\AddOns\`. Il d
 - **Immersion :** Mode immersion (avec la scène de quête)
 - **Configuration :** Réglages par défaut, Bouton de la minicarte
 
-Les réglages sont enregistrés par personnage, sauf ceux de Réglages par défaut et Mes personnages, communs au compte. Tous les modules sont désactivés par défaut, sauf ceux de la section Configuration : activez ceux que vous voulez dans `/tw`.
+Les réglages sont enregistrés par personnage, sauf ceux de Réglages par défaut et Mes personnages, communs au compte. Tous les modules sont désactivés par défaut : activez ceux que vous voulez dans `/tw`. Ceux de la section Configuration restent toujours actifs.
