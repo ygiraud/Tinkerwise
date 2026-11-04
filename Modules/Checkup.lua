@@ -815,6 +815,9 @@ local CHAT_BUTTONS = {
     "ChatFrameMenuButton", "ChatFrame1ButtonFrameUpButton", "FriendsMicroButton", "QuickJoinToastButton",
 }
 
+-- The chat buttons only settle after entering the world: the icon stays hidden until then.
+local chatButtonReady = false
+
 local function PlaceChatButton()
     chatButton:ClearAllPoints()
     if db.btnPoint then
@@ -925,7 +928,12 @@ events:SetScript("OnEvent", function(_, event)
         end
         wasResting = resting
     elseif event == "PLAYER_ENTERING_WORLD" then
-        C_Timer.After(1, PlaceChatButton)
+        C_Timer.After(1, function()
+            chatButtonReady = true
+            if not TW.modules.Checkup.active then return end
+            PlaceChatButton()
+            chatButton:SetShown(db.chatButton)
+        end)
         wasResting = IsResting()
         local inInstance, kind = IsInInstance()
         local name = GetInstanceInfo()
@@ -1034,7 +1042,7 @@ function mod:OnEnable()
     events:RegisterEvent("MERCHANT_SHOW")
     wasResting = IsResting()
     PlaceChatButton()
-    chatButton:SetShown(db.chatButton)
+    chatButton:SetShown(db.chatButton and chatButtonReady)
     if db.winPoint then
         win:ClearAllPoints()
         win:SetPoint(db.winPoint, UIParent, db.winPoint, db.winX, db.winY)

@@ -5,6 +5,7 @@
 -- Option entries declared by modules:
 --   { type = "toggle",  key, label }
 --   { type = "slider",  key, label, min, max, step }
+--   { type = "color",   key, label }    db[key] holds { r, g, b }; opens the game's color wheel
 --   { type = "input",   key, label }
 --   { type = "select",  key, label, values = { { value, label }, ... } }
 --   { type = "execute", label, func }   consecutive buttons share a line
@@ -125,6 +126,52 @@ local function CreateSlider(parent, opt)
         self.refreshing = false
     end
     return holder
+end
+
+local function OpenColorPicker(color, apply)
+    local function Changed() apply(ColorPickerFrame:GetColorRGB()) end
+    local function Cancelled() apply(color.r, color.g, color.b) end
+    if ColorPickerFrame.SetupColorPickerAndShow then
+        ColorPickerFrame:SetupColorPickerAndShow({
+            r = color.r, g = color.g, b = color.b, hasOpacity = false,
+            swatchFunc = Changed, cancelFunc = Cancelled,
+        })
+    else -- older clients
+        ColorPickerFrame:Hide()
+        ColorPickerFrame.hasOpacity = false
+        ColorPickerFrame.opacityFunc = nil
+        ColorPickerFrame.func = Changed
+        ColorPickerFrame.cancelFunc = Cancelled
+        ColorPickerFrame.previousValues = { color.r, color.g, color.b }
+        ColorPickerFrame:SetColorRGB(color.r, color.g, color.b)
+        ColorPickerFrame:Show()
+    end
+end
+
+local function CreateColorOption(parent, opt, mod)
+    local b = CreateFrame("Button", nil, parent, "BackdropTemplate")
+    b:SetSize(32, 22)
+    b:SetBackdrop(CARD_BACKDROP)
+    b:SetBackdropBorderColor(GOLD[1], GOLD[2], GOLD[3], 0.8)
+    local swatch = b:CreateTexture(nil, "ARTWORK")
+    swatch:SetPoint("TOPLEFT", 4, -4)
+    swatch:SetPoint("BOTTOMRIGHT", -4, 4)
+    local label = b:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+    label:SetPoint("LEFT", b, "RIGHT", 8, 0)
+    label:SetText(opt.label)
+    label:SetTextColor(PARCHMENT[1], PARCHMENT[2], PARCHMENT[3])
+
+    function b:Refresh()
+        local c = mod.db[opt.key]
+        swatch:SetColorTexture(c.r, c.g, c.b)
+    end
+    b:SetScript("OnClick", function(self)
+        OpenColorPicker(mod.db[opt.key], function(r, g, bl)
+            TW:SetOption(mod, opt.key, { r = r, g = g, b = bl })
+            self:Refresh()
+        end)
+    end)
+    return b
 end
 
 local function CreateInput(parent, opt, mod)
@@ -345,6 +392,10 @@ local function BuildPanel(mod)
                 w = CreateSlider(card, opt)
                 w:SetPoint("TOPLEFT", card, "TOPLEFT", 16, cy)
                 cy = cy - 54
+            elseif opt.type == "color" then
+                w = CreateColorOption(card, opt, mod)
+                w:SetPoint("TOPLEFT", card, "TOPLEFT", 16, cy)
+                cy = cy - 30
             elseif opt.type == "input" then
                 w = CreateInput(card, opt, mod)
                 w:SetPoint("TOPLEFT", card, "TOPLEFT", 16, cy)

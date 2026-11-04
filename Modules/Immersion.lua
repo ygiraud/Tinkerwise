@@ -30,7 +30,7 @@ local KEPT_FRAMES = {
     keepMinimap = { "MinimapCluster" },
     keepPlayer = { "PlayerFrame" },
     keepTarget = { "TargetFrame" },
-    keepChat = { "ChatFrame1" },
+    keepChat = { "GeneralDockManager" }, -- holds the docked tabs; the windows are added below
     -- Not an option: always kept. The tooltip is there for the quest rewards.
     -- The game places these itself each time they are shown, so they are not pinned.
     always = { "QuestFrame", "GossipFrame", "GameTooltip" },
@@ -40,6 +40,15 @@ local KEPT_FRAMES = {
         "TinkerwiseLowHealthVignette", "TinkerwiseAggroVignette",
     },
 }
+
+-- Every chat window, with its input box and its tab.
+local CHAT_TABS = {}
+for i = 1, NUM_CHAT_WINDOWS do
+    tinsert(KEPT_FRAMES.keepChat, "ChatFrame" .. i)
+    tinsert(KEPT_FRAMES.keepChat, "ChatFrame" .. i .. "EditBox")
+    tinsert(KEPT_FRAMES.keepChat, "ChatFrame" .. i .. "Tab")
+    CHAT_TABS["ChatFrame" .. i .. "Tab"] = "ChatFrame" .. i
+end
 
 local FADE_OUT_TIME = 1 -- seconds a loot line takes to disappear
 local MAX_LOOT = 6
@@ -59,7 +68,9 @@ local function Detach()
         if option == "always" or db[option] then
             for _, name in ipairs(names) do
                 local f = _G[name]
-                if f and not detached[f] then
+                -- A docked tab stays inside the dock, which is kept as a whole.
+                local chatWindow = CHAT_TABS[name] and _G[CHAT_TABS[name]]
+                if f and not detached[f] and not (chatWindow and chatWindow.isDocked) then
                     local saved = { parent = f:GetParent(), scale = f:GetScale(),
                                     strata = f:GetFrameStrata(), level = f:GetFrameLevel() }
                     detached[f] = saved
@@ -355,7 +366,7 @@ local mod = TW:NewModule("Immersion", {
         { type = "toggle", key = "keepPlayer", label = L["Player frame"] },
         { type = "toggle", key = "keepTarget", label = L["Target frame"] },
         { type = "toggle", key = "keepNameplates", label = L["Nameplates"] },
-        { type = "toggle", key = "keepChat", label = L["Main chat window"] },
+        { type = "toggle", key = "keepChat", label = L["Chat"] },
         { type = "toggle", key = "keepTinkerwise", label = L["Tinkerwise windows and alerts"] },
         { type = "header", label = L["Black bars"] },
         { type = "toggle", key = "letterbox", label = L["Show black bars"] },

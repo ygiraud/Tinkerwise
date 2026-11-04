@@ -27,6 +27,7 @@ Modules\AutoVendor.lua
 Modules\Mail.lua
 Modules\BuffThanks.lua
 Modules\GroupComfort.lua
+Modules\Chat.lua
 Modules\Immersion.lua
 Modules\QuestScene.lua
 Modules\CharDefaults.lua

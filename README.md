@@ -25,6 +25,7 @@ Copiez le dossier dans `World of Warcraft\_classic_era_\Interface\AddOns\`. Il d
 - **Personnage :** Mes personnages, Changements de stats, Infos portrait, Compétences d'arme, Suivi de session
 - **Objets :** Comparateur d'objets, Vendeur automatique, Courrier
 - **Groupe :** Remerciements & rebuff, Confort de groupe
+- **Tchat :** Tchat
 - **Immersion :** Mode immersion (avec la scène de quête)
 - **Configuration :** Réglages par défaut, Bouton de la minicarte
 
