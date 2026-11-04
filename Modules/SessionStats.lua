@@ -58,7 +58,7 @@ panel:SetBackdrop({
     tile = true, tileSize = 16, edgeSize = 14,
     insets = { left = 4, right = 4, top = 4, bottom = 4 },
 })
-panel:SetBackdropColor(0.06, 0.04, 0.02, 0.85)
+panel:SetBackdropColor(0.06, 0.04, 0.02, 0.96)
 panel:SetBackdropBorderColor(GOLD[1], GOLD[2], GOLD[3], 0.9)
 panel:Hide()
 TW:CreateMover(panel, function() return db end, "Session", DEFAULTS)

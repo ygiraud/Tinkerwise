@@ -139,7 +139,6 @@ function ns.CharacterList.Disable()
     if win then win:Hide() end
 end
 
-SLASH_TINKERWISECHARS1 = "/twchars"
-SlashCmdList.TINKERWISECHARS = function()
+TW.commands.chars = function()
     if TW.modules.Bags.active then Toggle() else TW:Print(L["the My Characters module is disabled (/tw)."]) end
 end

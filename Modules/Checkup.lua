@@ -471,6 +471,8 @@ win:SetBackdrop({
     insets = { left = 11, right = 12, top = 12, bottom = 11 },
 })
 win:SetBackdropColor(0.45, 0.32, 0.2, 1) -- warm brown tint
+TW:AddSolidBackground(win, 0.14, 0.1, 0.06)
+win:SetToplevel(true) -- comes in front as a whole when shown or clicked
 CreateFrame("Button", nil, win, "UIPanelCloseButton"):SetPoint("TOPRIGHT", -6, -6)
 
 local sep = win:CreateTexture(nil, "ARTWORK")
@@ -957,18 +959,18 @@ end)
 local preview
 
 local function BuildPreview()
-    preview = CreateFrame("Frame", nil, UIParent, "BackdropTemplate")
+    preview = CreateFrame("Frame", nil, UIParent)
     preview:SetFrameStrata("DIALOG")
     preview:SetMovable(true)
     preview:SetClampedToScreen(true)
     preview:EnableMouse(true)
     preview:RegisterForDrag("LeftButton")
-    preview:SetBackdrop(win:GetBackdrop())
-    preview:SetBackdropColor(0.45, 0.32, 0.2, 1)
-    local label = preview:CreateFontString(nil, "OVERLAY")
-    label:SetFont("Fonts\\MORPHEUS.TTF", 22, "")
-    label:SetTextColor(1, 0.9, 0.7)
-    label:SetPoint("CENTER")
+    -- Same look as the blue overlay of TW:CreateMover.
+    local tex = preview:CreateTexture(nil, "OVERLAY")
+    tex:SetAllPoints()
+    tex:SetColorTexture(0, 0.6, 1, 0.4)
+    local label = preview:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    label:SetPoint("BOTTOM", preview, "TOP", 0, 2)
     label:SetText("Check-up")
     preview:SetScript("OnDragStart", preview.StartMoving)
     preview:SetScript("OnDragStop", function(self)
@@ -1006,7 +1008,7 @@ local mod = TW:NewModule("Checkup", {
     title = "Check-up",
     icon = "Interface\\Icons\\INV_Misc_Note_01",
     section = L["Preparation"],
-    desc = L["Checks that you're ready to go: durability and repair cost, food and water suited to your level, potions, ammo suited to your level, class reagents, elixirs and bag space. Button above the chat, right-click on the minimap button, or /checkup."],
+    desc = L["Checks that you're ready to go: durability and repair cost, food and water suited to your level, potions, ammo suited to your level, class reagents, elixirs and bag space. Button above the chat, right-click on the minimap button, or /tw checkup."],
     defaults = DEFAULTS,
     options = {
         { type = "execute", label = L["Run the check-up"], func = function() Open() end },
@@ -1064,7 +1066,6 @@ function mod:OnOptionChanged(key)
     if key == "chatButton" then chatButton:SetShown(db.chatButton) end
 end
 
-SLASH_TINKERWISECHECKUP1 = "/checkup"
-SlashCmdList.TINKERWISECHECKUP = function()
+TW.commands.checkup = function()
     if mod.active then Open() else TW:Print(L["the Check-up module is disabled (/tw)."]) end
 end

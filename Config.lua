@@ -70,6 +70,7 @@ local function CreateCheck(parent, text)
     cb.label:SetPoint("LEFT", cb, "RIGHT", 2, 1)
     cb.label:SetText(text)
     cb.label:SetTextColor(PARCHMENT[1], PARCHMENT[2], PARCHMENT[3])
+    function cb:MinWidth() return self.label:GetStringWidth() + 32 end
     return cb
 end
 
@@ -125,6 +126,11 @@ local function CreateSlider(parent, opt)
         value:SetText(self.mod.db[opt.key])
         self.refreshing = false
     end
+    function holder:MinWidth() return math.max(label:GetStringWidth(), 186) end
+    function holder:SetLayoutWidth(width)
+        self:SetWidth(width)
+        s:SetWidth(math.min(260, width - 66)) -- room for the value box
+    end
     return holder
 end
 
@@ -165,6 +171,7 @@ local function CreateColorOption(parent, opt, mod)
         local c = mod.db[opt.key]
         swatch:SetColorTexture(c.r, c.g, c.b)
     end
+    function b:MinWidth() return label:GetStringWidth() + 40 end
     b:SetScript("OnClick", function(self)
         OpenColorPicker(mod.db[opt.key], function(r, g, bl)
             TW:SetOption(mod, opt.key, { r = r, g = g, b = bl })
@@ -191,6 +198,11 @@ local function CreateInput(parent, opt, mod)
     box:SetScript("OnEditFocusLost", function(self) TW:SetOption(mod, opt.key, self:GetText()) end)
     box:SetScript("OnEscapePressed", function(self) w:Refresh(); self:ClearFocus() end)
     function w:Refresh() box:SetText(mod.db[opt.key] or "") end
+    function w:MinWidth() return math.max(label:GetStringWidth(), 200) end
+    function w:SetLayoutWidth(width)
+        self:SetWidth(width)
+        box:SetWidth(math.min(340, width - 12))
+    end
     return w
 end
 
@@ -229,6 +241,7 @@ local function CreateSelect(parent, opt, mod)
     end)
 
     function w:Refresh() UIDropDownMenu_SetText(dd, LabelOf(mod.db[opt.key])) end
+    function w:MinWidth() return math.max(label:GetStringWidth(), 236) end
     return w
 end
 
@@ -271,6 +284,49 @@ local function ChecklistSignature(mod)
         if opt.type == "checklist" then parts[#parts + 1] = table.concat(opt.items(), "\n") end
     end
     return table.concat(parts, "\n")
+end
+
+-- Places a card's options on two columns and returns the card's height. Short options sit side
+-- by side; one that does not fit half the card takes a whole line. Buttons flow on their own lines.
+local function LayoutCard(card, cardW)
+    local PAD, GAP = 14, 16
+    local colW = (cardW - 2 * PAD - GAP) / 2
+    local cy, rowH, leftUsed, bx = -30, 0, false, nil
+
+    local function EndRow()
+        cy, rowH, leftUsed, bx = cy - rowH, 0, false, nil
+    end
+    local function Place(item, x)
+        item.widget:ClearAllPoints()
+        item.widget:SetPoint("TOPLEFT", card, "TOPLEFT", x, cy)
+        rowH = math.max(rowH, item.height)
+    end
+
+    for _, item in ipairs(card.items) do
+        local w = item.widget
+        if item.isButton then
+            if leftUsed or (bx and bx + w:GetWidth() > cardW - 16) then EndRow() end
+            bx = bx or 16
+            Place(item, bx)
+            bx = bx + w:GetWidth() + 6
+        else
+            if bx then EndRow() end
+            local width
+            if w:MinWidth() <= colW then
+                width = colW
+                Place(item, (leftUsed and PAD + colW + GAP or PAD) + item.dx)
+                if leftUsed then EndRow() else leftUsed = true end
+            else
+                if leftUsed then EndRow() end
+                width = cardW - 2 * PAD
+                Place(item, PAD + item.dx)
+                EndRow()
+            end
+            if w.SetLayoutWidth then w:SetLayoutWidth(width) end
+        end
+    end
+    EndRow()
+    return -cy + 8
 end
 
 local function BuildPanel(mod)
@@ -328,34 +384,34 @@ local function BuildPanel(mod)
     scroll:SetPoint("TOPLEFT", rule, "BOTTOMLEFT", 0, -10)
     scroll:SetPoint("BOTTOMRIGHT", -26, 0)
     local content = CreateFrame("Frame", nil, scroll)
-    local contentW = window:GetWidth() - PANEL_MARGINS
-    local wrapW = MIN_WIDTH - PANEL_MARGINS -- buttons wrap for the narrowest window
-    content:SetSize(contentW, 1)
+    content:SetSize(window:GetWidth() - PANEL_MARGINS, 1)
     scroll:SetScrollChild(content)
 
     local cards = {}
     function outer:ApplyWidth()
-        contentW = window:GetWidth() - PANEL_MARGINS
+        local contentW = window:GetWidth() - PANEL_MARGINS
         content:SetWidth(contentW)
-        for _, c in ipairs(cards) do c:SetWidth(contentW) end
+        local y = 0
+        for _, c in ipairs(cards) do
+            c:ClearAllPoints()
+            c:SetPoint("TOPLEFT", 0, y)
+            c:SetWidth(contentW)
+            local height = LayoutCard(c, contentW)
+            c:SetHeight(height)
+            y = y - height - 16
+        end
+        content:SetHeight(-y + 10)
     end
 
-    local y = 0
-    local card, cy, lastWasButton, bx
+    local card
 
-    local function CloseCard()
-        if not card then return end
-        if lastWasButton then cy = cy - 28 end
-        card:SetHeight(-cy + 8)
-        y = y - card:GetHeight() - 16
-        card, lastWasButton = nil, false
+    local function AddItem(widget, height, dx, isButton)
+        card.items[#card.items + 1] = { widget = widget, height = height, dx = dx or 2, isButton = isButton }
     end
 
     local function OpenCard(label)
-        CloseCard()
         card = CreateFrame("Frame", nil, content, "BackdropTemplate")
-        card:SetPoint("TOPLEFT", 0, y)
-        card:SetWidth(contentW)
+        card.items = {}
         cards[#cards + 1] = card
         card:SetBackdrop(CARD_BACKDROP)
         card:SetBackdropColor(0.06, 0.04, 0.02, 0.75)
@@ -366,7 +422,6 @@ local function BuildPanel(mod)
         local line = GoldRule(card)
         line:SetPoint("LEFT", head, "RIGHT", 8, 0)
         line:SetPoint("RIGHT", card, "RIGHT", -14, 0)
-        cy = -30
     end
 
     for _, opt in ipairs(mod.options or {}) do
@@ -374,10 +429,6 @@ local function BuildPanel(mod)
             OpenCard(opt.label)
         else
             if not card then OpenCard(L["Settings"]) end
-            if opt.type ~= "execute" and lastWasButton then
-                cy = cy - 30
-                lastWasButton = false
-            end
             local w
             if opt.type == "toggle" then
                 w = CreateCheck(card, opt.label)
@@ -386,38 +437,26 @@ local function BuildPanel(mod)
                     TW:SetOption(mod, opt.key, self:GetChecked() and true or false)
                 end)
                 function w:Refresh() self:SetChecked(mod.db[opt.key]) end
-                w:SetPoint("TOPLEFT", card, "TOPLEFT", 10, cy)
-                cy = cy - 28
+                AddItem(w, 28, -4)
             elseif opt.type == "slider" then
                 w = CreateSlider(card, opt)
-                w:SetPoint("TOPLEFT", card, "TOPLEFT", 16, cy)
-                cy = cy - 54
+                AddItem(w, 54)
             elseif opt.type == "color" then
                 w = CreateColorOption(card, opt, mod)
-                w:SetPoint("TOPLEFT", card, "TOPLEFT", 16, cy)
-                cy = cy - 30
+                AddItem(w, 30)
             elseif opt.type == "input" then
                 w = CreateInput(card, opt, mod)
-                w:SetPoint("TOPLEFT", card, "TOPLEFT", 16, cy)
-                cy = cy - 50
+                AddItem(w, 50)
             elseif opt.type == "select" then
                 w = CreateSelect(card, opt, mod)
-                w:SetPoint("TOPLEFT", card, "TOPLEFT", 16, cy)
-                cy = cy - 56
+                AddItem(w, 56)
             elseif opt.type == "execute" then
-                -- buttons flow on one line, wrapping when full
                 w = CreateFrame("Button", nil, card, "UIPanelButtonTemplate")
                 w:SetText(opt.label)
                 w:SetSize(w:GetFontString():GetStringWidth() + 30, 22)
-                if not lastWasButton then bx = 16 end
-                if lastWasButton and bx + w:GetWidth() > wrapW - 16 then
-                    cy, bx = cy - 28, 16
-                end
-                w:SetPoint("TOPLEFT", card, "TOPLEFT", bx, cy - 2)
-                bx = bx + w:GetWidth() + 6
                 w:SetScript("OnClick", function() opt.func(mod) end)
                 function w:Refresh() self:SetEnabled(mod.active and true or false) end -- actions need an active module
-                lastWasButton = true
+                AddItem(w, 28, 0, true)
             elseif opt.type == "checklist" then
                 -- one box per item; db[key] holds the unticked names, so new items start ticked
                 for _, name in ipairs(opt.items()) do
@@ -432,8 +471,7 @@ local function BuildPanel(mod)
                         local unticked = mod.db[opt.key]
                         self:SetChecked(not (unticked and unticked[name]))
                     end
-                    check:SetPoint("TOPLEFT", card, "TOPLEFT", 10, cy)
-                    cy = cy - 28
+                    AddItem(check, 28, -4)
                     check.mod = mod
                     outer.widgets[#outer.widgets + 1] = check
                 end
@@ -444,8 +482,7 @@ local function BuildPanel(mod)
             end
         end
     end
-    CloseCard()
-    content:SetHeight(-y + 10)
+    outer:ApplyWidth()
     return outer
 end
 
@@ -552,6 +589,8 @@ local function BuildWindow()
         insets = { left = 11, right = 12, top = 12, bottom = 11 },
     })
     window:SetBackdropColor(0.45, 0.32, 0.2, 1)
+    TW:AddSolidBackground(window, 0.14, 0.1, 0.06)
+    window:SetToplevel(true) -- comes in front as a whole when shown or clicked
     CreateFrame("Button", nil, window, "UIPanelCloseButton"):SetPoint("TOPRIGHT", -6, -6)
     window:SetScript("OnShow", function() PlaySound(SOUNDKIT.IG_CHARACTER_INFO_OPEN) end)
     window:SetScript("OnHide", function(self)

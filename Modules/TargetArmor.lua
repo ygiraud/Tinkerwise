@@ -1,5 +1,5 @@
 -- TargetArmor: hovering the target frame shows armor debuffs on the target and, for monsters
--- whose armor you entered with /twarmor, its armor, how much of your physical damage it
+-- whose armor you entered with /tw armor, its armor, how much of your physical damage it
 -- absorbs and your weapon damage against it. The game does not expose monster armor, so
 -- nothing is estimated.
 
@@ -160,7 +160,7 @@ local mod = TW:NewModule("TargetArmor", {
     title = L["Target Armor"],
     icon = "Interface\\Icons\\Ability_Warrior_Sunder",
     section = "Combat",
-    desc = L["Hover over your target's frame (monster) to see its armor debuffs (Sunder Armor, Faerie Fire, Expose Armor…).\n\nThe game doesn't provide monster armor: enter it with /twarmor 1234 (with the monster targeted) to also see its armor, the % of damage it removes from your hits and your damage against it. Remove: /twarmor clear"],
+    desc = L["Hover over your target's frame (monster) to see its armor debuffs (Sunder Armor, Faerie Fire, Expose Armor…).\n\nThe game doesn't provide monster armor: enter it with /tw armor 1234 (with the monster targeted) to also see its armor, the % of damage it removes from your hits and your damage against it. Remove: /tw armor clear"],
     defaults = DEFAULTS,
     options = {
         { type = "toggle", key = "debuffs", label = L["Show armor debuffs"] },
@@ -181,8 +181,7 @@ function mod:OnDisable()
     alpha = 0
 end
 
-SLASH_TINKERWISEARMOR1 = "/twarmor"
-SlashCmdList.TINKERWISEARMOR = function(input)
+TW.commands.armor = function(input)
     if not mod.active then return TW:Print(L["the Target Armor module is disabled (/tw)."]) end
     local id = NpcID("target")
     if not id then return TW:Print(L["target a monster first."]) end
@@ -195,7 +194,7 @@ SlashCmdList.TINKERWISEARMOR = function(input)
         TW:Print(format(L["%s's armor set to %d."], UnitName("target"), tonumber(arg)))
     else
         local base = BaseArmor("target")
-        TW:Print(format(L["%s's armor: %s. Usage: /twarmor 1234 | clear"],
+        TW:Print(format(L["%s's armor: %s. Usage: /tw armor 1234 | clear"],
             UnitName("target"), base and tostring(base) or L["unknown"]))
     end
 end

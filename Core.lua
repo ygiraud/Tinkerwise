@@ -14,7 +14,7 @@
 local ADDON, ns = ...
 local L = ns.L
 
-local TW = { modules = {}, order = {} }
+local TW = { modules = {}, order = {}, commands = {} } -- commands: "/tw name" -> function(arguments)
 ns.TW = TW
 _G.Tinkerwise = TW
 
@@ -157,6 +157,14 @@ function TW:SetOption(mod, key, value)
     if mod.active and mod.OnOptionChanged then mod:OnOptionChanged(key) end
 end
 
+-- The dialog background texture is see-through whatever its color: this solid layer sits under it.
+function TW:AddSolidBackground(frame, r, g, b)
+    local solid = frame:CreateTexture(nil, "BACKGROUND", nil, -8)
+    solid:SetColorTexture(r, g, b, 0.96)
+    solid:SetPoint("TOPLEFT", 11, -12)
+    solid:SetPoint("BOTTOMRIGHT", -12, 11)
+end
+
 -- Classic dialog look: stone background, gold border, title on a header banner and a close button.
 -- `frame` must be created with "BackdropTemplate". Returns the title font string.
 function TW:SkinDialog(frame, title)
@@ -166,6 +174,8 @@ function TW:SkinDialog(frame, title)
         tile = true, tileSize = 32, edgeSize = 32,
         insets = { left = 11, right = 12, top = 12, bottom = 11 },
     })
+    self:AddSolidBackground(frame, 0.08, 0.08, 0.08)
+    frame:SetToplevel(true) -- comes in front as a whole when shown or clicked
     local header = frame:CreateTexture(nil, "OVERLAY")
     header:SetTexture("Interface\\DialogFrame\\UI-DialogBox-Header")
     header:SetSize(300, 64)
@@ -352,9 +362,12 @@ end)
 SLASH_TINKERWISE1 = "/tinkerwise"
 SLASH_TINKERWISE2 = "/tw"
 SlashCmdList.TINKERWISE = function(input)
-    local cmd = strtrim(input or ""):lower()
-    if cmd == "edit" or cmd == "edition" or cmd == "move" then
+    local cmd, arguments = strtrim(input or ""):match("^(%S*)%s*(.-)$")
+    cmd = cmd:lower()
+    if cmd == "move" then
         TW:SetEditMode(not TW.editMode)
+    elseif TW.commands[cmd] then
+        TW.commands[cmd](arguments)
     else
         TW:ToggleConfig()
     end

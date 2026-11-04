@@ -14,9 +14,10 @@ Copiez le dossier dans `World of Warcraft\_classic_era_\Interface\AddOns\`. Il d
 |---|---|
 | `/tw` | Ouvre la configuration |
 | `/tw move` | Déplace les fenêtres de l'addon |
-| `/checkup` | Lance le check-up |
-| `/twchars` | Affiche Mes personnages |
-| `/twbags` | Affiche les sacs et banques de vos personnages |
+| `/tw checkup` | Lance le check-up |
+| `/tw chars` | Affiche Mes personnages |
+| `/tw bags` | Affiche les sacs et banques de vos personnages |
+| `/tw armor 1234` | Enregistre l'armure du monstre ciblé (`/tw armor clear` l'efface) |
 
 ## Modules
 

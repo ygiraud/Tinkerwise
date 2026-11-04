@@ -31,8 +31,8 @@ button:SetScript("OnDragStop", function(self) self:SetScript("OnUpdate", nil) en
 -- What right click and Ctrl + click can do. Each one needs its module to be active.
 local ACTIONS = {
     checkup = { label = L["check-up"], module = "Checkup", run = function() TW.modules.Checkup:Open() end },
-    bags = { label = L["bags"], module = "Bags", run = function() SlashCmdList.TINKERWISEBAGS() end },
-    chars = { label = L["my characters"], module = "Bags", run = function() SlashCmdList.TINKERWISECHARS() end },
+    bags = { label = L["bags"], module = "Bags", run = function() TW.commands.bags() end },
+    chars = { label = L["my characters"], module = "Bags", run = function() TW.commands.chars() end },
 }
 
 local function CurrentAction()

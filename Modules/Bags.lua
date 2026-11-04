@@ -504,7 +504,7 @@ local mod = TW:NewModule("Bags", {
     icon = "Interface\\Icons\\INV_Misc_GroupNeedMore",
     section = L["Character"],
     accountWide = true,
-    desc = L["Summarizes your characters' gold, level, rested XP and last login (/twchars), and remembers their bags, keyring, gear, bank and mail (/twbags), with search and tooltips showing who owns what. A character appears after their first login. Bags and gear update when they play, bank and mail when they open them; only rested XP is estimated, from elapsed time."],
+    desc = L["Summarizes your characters' gold, level, rested XP and last login (/tw chars), and remembers their bags, keyring, gear, bank and mail (/tw bags), with search and tooltips showing who owns what. A character appears after their first login. Bags and gear update when they play, bank and mail when they open them; only rested XP is estimated, from elapsed time."],
     defaults = { tooltip = true, showBags = true, showBank = true, showMail = false, showWorn = false },
     options = {
         { type = "toggle", key = "tooltip", label = L["Show owners in tooltips"] },
@@ -536,7 +536,6 @@ function mod:OnDisable()
     if win then win:Hide() end
 end
 
-SLASH_TINKERWISEBAGS1 = "/twbags"
-SlashCmdList.TINKERWISEBAGS = function()
+TW.commands.bags = function()
     if mod.active then Toggle() else TW:Print(L["the Bags module is disabled (/tw)."]) end
 end
