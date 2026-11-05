@@ -1,0 +1,53 @@
+# Tinkerwise
+
+A toolbox for WoW Forever: independent modules you can turn on or off from a single window.
+
+**Available in English and French**, based on your game language. All modules are off by default, except those in the Configuration section: type `/tw` to choose yours.
+
+## Modules
+
+**Preparation**
+- **Check-up:** durability, food, water, potions, ammo, reagents, elixirs, bag space and unspent talent points
+- **Potion Reminder:** shows the best potion in your bags that isn't on your action bars
+
+**Character**
+- **My Characters:** gold, level, rested XP, bags, bank and mail across all your characters, with search
+- **Stat Changes:** gains and losses when your gear, buffs, form or talents change, plus a summary panel on level up
+- **Portrait Info:** armor, damage reduction, DPS and spell power when hovering over your portrait
+
+**Items**
+- **Item Comparison:** gains and losses in the tooltip
+- **Auto Vendor:** sells gray items and repairs your gear
+
+**Group**
+- **Group Comfort:** accepts invitations from friends and guildmates, resurrections and, optionally, summons
+
+**Chat**
+- **Chat:** a new tab for each whisper conversation with a close button, group and guild tabs, a channel that follows the selected tab, class-colored names, timestamps, clickable links, copying and resizable windows with a custom background
+
+**Immersion**
+- **Immersion Mode:** fades out the interface and can stage your quests as cinematic scenes
+- **AFK Mode:** fades out the interface and slowly turns the camera around your character, showing your time away and the whispers you received
+- **Flight Mode:** during a flight master trip, fades out the interface and shows your destination, the zone below and the flight time
+
+**Configuration**
+- **Default Settings:** sets up new characters
+- **Minimap Button:** quick access and customizable clicks
+
+## Optional addon
+
+Install **What's Training?** to see the spells to learn from your class trainer, and their total cost, in the level-up panel. Without it, the panel only shows your stats.
+
+## Commands
+
+| Command | Effect |
+|---|---|
+| `/tw` | Opens the configuration |
+| `/tw move` | Moves the addon's windows |
+| `/rl` | Reloads the interface |
+| `/edit` | Opens Blizzard's Edit Mode |
+| `/kb` | Opens Blizzard's Quick Keybind Mode |
+| `/cc` | Opens or closes the Click Casting window |
+| `/tw checkup` | Runs the check-up |
+| `/tw chars` | Shows My Characters |
+| `/tw bags` | Shows your characters' bags and banks |
