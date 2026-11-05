@@ -14,9 +14,11 @@ local SAVED_VIEW = 5 -- camera view slot, also used by the quest scene (never at
 local CAMERA_SPEED = 0.03
 local FADE_TIME = 0.6
 local REFRESH_EVERY = 0.5
+local TEST_DURATION = 15
 
 local db
-local playing, cameraMoved, dismissed = false, false, false
+local playing, cameraMoved, dismissed, testing = false, false, false, false
+local testId = 0
 local afkSince, whispers = nil, 0
 local fadeIn, sinceRefresh = 0, 0
 
@@ -167,6 +169,10 @@ end
 local function Stop()
     if not playing then return end
     playing = false
+    if testing then
+        testing = false
+        afkSince, whispers = nil, 0
+    end
     scene:Hide()
     UIParent:SetAlpha(1)
     RestoreCamera()
@@ -174,18 +180,33 @@ end
 
 -- The interface stays reachable while away, until the next time the player leaves.
 scene:SetScript("OnMouseDown", function()
-    dismissed = true
+    if not testing then dismissed = true end
     Stop()
 end)
 
+-- Plays the scene with sample values, without touching the AFK flag.
+local function StartTest()
+    if playing or InCombatLockdown() or (ns.QuestScene and ns.QuestScene.IsPlaying())
+        or (ns.FlightMode and ns.FlightMode.IsPlaying()) then return end
+    testing, afkSince, whispers = true, GetTime() - 125, 2
+    Play()
+    testId = testId + 1
+    local id = testId
+    C_Timer.After(TEST_DURATION, function()
+        if testing and id == testId then Stop() end
+    end)
+end
+
 local function Update()
+    if testing then return end
     if not UnitIsAFK("player") then
         afkSince, whispers, dismissed = nil, 0, false
         Stop()
         return
     end
     afkSince = afkSince or GetTime()
-    if dismissed or InCombatLockdown() or (ns.QuestScene and ns.QuestScene.IsPlaying()) then return end
+    if dismissed or InCombatLockdown() or (ns.QuestScene and ns.QuestScene.IsPlaying())
+        or (ns.FlightMode and ns.FlightMode.IsPlaying()) then return end
     Play()
 end
 
@@ -215,6 +236,7 @@ local mod = TW:NewModule("AfkMode", {
     defaults = { camera = true },
     options = {
         { type = "toggle", key = "camera", label = L["Camera movement"] },
+        { type = "execute", label = L["Test (15 s)"], func = StartTest },
     },
 })
 

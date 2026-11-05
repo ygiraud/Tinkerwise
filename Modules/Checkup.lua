@@ -74,6 +74,7 @@ local ICONS = {
     ammo = "Interface\\Icons\\INV_Ammo_Arrow_02",
     reagents = "Interface\\Icons\\INV_Misc_Dust_02",
     elixirs = "Interface\\Icons\\INV_Potion_61",
+    talents = "Interface\\Icons\\Ability_Marksmanship",
     bags = "Interface\\Icons\\INV_Misc_Bag_08",
 }
 local STATUS_ICON = {
@@ -380,6 +381,35 @@ local function CheckElixirs(inv)
     return cat
 end
 
+local function ReadTalentPoints()
+    local configID = C_ClassTalents.GetActiveConfigID()
+    local total = 0
+    for _, treeID in ipairs(C_Traits.GetConfigInfo(configID).treeIDs) do
+        for _, currency in ipairs(C_Traits.GetTreeCurrencyInfo(configID, treeID, false)) do
+            total = total + currency.quantity
+        end
+    end
+    return total
+end
+
+-- Number of talent points left to spend, or nil when the game doesn't tell. On Forever,
+-- GetNumUnspentTalents answers 0 even with points left, and the older functions don't exist.
+local function UnspentTalentCount()
+    if not (C_ClassTalents and C_Traits) then return end
+    local ok, total = pcall(ReadTalentPoints) -- also fails on secret values
+    return ok and total or nil
+end
+
+-- Whether talent points are left to spend, or nil when the game doesn't tell. Fallback only: on
+-- Forever it was seen answering true with every point spent.
+local function HasUnspentTalents()
+    local hasUnspent = C_ClassTalents and C_ClassTalents.HasUnspentTalentPoints
+    if not hasUnspent then return end
+    local ok, spec, class = pcall(hasUnspent)
+    if not ok or (issecretvalue and (issecretvalue(spec) or issecretvalue(class))) then return end
+    return (spec or class) and true or false
+end
+
 local function CheckBags(inv)
     local cat = NewCategory("bags", L["Bags"])
     local used = inv.total > 0 and (inv.total - inv.free) / inv.total * 100 or 0
@@ -421,7 +451,20 @@ local function RunScan()
         for _, t in ipairs(c.tips) do tips[#tips + 1] = t end
     end
     table.sort(tips, function(a, b) return a.prio > b.prio end)
-    return { cats = cats, tips = tips, want = want, score = n > 0 and math.floor(sum / n + 0.5) or 100 }
+    -- Shown apart: talents are not supplies, so they stay out of the list and of the score.
+    local talentPoints, talentsToSpend = nil, false
+    if UnitLevel("player") >= 10 then
+        talentPoints = UnspentTalentCount()
+        if talentPoints then
+            talentsToSpend = talentPoints > 0
+        else
+            talentsToSpend = HasUnspentTalents() == true
+        end
+    end
+    return {
+        cats = cats, tips = tips, want = want, score = n > 0 and math.floor(sum / n + 0.5) or 100,
+        talentsToSpend = talentsToSpend, talentPoints = talentPoints,
+    }
 end
 
 local function Verdict(score)
@@ -632,6 +675,55 @@ local function Row(i)
     return r
 end
 
+-- Notice under the list, only when talent points are left to spend.
+local talentNote = CreateFrame("Frame", nil, win, "BackdropTemplate")
+talentNote:SetSize(RIGHT_W, 26)
+talentNote:SetBackdrop({
+    bgFile = "Interface\\Tooltips\\UI-Tooltip-Background",
+    edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+    tile = true, tileSize = 16, edgeSize = 12,
+    insets = { left = 3, right = 3, top = 3, bottom = 3 },
+})
+talentNote:SetBackdropColor(0.3, 0.15, 0.05, 0.6)
+talentNote:SetBackdropBorderColor(1, 0.63, 0.13, 0.9)
+local talentIcon = talentNote:CreateTexture(nil, "ARTWORK")
+talentIcon:SetSize(15, 15)
+talentIcon:SetPoint("LEFT", 7, 0)
+talentIcon:SetTexture(ICONS.talents)
+talentIcon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+local talentText = talentNote:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+talentText:SetPoint("LEFT", talentIcon, "RIGHT", 6, 0)
+talentText:SetTextColor(1, 0.63, 0.13)
+talentNote:Hide()
+
+local function OpenTalents()
+    if InCombatLockdown() then
+        TW:Print(L["cannot open talents in combat."])
+        return
+    end
+    local open = PlayerSpellsUtil and PlayerSpellsUtil.OpenToClassTalentsTab or ToggleTalentFrame
+    if not (open and pcall(open)) then
+        TW:Print(L["the talent window could not be opened."])
+        return
+    end
+    win:Hide()
+end
+
+talentNote:EnableMouse(true)
+talentNote:SetScript("OnMouseUp", function(_, mouse)
+    if mouse == "LeftButton" then OpenTalents() end
+end)
+talentNote:SetScript("OnEnter", function(self)
+    self:SetBackdropBorderColor(1, 0.82, 0.3, 1)
+    GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+    GameTooltip:SetText(L["Click to open your talents"])
+    GameTooltip:Show()
+end)
+talentNote:SetScript("OnLeave", function(self)
+    self:SetBackdropBorderColor(1, 0.63, 0.13, 0.9)
+    GameTooltip:Hide()
+end)
+
 local tipsTitle = win:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
 tipsTitle:SetText(Spaced("CONSEILS"))
 tipsTitle:SetTextColor(GOLD[1], GOLD[2], GOLD[3])
@@ -718,6 +810,7 @@ win:SetScript("OnUpdate", function(_, elapsed)
         fs:SetAlpha(Clamp01((t - anim.tipStart - (i - 1) * 0.25 * s) / 0.3))
     end
     tipsTitle:SetAlpha(Clamp01((t - anim.tipStart + 0.2) / 0.3))
+    talentNote:SetAlpha(tipsTitle:GetAlpha())
 
     if t > anim.finish then anim.done = true end
 end)
@@ -765,6 +858,17 @@ local function Render(result)
         y = y - 19
     end
     for i = #result.cats + 1, #rows do rows[i]:Hide(); rows[i].cat = nil end
+
+    talentNote:SetShown(result.talentsToSpend)
+    talentNote:SetAlpha(0)
+    if result.talentsToSpend then
+        local points = result.talentPoints or 0
+        talentText:SetText(points > 0 and format(L["%d talent point(s) to spend"], points)
+            or L["Talent points left to spend"])
+        talentNote:ClearAllPoints()
+        talentNote:SetPoint("TOPLEFT", win, "TOPLEFT", X, y - 8)
+        y = y - 34
+    end
 
     tipsTitle:ClearAllPoints()
     tipsTitle:SetPoint("TOPLEFT", win, "TOPLEFT", X, y - 10)
@@ -879,6 +983,7 @@ local function WarnLeavingTown()
             for _, t in ipairs(c.tips) do bad[#bad + 1] = t end
         end
     end
+    if result.talentsToSpend then bad[#bad + 1] = { prio = 70, text = L["Spend your talent points."] } end
     if #bad == 0 then return end
     table.sort(bad, function(a, b) return a.prio > b.prio end)
     RaidNotice_AddMessage(RaidWarningFrame, L["Tinkerwise: "] .. bad[1].text, ChatTypeInfo["RAID_WARNING"])
@@ -1009,7 +1114,7 @@ local mod = TW:NewModule("Checkup", {
     title = "Check-up",
     icon = "Interface\\Icons\\INV_Misc_Note_01",
     section = L["Preparation"],
-    desc = L["Checks that you're ready to go: durability and repair cost, food and water suited to your level, potions, ammo suited to your level, class reagents, elixirs and bag space. Button above the chat, right-click on the minimap button, or /tw checkup."],
+    desc = L["Checks that you're ready to go: durability and repair cost, food and water suited to your level, potions, ammo suited to your level, class reagents, elixirs, unspent talent points and bag space. Button above the chat, right-click on the minimap button, or /tw checkup."],
     defaults = DEFAULTS,
     options = {
         { type = "execute", label = L["Run the check-up"], func = function() Open() end },
