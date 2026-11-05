@@ -12,7 +12,6 @@ Locale.lua
 Locales\frFR.lua
 Core.lua
 Modules\Checkup.lua
-Modules\MissingBuffs.lua
 Modules\PotionReminder.lua
 Modules\TargetArmor.lua
 Modules\Bags.lua

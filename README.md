@@ -21,7 +21,7 @@ Copiez le dossier dans `World of Warcraft\_forever_\Interface\AddOns\`. Il doit 
 
 ## Modules
 
-- **Préparation :** Check-up, Buffs manquants, Rappel potion
+- **Préparation :** Check-up, Rappel potion
 - **Combat :** Armure de la cible
 - **Personnage :** Mes personnages, Changements de stats, Infos portrait
 - **Objets :** Comparateur d'objets, Vendeur automatique, Courrier
