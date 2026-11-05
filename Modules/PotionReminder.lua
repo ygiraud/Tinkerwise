@@ -30,7 +30,6 @@ local GOLD = { 1, 0.82, 0.3 }
 
 local db
 local previewUntil = 0
-local flashUntil, flashTestUntil = 0, 0
 
 local function ItemCount(id)
     return GetItemCount(id) or 0
@@ -57,13 +56,6 @@ local function IsOnActionBar(id)
         if actionType == "macro" and itemName and GetMacroItem(actionId) == itemName then return true end
     end
     return false
-end
-
-local function OnCooldown(id)
-    local getCooldown = C_Container and C_Container.GetItemCooldown or GetItemCooldown
-    if not getCooldown then return false end
-    local _, duration = getCooldown(id)
-    return duration and duration > 1.5
 end
 
 ---------------------------------------------------------------------------
@@ -130,12 +122,8 @@ local function Refresh()
         local list = POTIONS[b.kind]
         local enabled = db[b.kind] and (b.kind ~= "mana" or UnitPowerMax("player", 0) > 0)
         local id = enabled and FindBest(list)
-        -- A flash shows the healing potion even on a bar, unless it cannot be drunk yet.
-        local testHeal = b.kind == "heal" and GetTime() < flashTestUntil
-        local flashHeal = testHeal or (b.kind == "heal" and GetTime() < flashUntil and id and not OnCooldown(id))
-        b.flash = flashHeal
-        if id and not flashHeal and IsOnActionBar(id) then id = nil end
-        if not id and (preview or testHeal) and enabled then id = FindBest(list) or list[#list] end
+        if id and IsOnActionBar(id) then id = nil end
+        if not id and preview and enabled then id = FindBest(list) or list[#list] end
         if id then
             b.itemID = id
             b.icon:SetTexture(GetItemIcon(id))
@@ -158,38 +146,25 @@ local function Refresh()
         b:ClearAllPoints()
         b:SetPoint("LEFT", container, "LEFT", (i - 1) * (size + gap), 0)
     end
-    hint:SetShown(db.hint and #shown > 0 and GetTime() >= flashUntil)
-    -- Above every window while flashing, including the configuration window.
-    container:SetFrameStrata(GetTime() < flashUntil and "FULLSCREEN_DIALOG" or "MEDIUM")
+    hint:SetShown(db.hint and #shown > 0)
     container:SetShown(#shown > 0 or container:IsUnlocked())
 end
 
--- Gentle "breathing" glow; strong fast flash while ns.FlashPotion is active.
+-- Gentle "breathing" glow.
 local t = 0
 container:SetScript("OnUpdate", function(_, elapsed)
     t = t + elapsed
     for _, b in ipairs(buttons) do
         if b:IsShown() then
-            local flashing = b.flash and GetTime() < flashUntil
-            local s = 0.5 + 0.5 * math.sin(t * (flashing and 12 or 2.2))
+            local s = 0.5 + 0.5 * math.sin(t * 2.2)
             b:SetAlpha(0.82 + 0.18 * s)
-            b.glow:SetAlpha(flashing and (0.5 + 0.5 * s) or (0.12 + 0.3 * s))
+            b.glow:SetAlpha(0.12 + 0.3 * s)
         end
     end
 end)
 
 local function RefreshIfActive()
     if TW.modules.PotionReminder.active then Refresh() end
-end
-
--- Used by other modules (low health alert): shows and flashes the healing potion.
--- isTest shows a potion even when none is in the bags.
-function ns.FlashPotion(seconds, isTest)
-    seconds = seconds or 2
-    flashUntil = math.max(flashUntil, GetTime() + seconds)
-    if isTest then flashTestUntil = flashUntil end
-    RefreshIfActive()
-    C_Timer.After(seconds + 0.1, RefreshIfActive)
 end
 
 local pending

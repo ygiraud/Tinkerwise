@@ -7,6 +7,7 @@ local TW = ns.TW
 local API = ns.API
 
 local NumSlots, ContainerItem = API.ContainerNumSlots, API.ContainerItem
+local GetCoinTextureString = API.GetCoinTextureString
 
 local FIRST_BANK_BAG, BACKPACK, BANK_CONTAINER = 5, 0, -1
 local LAST_BAG = 4

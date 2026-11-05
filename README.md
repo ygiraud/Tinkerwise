@@ -1,12 +1,12 @@
 # Tinkerwise
 
-Boîte à outils personnelle pour World of Warcraft Classic Era : des modules indépendants, à activer ou désactiver dans une seule fenêtre de configuration. Elle vise aussi WoW Forever, où elle n'a pas encore été testée.
+Boîte à outils personnelle pour WoW Forever : des modules indépendants, à activer ou désactiver dans une seule fenêtre de configuration. Le fichier TOC accepte encore Classic Era, mais cette version n'est plus testée.
 
 L'interface est disponible en anglais et en français, selon la langue du jeu. Les autres langues affichent l'anglais.
 
 ## Installation
 
-Copiez le dossier dans `World of Warcraft\_classic_era_\Interface\AddOns\`. Il doit s'appeler exactement `Tinkerwise`. Relancez ensuite le jeu.
+Copiez le dossier dans `World of Warcraft\_forever_\Interface\AddOns\`. Il doit s'appeler exactement `Tinkerwise`. Relancez ensuite le jeu.
 
 ## Commandes
 
@@ -22,10 +22,10 @@ Copiez le dossier dans `World of Warcraft\_classic_era_\Interface\AddOns\`. Il d
 ## Modules
 
 - **Préparation :** Check-up, Buffs manquants, Rappel potion
-- **Combat :** Alertes, Armure de la cible
-- **Personnage :** Mes personnages, Changements de stats, Infos portrait, Compétences d'arme, Suivi de session
+- **Combat :** Armure de la cible
+- **Personnage :** Mes personnages, Changements de stats, Infos portrait
 - **Objets :** Comparateur d'objets, Vendeur automatique, Courrier
-- **Groupe :** Remerciements & rebuff, Confort de groupe
+- **Groupe :** Confort de groupe
 - **Tchat :** Tchat
 - **Immersion :** Mode immersion (avec la scène de quête)
 - **Configuration :** Réglages par défaut, Bouton de la minicarte

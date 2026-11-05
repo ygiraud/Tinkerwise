@@ -35,9 +35,8 @@ local KEPT_FRAMES = {
     -- The game places these itself each time they are shown, so they are not pinned.
     always = { "QuestFrame", "GossipFrame", "GameTooltip" },
     keepTinkerwise = {
-        "TinkerwiseSessionFrame", "TinkerwiseWeaponSkillsFrame", "TinkerwiseStatDeltaFrame",
-        "TinkerwisePotionFrame", "TinkerwiseArmorAlertFrame",
-        "TinkerwiseLowHealthVignette", "TinkerwiseAggroVignette",
+        "TinkerwiseStatDeltaFrame",
+        "TinkerwisePotionFrame",
     },
 }
 

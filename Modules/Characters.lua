@@ -5,6 +5,7 @@
 local _, ns = ...
 local L = ns.L
 local TW = ns.TW
+local GetCoinTextureString = ns.API.GetCoinTextureString
 
 local HOURS_PER_REST_STEP = 8
 local REST_STEP = 0.05        -- 5 % of a level per 8 hours in an inn

@@ -5,6 +5,7 @@ local _, ns = ...
 local L = ns.L
 local TW = ns.TW
 local GetItemInfo = ns.API.GetItemInfo
+local GetCoinTextureString = ns.API.GetCoinTextureString
 
 local DEFAULTS = {
     sell = true,       -- sell grey items

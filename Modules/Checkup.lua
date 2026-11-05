@@ -8,6 +8,7 @@ local TW = ns.TW
 local API = ns.API
 local GetSpellInfo, GetItemInfo, GetItemInfoInstant = API.GetSpellInfo, API.GetItemInfo, API.GetItemInfoInstant
 local GetItemCount, GetItemSpell = API.GetItemCount, API.GetItemSpell
+local GetCoinTextureString = API.GetCoinTextureString
 
 local DEFAULTS = {
     dura = 30,          -- warn when an item is below this durability %

@@ -7,6 +7,7 @@
 local _, ns = ...
 local L = ns.L
 local TW = ns.TW
+local GetCoinTextureString = ns.API.GetCoinTextureString
 
 local TITLE_FONT = "Fonts\\MORPHEUS.TTF"
 local BAND_H = 300
