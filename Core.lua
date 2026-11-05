@@ -376,6 +376,12 @@ SlashCmdList.TINKERWISE = function(input)
     end
 end
 
+-- Shortcut for /reload.
+SLASH_TINKERWISERELOAD1 = "/rl"
+SlashCmdList.TINKERWISERELOAD = function()
+    ReloadUI()
+end
+
 -- Opens Blizzard's Edit Mode (not to be confused with /tw move, for the addon's own windows).
 SLASH_TINKERWISEEDIT1 = "/edit"
 SlashCmdList.TINKERWISEEDIT = function()

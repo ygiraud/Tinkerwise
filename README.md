@@ -14,6 +14,7 @@ Copiez le dossier dans `World of Warcraft\_forever_\Interface\AddOns\`. Il doit 
 |---|---|
 | `/tw` | Ouvre la configuration |
 | `/tw move` | Déplace les fenêtres de l'addon |
+| `/rl` | Recharge l'interface (comme `/reload`) |
 | `/edit` | Ouvre le mode d'édition de Blizzard |
 | `/kb` | Ouvre le mode de raccourcis rapides de Blizzard |
 | `/cc` | Ouvre ou ferme la fenêtre des sorts à la souris |
