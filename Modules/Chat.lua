@@ -18,10 +18,11 @@ local SHORT_CHANNELS = {
 }
 
 local TABS = {
+    { key = "tabGuild", name = L["Guild"], groups = { "GUILD", "OFFICER" } },
     { key = "tabGroup", name = L["Group"], groups = {
         "PARTY", "PARTY_LEADER", "RAID", "RAID_LEADER", "RAID_WARNING", "BATTLEGROUND", "BATTLEGROUND_LEADER",
+        "INSTANCE_CHAT", "INSTANCE_CHAT_LEADER",
     } },
-    { key = "tabGuild", name = L["Guild"], groups = { "GUILD", "OFFICER" } },
 }
 
 local mod
@@ -480,6 +481,20 @@ local function ApplyTabColors()
     end)
 end
 
+-- Tabs made by an older version have Group first: reopened once, in the order of TABS.
+-- A tab the player made is left where it is.
+local function ReorderOldTabs()
+    local db = mod.db
+    if db.guildTabFirst then return end
+    db.guildTabFirst = true
+    if db.tabs.tabGroup ~= "own" or db.tabs.tabGuild ~= "own" then return end
+    for _, tab in ipairs(TABS) do
+        local frame = FindTab(tab.name)
+        if frame then FCF_Close(frame) end
+        db.tabs[tab.key] = nil
+    end
+end
+
 local tabColorsHooked
 
 local function SyncTabs()
@@ -488,6 +503,7 @@ local function SyncTabs()
         tabColorsHooked = true
         hooksecurefunc("FCFTab_UpdateColors", ApplyTabColors)
     end
+    if mod.active then ReorderOldTabs() end
     for _, tab in ipairs(TABS) do
         local db = mod.db
         local wanted = mod.active and db[tab.key]
@@ -502,11 +518,12 @@ local function SyncTabs()
         end
 
         -- Only a tab that exists may take its messages away from the general tab.
-        local move = wanted and db.moveFromGeneral and db.tabs[tab.key]
-        if move and not db.moved[tab.key] then
+        local frame = wanted and db.removeFromGeneral and db.tabs[tab.key] and FindTab(tab.name)
+        if frame then
+            for _, group in ipairs(tab.groups) do AddGroup(frame, group) end
             SetGeneralGroups(tab, false)
             db.moved[tab.key] = true
-        elseif not move and db.moved[tab.key] then
+        elseif db.moved[tab.key] then
             SetGeneralGroups(tab, true)
             db.moved[tab.key] = nil
         end
@@ -632,7 +649,7 @@ mod = TW:NewModule("Chat", {
         timestamps = true, classColors = true, shortChannels = true, noFade = false,
         copyButton = true, resizeGrip = true,
         customBackground = false, bgColor = { r = 0, g = 0, b = 0 }, bgOpacity = 25,
-        whisperTabs = true, autoChannel = true, tabGroup = true, tabGuild = true, moveFromGeneral = false, colorTabs = true, alwaysShowTabs = false,
+        whisperTabs = true, autoChannel = true, tabGroup = true, tabGuild = true, removeFromGeneral = true, colorTabs = true, alwaysShowTabs = false,
     },
     options = {
         { type = "header", label = L["Typing"] },
@@ -654,9 +671,9 @@ mod = TW:NewModule("Chat", {
         { type = "header", label = L["Tabs"] },
         { type = "toggle", key = "whisperTabs", label = L["One new tab per whisper conversation"] },
         { type = "toggle", key = "autoChannel", label = L["Channel follows the selected tab"] },
-        { type = "toggle", key = "tabGroup", label = L["Group and raid"] },
         { type = "toggle", key = "tabGuild", label = L["Guild"] },
-        { type = "toggle", key = "moveFromGeneral", label = L["Remove these messages from the General tab"] },
+        { type = "toggle", key = "tabGroup", label = L["Group and raid"] },
+        { type = "toggle", key = "removeFromGeneral", label = L["Remove these messages from the General tab"] },
         { type = "toggle", key = "colorTabs", label = L["Color these tabs"] },
         { type = "toggle", key = "alwaysShowTabs", label = L["Always show tabs"] },
     },
@@ -666,6 +683,7 @@ function mod:OnEnable()
     self.db.history = self.db.history or {}
     self.db.tabs = self.db.tabs or {}
     self.db.moved = self.db.moved or {}
+    self.db.moveFromGeneral = nil -- previous option, off by default: replaced by removeFromGeneral
     events:RegisterEvent("PLAYER_ENTERING_WORLD")
     SetupHistory()
     Apply()
