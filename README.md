@@ -27,7 +27,7 @@ Copiez le dossier dans `World of Warcraft\_forever_\Interface\AddOns\`. Il doit 
 - **Préparation :** Check-up, Rappel potion
 - **Combat :** Armure de la cible
 - **Personnage :** Mes personnages, Changements de stats, Infos portrait
-- **Objets :** Comparateur d'objets, Vendeur automatique, Courrier
+- **Objets :** Comparateur d'objets, Vendeur automatique
 - **Groupe :** Confort de groupe
 - **Tchat :** Tchat
 - **Immersion :** Mode immersion (avec la scène de quête), Mode AFK

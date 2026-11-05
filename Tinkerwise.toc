@@ -20,7 +20,6 @@ Modules\StatDelta.lua
 Modules\PortraitInfo.lua
 Modules\ItemCompare.lua
 Modules\AutoVendor.lua
-Modules\Mail.lua
 Modules\GroupComfort.lua
 Modules\Chat.lua
 Modules\Immersion.lua
