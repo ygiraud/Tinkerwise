@@ -141,6 +141,29 @@ local function CopyButton(frame)
     return b
 end
 
+-- Small cross on the tab of a whisper conversation. A new message opens the tab again.
+local closeButtons = {}
+
+local function WhisperCloseButton(frame)
+    local b = closeButtons[frame]
+    if b then return b end
+    b = CreateFrame("Button", nil, _G[frame:GetName() .. "Tab"])
+    b:SetSize(16, 16)
+    b:SetPoint("RIGHT", 2, -1)
+    b:SetNormalTexture("Interface\\Buttons\\UI-Panel-MinimizeButton-Up")
+    b:SetPushedTexture("Interface\\Buttons\\UI-Panel-MinimizeButton-Down")
+    b:SetHighlightTexture("Interface\\Buttons\\UI-Panel-MinimizeButton-Highlight", "ADD")
+    b:SetScript("OnClick", function() FCF_Close(frame) end)
+    b:SetScript("OnEnter", function(self)
+        GameTooltip:SetOwner(self, "ANCHOR_TOP")
+        GameTooltip:SetText(L["Close this conversation"])
+        GameTooltip:Show()
+    end)
+    b:SetScript("OnLeave", GameTooltip_Hide)
+    closeButtons[frame] = b
+    return b
+end
+
 ---------------------------------------------------------------------------
 -- Resizing, available even when the window is locked
 ---------------------------------------------------------------------------
@@ -593,6 +616,11 @@ local function Apply()
         elseif copyButtons[frame] then
             copyButtons[frame]:Hide()
         end
+        if on and db.whisperClose and IsWhisperWindow(frame) then
+            WhisperCloseButton(frame):Show()
+        elseif closeButtons[frame] then
+            closeButtons[frame]:Hide()
+        end
         if on and db.resizeGrip then
             ResizeGrip(frame):Show()
         elseif resizeGrips[frame] then
@@ -649,7 +677,7 @@ mod = TW:NewModule("Chat", {
         timestamps = true, classColors = true, shortChannels = true, noFade = false,
         copyButton = true, resizeGrip = true,
         customBackground = false, bgColor = { r = 0, g = 0, b = 0 }, bgOpacity = 25,
-        whisperTabs = true, autoChannel = true, tabGroup = true, tabGuild = true, removeFromGeneral = true, colorTabs = true, alwaysShowTabs = false,
+        whisperTabs = true, whisperClose = true, autoChannel = true, tabGroup = true, tabGuild = true, removeFromGeneral = true, colorTabs = true, alwaysShowTabs = false,
     },
     options = {
         { type = "header", label = L["Typing"] },
@@ -670,6 +698,7 @@ mod = TW:NewModule("Chat", {
         { type = "slider", key = "bgOpacity", label = L["Opacity (%)"], min = 0, max = 100, step = 5 },
         { type = "header", label = L["Tabs"] },
         { type = "toggle", key = "whisperTabs", label = L["One new tab per whisper conversation"] },
+        { type = "toggle", key = "whisperClose", label = L["Close button on whisper tabs"] },
         { type = "toggle", key = "autoChannel", label = L["Channel follows the selected tab"] },
         { type = "toggle", key = "tabGuild", label = L["Guild"] },
         { type = "toggle", key = "tabGroup", label = L["Group and raid"] },
