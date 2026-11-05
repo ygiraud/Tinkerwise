@@ -25,6 +25,7 @@ Modules\GroupComfort.lua
 Modules\Chat.lua
 Modules\Immersion.lua
 Modules\QuestScene.lua
+Modules\AfkMode.lua
 Modules\CharDefaults.lua
 Config.lua
 Minimap.lua
