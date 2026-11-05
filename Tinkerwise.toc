@@ -13,7 +13,6 @@ Locales\frFR.lua
 Core.lua
 Modules\Checkup.lua
 Modules\PotionReminder.lua
-Modules\TargetArmor.lua
 Modules\Bags.lua
 Modules\Characters.lua
 Modules\StatDelta.lua

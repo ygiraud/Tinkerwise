@@ -46,9 +46,6 @@ ns.API = {
     UnitBuff = _G.UnitBuff or function(unit, index)
         return AuraValues(C_UnitAuras.GetBuffDataByIndex(unit, index))
     end,
-    UnitDebuff = _G.UnitDebuff or function(unit, index)
-        return AuraValues(C_UnitAuras.GetDebuffDataByIndex(unit, index))
-    end,
     ContainerNumSlots = _G.C_Container and _G.C_Container.GetContainerNumSlots or _G.GetContainerNumSlots,
     -- itemID, stackCount, quality, hasNoValue of a bag slot (new and old APIs).
     ContainerItem = function(bag, slot)

@@ -21,12 +21,10 @@ Copiez le dossier dans `World of Warcraft\_forever_\Interface\AddOns\`. Il doit 
 | `/tw checkup` | Lance le check-up |
 | `/tw chars` | Affiche Mes personnages |
 | `/tw bags` | Affiche les sacs et banques de vos personnages |
-| `/tw armor 1234` | Enregistre l'armure du monstre ciblé (`/tw armor clear` l'efface) |
 
 ## Modules
 
 - **Préparation :** Check-up, Rappel potion
-- **Combat :** Armure de la cible
 - **Personnage :** Mes personnages, Changements de stats, Infos portrait
 - **Objets :** Comparateur d'objets, Vendeur automatique
 - **Groupe :** Confort de groupe

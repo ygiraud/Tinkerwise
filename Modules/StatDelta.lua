@@ -17,7 +17,7 @@ local DEFAULTS = {
     muteSwap = true,       -- weapon swaps in combat show nothing
     levelUp = true,        -- summary panel on level up
     levelSpells = true,    -- list the spells to learn in that panel
-    levelHold = 20,        -- seconds the panel stays fully visible
+    levelDuration = 10,    -- seconds the panel stays fully visible
 }
 
 ---------------------------------------------------------------------------
@@ -447,13 +447,14 @@ local function ShowLevelUp(level, changes)
     end
 end
 
--- Mouse over the panel: it stays fully visible.
+-- No pause on mouse over: a cursor resting there, even hidden while turning the camera, would
+-- keep the panel forever.
 panel:SetScript("OnUpdate", function(self, elapsed)
-    self.t = self:IsMouseOver() and math.min(self.t, db.levelHold) or self.t + elapsed
-    if self.t >= db.levelHold + db.fade then
+    self.t = self.t + elapsed
+    if self.t >= db.levelDuration + db.fade then
         self:Hide()
-    elseif self.t > db.levelHold then
-        self:SetAlpha(1 - (self.t - db.levelHold) / db.fade)
+    elseif self.t > db.levelDuration then
+        self:SetAlpha(1 - (self.t - db.levelDuration) / db.fade)
     else
         self:SetAlpha(1)
     end
@@ -467,6 +468,8 @@ local last, ready, pending, levelPending
 local muteUntil = 0
 local WEAPON_SLOTS = { [16] = true, [17] = true, [18] = true }
 local LEVEL_UP_DELAY = 1.5 -- stats and What's Training? both need a moment after the event
+local RETRY_DELAY = 2
+local events = CreateFrame("Frame")
 
 local function ComputeChanges(before, now)
     local changes = {}
@@ -481,11 +484,31 @@ local function ComputeChanges(before, now)
     return changes
 end
 
+-- Forever can make some stats secret for a while, and reading them then raises an error.
+local function TakeBaseline()
+    if not events:IsEventRegistered("PLAYER_ENTERING_WORLD") then return end
+    local ok, now = pcall(Snapshot)
+    if ok then
+        last = now
+        ready = true
+    else
+        C_Timer.After(RETRY_DELAY, TakeBaseline)
+    end
+end
+
 local function FinishLevelUp()
+    if not levelPending then return end
+    if not ready then
+        levelPending = nil
+        return
+    end
+    local ok, now = pcall(Snapshot)
+    if not ok then
+        C_Timer.After(RETRY_DELAY, FinishLevelUp)
+        return
+    end
     local level = levelPending
     levelPending = nil
-    if not level or not ready then return end
-    local now = Snapshot()
     ShowLevelUp(level, ComputeChanges(last, now))
     last = now
 end
@@ -494,7 +517,8 @@ local function Update()
     pending = false
     -- During a level up the baseline is kept, so every gain lands in the panel.
     if not ready or levelPending then return end
-    local now = Snapshot()
+    local ok, now = pcall(Snapshot)
+    if not ok then return end -- keep the baseline: the next readable event shows the difference
     -- Weapon swapped in combat: silently take the new values as baseline.
     if GetTime() < muteUntil then
         last = now
@@ -512,8 +536,6 @@ local function Schedule()
     pending = true
     C_Timer.After(0.25, Update)
 end
-
-local events = CreateFrame("Frame")
 
 local UNIT_EVENTS = {
     "UNIT_STATS", "UNIT_AURA", "UNIT_INVENTORY_CHANGED", "UNIT_RESISTANCES",
@@ -535,10 +557,7 @@ events:SetScript("OnEvent", function(_, event, arg1)
     elseif event == "PLAYER_ENTERING_WORLD" then
         -- Stats are unreliable right after a loading screen; take a silent baseline.
         ready = false
-        C_Timer.After(2, function()
-            last = Snapshot()
-            ready = true
-        end)
+        C_Timer.After(2, TakeBaseline)
     else
         Schedule()
     end
@@ -568,7 +587,7 @@ local mod = TW:NewModule("StatDelta", {
         { type = "toggle", key = "muteSwap", label = L["Ignore weapon swaps in combat"] },
         { type = "toggle", key = "levelUp", label = L["Summary panel on level up"] },
         { type = "toggle", key = "levelSpells", label = L["List the spells to learn (requires What's Training?)"] },
-        { type = "slider", key = "levelHold", label = L["Level-up panel duration (s)"], min = 5, max = 60, step = 5 },
+        { type = "slider", key = "levelDuration", label = L["Level-up panel duration (s)"], min = 5, max = 60, step = 5 },
         { type = "execute", label = L["Test"], func = function()
             ShowDelta({ key = "HEALTH" }, 15, 115)
             ShowDelta({ key = "MANA" }, 26, 216)
@@ -596,8 +615,7 @@ function mod:OnEnable()
     for _, e in ipairs(UNIT_EVENTS) do pcall(events.RegisterUnitEvent, events, e, "player") end
     for _, e in ipairs(GLOBAL_EVENTS) do pcall(events.RegisterEvent, events, e) end
     -- Enabled from the config window while in world: take a baseline now.
-    last = Snapshot()
-    ready = true
+    TakeBaseline()
 end
 
 function mod:OnDisable()
