@@ -5,6 +5,7 @@ local _, ns = ...
 local L = ns.L
 local TW = ns.TW
 local GetItemInfo, GetItemCount, GetItemIcon = ns.API.GetItemInfo, ns.API.GetItemCount, ns.API.GetItemIcon
+local PickupItem = ns.API.PickupItem
 
 local DEFAULTS = {
     heal = true,

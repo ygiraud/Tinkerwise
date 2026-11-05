@@ -34,6 +34,7 @@ ns.API = {
     GetItemSpell = _G.GetItemSpell or C_Item.GetItemSpell,
     GetItemIcon = _G.GetItemIcon or C_Item.GetItemIconByID,
     GetSpellTexture = _G.GetSpellTexture or C_Spell.GetSpellTexture,
+    PickupItem = _G.C_Item and _G.C_Item.PickupItem or _G.PickupItem,
     -- C_CurrencyInfo first: on Forever the global still has a name but fails when called.
     GetCoinTextureString = _G.C_CurrencyInfo and _G.C_CurrencyInfo.GetCoinTextureString or _G.GetCoinTextureString,
     GetSpellInfo = _G.GetSpellInfo or function(spell)
