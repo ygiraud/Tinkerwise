@@ -1,7 +1,6 @@
 # Tinkerwise
 
-Boîte à outils personnelle pour WoW Forever : des modules indépendants, à activer ou désactiver dans une seule fenêtre de configuration. Le fichier TOC accepte encore Classic Era, mais cette version n'est plus testée.
-
+Boîte à outils personnelle pour WoW Forever : des modules indépendants, à activer ou désactiver dans une seule fenêtre de configuration.
 L'interface est disponible en anglais et en français, selon la langue du jeu. Les autres langues affichent l'anglais.
 
 ## Installation

@@ -1,0 +1,22 @@
+name: Publier sur CurseForge
+
+# Only a version tag publishes: a plain push does nothing.
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write # creates the GitHub release
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    env:
+      CF_API_KEY: ${{ secrets.CF_API_KEY }}
+      GITHUB_OAUTH: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0 # the changelog is built from the commit history
+      - uses: BigWigsMods/packager@v2

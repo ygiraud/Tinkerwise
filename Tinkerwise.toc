@@ -1,10 +1,11 @@
-## Interface: 11509, 11508, 11507, 16001, 16000
+## Interface: 16001, 16000
 ## Title: Tinkerwise
 ## Notes: Personal collection of small tools. /tw to configure.
 ## Notes-frFR: Collection d'outils personnels. /tw pour configurer.
 ## Author: Yoan
-## Version: 0.2.0
+## Version: 1.0.0
 ## IconTexture: Interface\Icons\INV_Misc_Wrench_01
+## X-Curse-Project-ID: 1783286
 ## SavedVariables: TinkerwiseDB
 ## SavedVariablesPerCharacter: TinkerwiseCharDB
 
