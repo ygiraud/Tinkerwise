@@ -5,83 +5,44 @@
 local _, ns = ...
 local L = ns.L
 local TW = ns.TW
+local ImmersionScene = ns.ImmersionScene
 
 local issecretvalue = _G.issecretvalue
 
-local TITLE_FONT = "Fonts\\MORPHEUS.TTF"
-local BAND_H = 110
-local FADE_TIME = 0.6
 local CHECK_EVERY = 0.5
 local MIN_RECORDED_FLIGHT = 5 -- seconds; shorter means the flight did not really happen
-local TEST_DURATION = 15
 
 local db, ticker
-local playing, flying, dismissed, testing = false, false, false, false
-local fadeIn, testId = 0, 0
+local flying, dismissed, testing = false, false, false
 local startedAt, route, pendingRoute
 
 ---------------------------------------------------------------------------
 -- Frames
 ---------------------------------------------------------------------------
 
--- No parent: the scene must stay visible while the interface is transparent.
-local scene = CreateFrame("Frame", "TinkerwiseFlightScene")
-scene:SetFrameStrata("FULLSCREEN_DIALOG")
-scene:EnableMouse(true) -- the invisible interface must take no clicks
-scene:Hide()
+local scene = ImmersionScene.Create({ name = "TinkerwiseFlightScene", bandHeight = 110, closable = true })
+local topBand, bottomBand = scene.topBand, scene.bottomBand
 
-local function Band(point)
-    local band = scene:CreateTexture(nil, "BACKGROUND")
-    band:SetColorTexture(0, 0, 0, 0.92)
-    band:SetPoint(point .. "LEFT")
-    band:SetPoint(point .. "RIGHT")
-    band:SetHeight(BAND_H)
-    return band
-end
-local topBand = Band("TOP")
-local bottomBand = Band("BOTTOM")
-
-local function Rule(point, relativePoint, band)
-    local rule = scene:CreateTexture(nil, "ARTWORK")
-    rule:SetHeight(1)
-    rule:SetColorTexture(1, 0.82, 0, 0.6)
-    rule:SetPoint(point .. "LEFT", band, relativePoint .. "LEFT")
-    rule:SetPoint(point .. "RIGHT", band, relativePoint .. "RIGHT")
-end
-Rule("TOP", "BOTTOM", topBand)
-Rule("BOTTOM", "TOP", bottomBand)
-
-local title = scene:CreateFontString(nil, "OVERLAY")
-title:SetFont(TITLE_FONT, 34, "")
-title:SetTextColor(1, 0.9, 0.7)
+local title = scene:CreateTitle(topBand, 34)
 title:SetPoint("CENTER", topBand, "CENTER", 0, 0)
 
-local origin = scene:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+local origin = bottomBand:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
 origin:SetPoint("TOPLEFT", bottomBand, "TOPLEFT", 40, -24)
 
-local zone = scene:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+local zone = bottomBand:CreateFontString(nil, "OVERLAY", "GameFontNormal")
 zone:SetPoint("TOPLEFT", origin, "BOTTOMLEFT", 0, -6)
 
-local timer = scene:CreateFontString(nil, "OVERLAY")
-timer:SetFont(TITLE_FONT, 24, "")
-timer:SetTextColor(1, 0.9, 0.7)
+local timer = scene:CreateTitle(bottomBand, 24)
 timer:SetPoint("TOPRIGHT", bottomBand, "TOPRIGHT", -40, -20)
 
-local remaining = scene:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+local remaining = bottomBand:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
 remaining:SetPoint("TOPRIGHT", timer, "BOTTOMRIGHT", 0, -6)
-
-local hint = scene:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
-hint:SetPoint("BOTTOM", bottomBand, "BOTTOM", 0, 12)
-hint:SetText(L["Click: show the interface"])
 
 ---------------------------------------------------------------------------
 -- Route and display
 ---------------------------------------------------------------------------
 
-local function FormatDuration(seconds)
-    seconds = math.floor(seconds)
-    return format("%02d:%02d", math.floor(seconds / 60), seconds % 60)
-end
+local FormatDuration = ImmersionScene.FormatDuration
 
 local function RouteKey()
     return route and route.from and route.to and (route.from .. " > " .. route.to)
@@ -105,41 +66,20 @@ local function Refresh()
     end
 end
 
-scene:SetScript("OnUpdate", function(_, elapsed)
-    if fadeIn < 1 then
-        fadeIn = math.min(fadeIn + elapsed / FADE_TIME, 1)
-        scene:SetAlpha(fadeIn)
-        UIParent:SetAlpha(1 - fadeIn)
-    end
-end)
-
-local function Play()
-    if playing then return end
-    if ns.FinishImmersionFade then ns.FinishImmersionFade() end
-    playing, fadeIn = true, 0
-    scene:ClearAllPoints()
-    scene:SetAllPoints(WorldFrame)
-    scene:SetScale(UIParent:GetEffectiveScale())
-    scene:SetAlpha(0)
-    scene:Show()
-end
-
 local function Stop()
-    if not playing then return end
-    playing = false
+    if not scene:IsPlaying() then return end
     if testing then
         testing = false
         route = nil
     end
-    scene:Hide()
-    UIParent:SetAlpha(1)
+    scene:Stop()
 end
 
 -- The interface stays reachable during the flight, until the next one.
-scene:SetScript("OnMouseDown", function()
+scene.onClose = function()
     if not testing then dismissed = true end
     Stop()
-end)
+end
 
 ---------------------------------------------------------------------------
 -- Flight detection
@@ -174,25 +114,23 @@ local function Update()
     if not flying then
         flying, startedAt, route, pendingRoute = true, GetTime(), pendingRoute, nil
     end
-    if dismissed or InCombatLockdown() or (ns.QuestScene and ns.QuestScene.IsPlaying()) then
+    if dismissed or InCombatLockdown() or scene:OtherPlaying() then
         Stop()
         return
     end
     Refresh()
-    Play()
+    scene:Play()
 end
 
 -- Plays the scene with a sample route. Nothing is recorded, since no real flight is under way.
 local function StartTest()
-    if playing or flying or InCombatLockdown() or (ns.QuestScene and ns.QuestScene.IsPlaying()) then return end
+    if scene:IsPlaying() or flying or InCombatLockdown() or scene:OtherPlaying() then return end
     testing, startedAt = true, GetTime() - 35
     route = { from = GetRealZoneText(), to = L["Test destination"], known = 90 }
     Refresh()
-    Play()
-    testId = testId + 1
-    local id = testId
-    C_Timer.After(TEST_DURATION, function()
-        if testing and id == testId then Stop() end
+    scene:Play()
+    scene:EndTestAfter(function()
+        if testing then Stop() end
     end)
 end
 
@@ -216,17 +154,11 @@ end)
 -- Module
 ---------------------------------------------------------------------------
 
-ns.FlightMode = {}
-
-function ns.FlightMode.IsPlaying()
-    return playing
-end
-
 local mod = TW:NewModule("FlightMode", {
     title = L["Flight Mode"],
     icon = "Interface\\Icons\\Ability_Mount_Wyvern_01",
     section = "Immersion",
-    desc = L["During a flight master trip, the interface fades away and the screen shows the destination, the zone below and the flight time. The time left appears once you have flown that route. The camera doesn't move. Click the screen to get the interface back. Out of combat only."],
+    desc = L["During a flight master trip, the interface fades away and the screen shows the destination, the zone below and the flight time. The time left appears once you have flown that route. The camera doesn't move. Click the cross or press Escape to get the interface back. Out of combat only."],
     defaults = { routes = {} },
     options = {
         { type = "execute", label = L["Test (15 s)"], func = StartTest },

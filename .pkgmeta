@@ -2,3 +2,6 @@ package-as: Tinkerwise
 
 ignore:
   - CURSEFORGE.md
+
+optional-dependencies:
+  - whats-training

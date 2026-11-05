@@ -480,8 +480,52 @@ local function OpenTab(tab)
     mod.db.tabs[tab.key] = "own"
 end
 
+local function IsSelectedTab(frame)
+    if not frame.isDocked or not FCFDock_GetSelectedWindow or not GENERAL_CHAT_DOCK then return true end
+    return FCFDock_GetSelectedWindow(GENERAL_CHAT_DOCK) == frame
+end
+
+local function IsFlashTexture(tab, region)
+    local name = region:GetName()
+    return region == tab.glow or (name and name:find("Glow", 1, true) ~= nil)
+end
+
+-- With a custom background, the tabs share its color and opacity; the unselected ones are lighter.
+-- This includes the glowing overlay of the selected tab, which would otherwise brighten it.
+-- The hover highlight and the flash of new messages keep their look.
+local function ApplyTabBackgrounds()
+    local db = mod.db
+    local custom = mod.active and db.customBackground
+    ForEachWindow(function(frame)
+        local tab = _G[frame:GetName() .. "Tab"]
+        if not tab then return end
+        if custom then
+            local alpha = db.bgOpacity / 100 * (IsSelectedTab(frame) and 1 or 0.5)
+            tab.twSavedTextures = tab.twSavedTextures or {}
+            for _, region in ipairs({ tab:GetRegions() }) do
+                if region:IsObjectType("Texture") and region:GetDrawLayer() ~= "HIGHLIGHT"
+                    and not IsFlashTexture(tab, region) then
+                    if not tab.twSavedTextures[region] then
+                        local r, g, b = region:GetVertexColor()
+                        tab.twSavedTextures[region] = { r = r, g = g, b = b, alpha = region:GetAlpha() }
+                    end
+                    region:SetVertexColor(db.bgColor.r, db.bgColor.g, db.bgColor.b)
+                    region:SetAlpha(alpha)
+                end
+            end
+        elseif tab.twSavedTextures then
+            for region, saved in pairs(tab.twSavedTextures) do
+                region:SetVertexColor(saved.r, saved.g, saved.b)
+                region:SetAlpha(saved.alpha)
+            end
+            tab.twSavedTextures = nil
+        end
+    end)
+end
+
 -- Each tab takes the color of its messages, so it follows the player's chat colors.
 local function ApplyTabColors()
+    ApplyTabBackgrounds()
     for _, tab in ipairs(TABS) do
         local frame = FindTab(tab.name)
         local button = frame and _G[frame:GetName() .. "Tab"]
@@ -558,11 +602,31 @@ end
 -- Applying the settings
 ---------------------------------------------------------------------------
 
+-- The game colors the column of chat buttons along with the window: it would stick out on the left.
+-- Only its own textures go: the buttons are child frames.
+local function SetButtonColumnBackground(frame, hidden)
+    local column = frame.buttonFrame or _G[frame:GetName() .. "ButtonFrame"]
+    if not column then return end
+    if hidden and not frame.twHiddenRegions then
+        frame.twHiddenRegions = {}
+        for _, region in ipairs({ column:GetRegions() }) do
+            if region:IsObjectType("Texture") and region:IsShown() then
+                region:Hide()
+                table.insert(frame.twHiddenRegions, region)
+            end
+        end
+    elseif not hidden and frame.twHiddenRegions then
+        for _, region in ipairs(frame.twHiddenRegions) do region:Show() end
+        frame.twHiddenRegions = nil
+    end
+end
+
 -- Every window, combat log included, so that docked tabs share the same background.
 local function ApplyBackground()
     local db = mod.db
     local custom = mod.active and db.customBackground
     ForEachWindow(function(frame, i)
+        SetButtonColumnBackground(frame, custom)
         local backup = db.backgroundBackup and db.backgroundBackup[i]
         if custom then
             if not backup and not frame.isTemporary then
@@ -578,6 +642,7 @@ local function ApplyBackground()
             db.backgroundBackup[i] = nil
         end
     end)
+    ApplyTabBackgrounds()
 end
 
 -- The game reads these values each time it fades the tabs.

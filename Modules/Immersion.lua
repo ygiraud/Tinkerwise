@@ -294,7 +294,7 @@ end
 
 local toggle = CreateFrame("Button", "TinkerwiseImmersionToggle")
 toggle:SetScript("OnClick", function()
-    if fading or ns.QuestScene.IsPlaying() then return end -- the scene manages the interface's alpha
+    if fading or ns.ImmersionScene.AnyPlaying() then return end -- the scene manages the interface's alpha
     if UIParent:IsShown() then
         Detach() -- kept elements must not fade with the rest
         ShowLetterbox()

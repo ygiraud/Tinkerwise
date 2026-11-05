@@ -24,6 +24,7 @@ local db, profile
 local GREEN, RED, WHITE, SKY, VIOLET = { 0.3, 1, 0.3 }, { 1, 0.38, 0.38 }, { 1, 1, 1 }, { 0.65, 0.88, 1 }, { 0.8, 0.65, 1 }
 
 local Comma, DamageReduction = ns.Comma, ns.DamageReduction
+local issecretvalue = _G.issecretvalue
 
 ---------------------------------------------------------------------------
 -- Badges
@@ -82,7 +83,29 @@ local function ApplyPosition()
     end
 end
 
+local function AnySecret(...)
+    for i = 1, select("#", ...) do
+        if issecretvalue(select(i, ...)) then return true end
+    end
+    return false
+end
+
+-- The game can hide these values, in combat for instance: no calculation is possible with them.
+local function StatsAreSecret()
+    if not issecretvalue then return false end
+    return AnySecret(UnitLevel("player"), UnitLevel("target"))
+        or AnySecret(UnitArmor("player"))
+        or AnySecret(UnitDamage("player"))
+        or AnySecret(UnitAttackSpeed("player"))
+        or (UnitRangedDamage and AnySecret(UnitRangedDamage("player")))
+        or (GetSpellBonusDamage and AnySecret(GetSpellBonusDamage(2)))
+        or (GetSpellCritChance and AnySecret(GetSpellCritChance(2)))
+        or (GetSpellBonusHealing and AnySecret(GetSpellBonusHealing()))
+end
+
 local function Update()
+    if StatsAreSecret() then return end -- the last values stay on screen
+
     for _, col in ipairs(columns) do for _, b in ipairs(col) do b.on = false end end
 
     -- Attacker level for the reduction: hostile target if any, else yourself.

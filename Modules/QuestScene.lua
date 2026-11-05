@@ -9,52 +9,32 @@ local L = ns.L
 local TW = ns.TW
 local GetCoinTextureString = ns.API.GetCoinTextureString
 
-local TITLE_FONT = "Fonts\\MORPHEUS.TTF"
+local ImmersionScene = ns.ImmersionScene
+
 local BAND_H = 300
 local TEXT_RIGHT = 420 -- the rewards and buttons use the right part of the band
-local SAVED_VIEW = 5     -- camera view slot used to restore the camera
+local FADE_TIME = 0.4
 local CHARS_PER_SECOND = 45
 local CLOSE_DELAY = 0.15 -- the game closes and reopens the quest between two steps
 local MAX_REWARDS = 8
 
 local db
-local playing, cameraMoved, closeToken = false, false, 0
+local closeToken = 0
 local kind, choice, fullText, shownBytes, typed = nil, nil, "", 0, 0
 
 ---------------------------------------------------------------------------
 -- Frames
 ---------------------------------------------------------------------------
 
--- No parent: the scene must stay visible while the interface is transparent.
-local scene = CreateFrame("Frame", "TinkerwiseQuestScene")
-scene:SetFrameStrata("FULLSCREEN_DIALOG")
-scene:EnableMouse(true)
-scene:Hide()
+local scene = ImmersionScene.Create({ name = "TinkerwiseQuestScene", bandHeight = BAND_H, fadeTime = FADE_TIME })
+local topBand, bottomBand = scene.topBand, scene.bottomBand
+scene.topRule:Hide()
 
-local function Band(point)
-    local band = scene:CreateTexture(nil, "BACKGROUND")
-    band:SetColorTexture(0, 0, 0, 0.92)
-    band:SetPoint(point .. "LEFT")
-    band:SetPoint(point .. "RIGHT")
-    return band
-end
-local topBand = Band("TOP")
-local bottomBand = Band("BOTTOM")
-bottomBand:SetHeight(BAND_H)
-
-local rule = scene:CreateTexture(nil, "ARTWORK")
-rule:SetHeight(1)
-rule:SetColorTexture(1, 0.82, 0, 0.6)
-rule:SetPoint("BOTTOMLEFT", bottomBand, "TOPLEFT")
-rule:SetPoint("BOTTOMRIGHT", bottomBand, "TOPRIGHT")
-
-local title = scene:CreateFontString(nil, "OVERLAY")
-title:SetFont(TITLE_FONT, 30, "")
-title:SetTextColor(1, 0.9, 0.7)
+local title = scene:CreateTitle(bottomBand, 30)
 title:SetPoint("TOP", bottomBand, "TOP", 0, -14)
 
 -- Text on the left of the rewards, scrolling when it does not fit.
-local scroll = CreateFrame("ScrollFrame", nil, scene)
+local scroll = CreateFrame("ScrollFrame", nil, bottomBand)
 scroll:SetPoint("TOPLEFT", bottomBand, "TOPLEFT", 40, -56)
 scroll:SetPoint("BOTTOMRIGHT", bottomBand, "BOTTOMRIGHT", -TEXT_RIGHT, 32)
 local scrollChild = CreateFrame("Frame", nil, scroll)
@@ -69,7 +49,7 @@ body:SetJustifyH("LEFT")
 body:SetJustifyV("TOP")
 body:SetSpacing(4)
 
-local scrollHint = scene:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+local scrollHint = bottomBand:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
 scrollHint:SetPoint("BOTTOMLEFT", bottomBand, "BOTTOMLEFT", 40, 14)
 scrollHint:SetText(L["Mouse wheel: scroll"])
 scrollHint:Hide()
@@ -96,13 +76,13 @@ scroll:SetScript("OnMouseWheel", function(self, delta)
     self:SetVerticalScroll(math.max(0, math.min(self:GetVerticalScroll() - delta * 40, MaxScroll())))
 end)
 
-local money = scene:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+local money = bottomBand:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
 money:SetPoint("BOTTOMRIGHT", bottomBand, "BOTTOMRIGHT", -40, 52)
 
-local primary = CreateFrame("Button", nil, scene, "UIPanelButtonTemplate")
+local primary = CreateFrame("Button", nil, bottomBand, "UIPanelButtonTemplate")
 primary:SetSize(150, 28)
 primary:SetPoint("BOTTOMRIGHT", bottomBand, "BOTTOMRIGHT", -40, 16)
-local secondary = CreateFrame("Button", nil, scene, "UIPanelButtonTemplate")
+local secondary = CreateFrame("Button", nil, bottomBand, "UIPanelButtonTemplate")
 secondary:SetSize(110, 28)
 secondary:SetPoint("RIGHT", primary, "LEFT", -8, 0)
 
@@ -121,7 +101,7 @@ end
 
 local rewards = {}
 for i = 1, MAX_REWARDS do
-    local r = CreateFrame("Button", nil, scene)
+    local r = CreateFrame("Button", nil, bottomBand)
     r:SetScript("OnEnter", ShowRewardTip)
     r:SetScript("OnLeave", function() tip:Hide() end)
     r:SetSize(170, 34)
@@ -144,62 +124,34 @@ end
 -- Interface and camera
 ---------------------------------------------------------------------------
 
-local function StartCamera()
-    if not db.camera or cameraMoved then return end
-    cameraMoved = true
-    SaveView(SAVED_VIEW)
-    CameraZoomIn(db.zoom)
-    MoveViewLeftStart(0.03)
-end
-
-local function RestoreCamera()
-    if not cameraMoved then return end
-    cameraMoved = false
-    MoveViewLeftStop()
-    SetView(SAVED_VIEW)
-end
-
-local fadeIn = 0
 local function Play()
-    if playing then return true end
+    if scene:IsPlaying() then return true end
     if InCombatLockdown() then return false end
-    ns.FinishImmersionFade()
-    playing, fadeIn = true, 0
     -- Mode immersion keeps this window on screen while the interface is hidden.
     QuestFrame:SetAlpha(0)
-    scene:ClearAllPoints()
-    scene:SetAllPoints(WorldFrame)
-    scene:SetScale(UIParent:GetEffectiveScale())
-    scene:SetAlpha(0)
-    scene:Show()
-    topBand:SetHeight(scene:GetHeight() * db.letterboxSize / 100) -- same as the Mode immersion bars
-    local opacity = db.letterboxTranslucent and 0.92 or 1
-    topBand:SetColorTexture(0, 0, 0, opacity)
-    bottomBand:SetColorTexture(0, 0, 0, opacity)
-    body:SetWidth(scene:GetWidth() - TEXT_RIGHT - 40)
-    StartCamera()
+    scene:Play()
+    topBand:SetHeight(scene.frame:GetHeight() * db.letterboxSize / 100) -- same as the Mode immersion bars
+    scene:SetBandOpacity(db.letterboxTranslucent and 0.92 or 1)
+    body:SetWidth(scene.frame:GetWidth() - TEXT_RIGHT - 40)
+    if db.camera then ImmersionScene.StartCamera(db.zoom) end
     return true
 end
 
 local function Stop()
     closeToken = closeToken + 1
-    if not playing then return end
-    playing = false
+    if not scene:IsPlaying() then return end
     tip:Hide()
-    scene:Hide()
+    scene:Stop()
     QuestFrame:SetAlpha(1)
-    UIParent:SetAlpha(1)
     ns.ImmersionLetterbox:SetAlpha(1)
-    RestoreCamera()
+    ImmersionScene.RestoreCamera()
 end
 
-scene:SetScript("OnUpdate", function(_, elapsed)
-    if fadeIn < 1 then
-        fadeIn = math.min(fadeIn + elapsed / 0.4, 1)
-        scene:SetAlpha(fadeIn)
-        UIParent:SetAlpha(1 - fadeIn)
-        ns.ImmersionLetterbox:SetAlpha(1 - fadeIn)
-    end
+scene.onFade = function(progress)
+    ns.ImmersionLetterbox:SetAlpha(1 - progress)
+end
+
+scene.onUpdate = function(elapsed)
     if shownBytes < #fullText then
         typed = typed + elapsed * CHARS_PER_SECOND
         while typed >= 1 and shownBytes < #fullText do
@@ -215,10 +167,10 @@ scene:SetScript("OnUpdate", function(_, elapsed)
         body:SetText(fullText:sub(1, shownBytes))
         UpdateScroll()
     end
-end)
+end
 
 -- Clicking the scene shows the whole text at once.
-scene:SetScript("OnMouseDown", function()
+scene.frame:SetScript("OnMouseDown", function()
     shownBytes = #fullText
     body:SetText(fullText)
     followText = false
@@ -336,7 +288,7 @@ events:SetScript("OnEvent", function(_, event)
         closeToken = closeToken + 1
         Render("complete")
     elseif event == "QUEST_ITEM_UPDATE" then
-        if playing then ShowRewards() end
+        if scene:IsPlaying() then ShowRewards() end
     elseif event == "QUEST_FINISHED" then
         closeToken = closeToken + 1
         local token = closeToken
@@ -352,7 +304,7 @@ end)
 ns.QuestScene = {}
 
 function ns.QuestScene.IsPlaying()
-    return playing
+    return scene:IsPlaying()
 end
 
 function ns.QuestScene.Enable(moduleDB)
