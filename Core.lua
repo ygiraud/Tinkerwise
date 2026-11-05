@@ -374,3 +374,47 @@ SlashCmdList.TINKERWISE = function(input)
         TW:ToggleConfig()
     end
 end
+
+-- Opens Blizzard's Edit Mode (not to be confused with /tw move, for the addon's own windows).
+SLASH_TINKERWISEEDIT1 = "/edit"
+SlashCmdList.TINKERWISEEDIT = function()
+    if not EditModeManagerFrame then
+        TW:Print(L["Blizzard's Edit Mode does not exist in this game version."])
+    elseif InCombatLockdown() then
+        TW:Print(L["cannot open Edit Mode in combat."])
+    else
+        ShowUIPanel(EditModeManagerFrame)
+    end
+end
+
+-- Opens Blizzard's Quick Keybind Mode: hover an action button and press a key.
+SLASH_TINKERWISEKEYBIND1 = "/kb"
+SlashCmdList.TINKERWISEKEYBIND = function()
+    if not QuickKeybindFrame then
+        TW:Print(L["Quick Keybind Mode is not available."])
+    elseif InCombatLockdown() then
+        TW:Print(L["cannot open Quick Keybind Mode in combat."])
+    else
+        ShowUIPanel(QuickKeybindFrame)
+    end
+end
+
+-- Opens or closes Blizzard's Click Casting window, which is loaded on demand.
+SLASH_TINKERWISECLICKCAST1 = "/cc"
+SlashCmdList.TINKERWISECLICKCAST = function()
+    if InCombatLockdown() then
+        TW:Print(L["cannot open Click Casting in combat."])
+        return
+    end
+    if not ClickBindingFrame then
+        local loadAddOn = C_AddOns and C_AddOns.LoadAddOn or LoadAddOn
+        loadAddOn("Blizzard_ClickBindingUI")
+    end
+    if not ClickBindingFrame then
+        TW:Print(L["Click Casting is not available."])
+    elseif ClickBindingFrame:IsShown() then
+        HideUIPanel(ClickBindingFrame)
+    else
+        ShowUIPanel(ClickBindingFrame)
+    end
+end

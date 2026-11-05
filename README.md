@@ -14,6 +14,9 @@ Copiez le dossier dans `World of Warcraft\_forever_\Interface\AddOns\`. Il doit 
 |---|---|
 | `/tw` | Ouvre la configuration |
 | `/tw move` | Déplace les fenêtres de l'addon |
+| `/edit` | Ouvre le mode d'édition de Blizzard |
+| `/kb` | Ouvre le mode de raccourcis rapides de Blizzard |
+| `/cc` | Ouvre ou ferme la fenêtre des sorts à la souris |
 | `/tw checkup` | Lance le check-up |
 | `/tw chars` | Affiche Mes personnages |
 | `/tw bags` | Affiche les sacs et banques de vos personnages |
