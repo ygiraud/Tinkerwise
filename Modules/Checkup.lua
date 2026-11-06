@@ -23,6 +23,16 @@ local DEFAULTS = {
     autoRest = true,    -- warn when leaving a rested area
     autoInstance = true,-- open the check-up when entering a dungeon / raid
     merchant = true,    -- list what a merchant sells that you need
+    -- the checks to run
+    checkArmor = true,
+    checkFood = true,
+    checkDrink = true,
+    checkPotions = true,
+    checkAmmo = true,
+    checkReagents = true,
+    checkElixirs = true,
+    checkBags = true,
+    checkTalents = true,
 }
 
 local OK, WARN, BAD = 2, 1, 0
@@ -436,14 +446,15 @@ local function RunScan()
     local want = {}
     local cats = {}
     local function add(c) if c then cats[#cats + 1] = c end end
-    add(CheckArmor())
-    add(CheckFoodOrDrink(inv, "food", want))
-    if UsesMana() then add(CheckFoodOrDrink(inv, "drink", want)) end
-    add(CheckPotions(inv))
-    add(CheckAmmo(inv, want))
-    add(CheckReagents(want))
-    add(CheckElixirs(inv))
-    add(CheckBags(inv))
+    -- A check turned off counts nowhere: not in the list, the score, the alerts or at merchants.
+    if db.checkArmor then add(CheckArmor()) end
+    if db.checkFood then add(CheckFoodOrDrink(inv, "food", want)) end
+    if db.checkDrink and UsesMana() then add(CheckFoodOrDrink(inv, "drink", want)) end
+    if db.checkPotions then add(CheckPotions(inv)) end
+    if db.checkAmmo then add(CheckAmmo(inv, want)) end
+    if db.checkReagents then add(CheckReagents(want)) end
+    if db.checkElixirs then add(CheckElixirs(inv)) end
+    if db.checkBags then add(CheckBags(inv)) end
 
     local sum, n, tips = 0, 0, {}
     for _, c in ipairs(cats) do
@@ -453,7 +464,7 @@ local function RunScan()
     table.sort(tips, function(a, b) return a.prio > b.prio end)
     -- Shown apart: talents are not supplies, so they stay out of the list and of the score.
     local talentPoints, talentsToSpend = nil, false
-    if UnitLevel("player") >= 10 then
+    if db.checkTalents and UnitLevel("player") >= 10 then
         talentPoints = UnspentTalentCount()
         if talentPoints then
             talentsToSpend = talentPoints > 0
@@ -1120,6 +1131,16 @@ local mod = TW:NewModule("Checkup", {
         { type = "execute", label = L["Run the check-up"], func = function() Open() end },
         { type = "execute", label = L["Move / Lock"], func = function() SetUnlocked(not unlocked) end },
         { type = "execute", label = L["Reset position"], func = function() ResetPosition() end },
+        { type = "header", label = L["Checks"] },
+        { type = "toggle", key = "checkArmor", label = L["Armor"] },
+        { type = "toggle", key = "checkFood", label = L["Food"] },
+        { type = "toggle", key = "checkDrink", label = L["Water"] },
+        { type = "toggle", key = "checkPotions", label = "Potions" },
+        { type = "toggle", key = "checkAmmo", label = L["Ammo"] },
+        { type = "toggle", key = "checkReagents", label = L["Reagents"] },
+        { type = "toggle", key = "checkElixirs", label = L["Elixirs"] },
+        { type = "toggle", key = "checkBags", label = L["Bags"] },
+        { type = "toggle", key = "checkTalents", label = L["Unspent talent points"] },
         { type = "header", label = L["Thresholds"] },
         { type = "slider", key = "dura", label = L["Minimum durability (%)"], min = 10, max = 90, step = 5 },
         { type = "slider", key = "food", label = L["Minimum food"], min = 0, max = 40, step = 1 },
