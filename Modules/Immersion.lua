@@ -208,19 +208,23 @@ for _, name in ipairs({ "LOOT_ITEM_SELF_MULTIPLE", "LOOT_ITEM_PUSHED_SELF_MULTIP
     LOOT_PATTERNS[#LOOT_PATTERNS + 1] = LootPattern(_G[name])
 end
 
-local function OnLootMessage(message)
-    if not db.lootLog or UIParent:IsShown() then return end
+-- The item link and count of a loot message about the player; nil for any other message.
+function ns.ParseLootMessage(message)
     for _, pattern in ipairs(LOOT_PATTERNS) do
         local link, count = message:match(pattern)
-        if link then
-            table.insert(entries, 1, { link = link, count = tonumber(count) or 1, time = GetTime() })
-            entries[MAX_LOOT + 1] = nil
-            for _, r in ipairs(rows) do r:SetAlpha(1) end
-            log:SetScale(UIParent:GetEffectiveScale())
-            RenderLog()
-            return
-        end
+        if link then return link, tonumber(count) or 1 end
     end
+end
+
+local function OnLootMessage(message)
+    if not db.lootLog or UIParent:IsShown() then return end
+    local link, count = ns.ParseLootMessage(message)
+    if not link then return end
+    table.insert(entries, 1, { link = link, count = count, time = GetTime() })
+    entries[MAX_LOOT + 1] = nil
+    for _, r in ipairs(rows) do r:SetAlpha(1) end
+    log:SetScale(UIParent:GetEffectiveScale())
+    RenderLog()
 end
 
 ---------------------------------------------------------------------------

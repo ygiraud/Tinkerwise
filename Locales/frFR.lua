@@ -168,6 +168,7 @@ L["Summarizes your characters' gold, level, rested XP and last login (/tw chars)
 L["Show owners in tooltips"] = "Afficher les possesseurs dans les infobulles"
 L["Show characters"] = "Afficher les personnages"
 L["Show bags"] = "Afficher les sacs"
+L["What you pick up shows for a few seconds above the bottom band."] = "Ce que vous ramassez s'affiche quelques secondes au-dessus du bandeau du bas."
 L["Manage groups"] = "Gérer les groupes"
 L["Character groups"] = "Groupes de personnages"
 L["Default group"] = "Groupe par défaut"

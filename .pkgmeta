@@ -5,3 +5,4 @@ ignore:
 
 optional-dependencies:
   - whats-training
+  - fishing-buddy

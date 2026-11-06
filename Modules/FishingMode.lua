@@ -17,6 +17,8 @@ local CHECK_EVERY = 0.5
 local IDLE_TIMEOUT = 30 -- seconds without a cast before a "cast" mode ends
 local LINES_PER_COLUMN = 4
 local COLUMN_GAP = 24
+local LOOT_LINES, LOOT_LINE_H = 5, 26
+local LOOT_HOLD, LOOT_FADE = 6, 1 -- seconds a loot line stays, then takes to disappear
 local DEFAULT_ICON = "Interface\\Icons\\INV_Misc_Fish_02"
 local MODE_ICON = "Interface\\Icons\\INV_Fishingpole_02"
 local MODE_ICON_SIZE = 64
@@ -114,6 +116,60 @@ local function FishBlock(side, x, columns)
 end
 local zoneHeading, zoneLists = FishBlock("LEFT", 40, 3)
 local sessionHeading, sessionLists = FishBlock("RIGHT", -40, 2)
+
+---------------------------------------------------------------------------
+-- Loot
+---------------------------------------------------------------------------
+
+-- Plain text above the bottom band, newest first: it takes no clicks, so the bobber stays reachable.
+local lootEntries = {} -- { text, time }
+local lootLines = {}
+for i = 1, LOOT_LINES do
+    local line = bottomBand:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+    line:SetPoint("BOTTOM", bottomBand, "TOP", 0, 12 + (i - 1) * LOOT_LINE_H)
+    line:Hide()
+    lootLines[i] = line
+end
+
+local function RenderLoot()
+    for i, line in ipairs(lootLines) do
+        local entry = lootEntries[i]
+        line:SetText(entry and entry.text or "")
+        line:SetShown(entry ~= nil)
+    end
+end
+
+local function RefreshLoot()
+    local now, changed = GetTime(), false
+    for i = #lootEntries, 1, -1 do
+        local age = now - lootEntries[i].time
+        if age > LOOT_HOLD + LOOT_FADE then
+            table.remove(lootEntries, i)
+            changed = true
+        else
+            lootLines[i]:SetAlpha(age > LOOT_HOLD and 1 - (age - LOOT_HOLD) / LOOT_FADE or 1)
+        end
+    end
+    if changed then RenderLoot() end
+end
+
+local function AddLoot(icon, name, count)
+    local text = format("|T%s:20|t %s", icon or DEFAULT_ICON, name)
+    if count > 1 then text = text .. " x" .. count end
+    table.insert(lootEntries, 1, { text = text, time = GetTime() })
+    lootEntries[LOOT_LINES + 1] = nil
+    RenderLoot()
+end
+
+local function OnLootMessage(message)
+    local link, count = ns.ParseLootMessage(message)
+    if link then AddLoot((select(5, ns.API.GetItemInfoInstant(link))), link, count) end
+end
+
+local function ClearLoot()
+    wipe(lootEntries)
+    RenderLoot()
+end
 
 ---------------------------------------------------------------------------
 -- Bobber countdown
@@ -299,7 +355,10 @@ local function Refresh()
     FillLists(sessionLists, sessionCounts)
 end
 
-scene.onUpdate = RefreshRingColor
+scene.onUpdate = function()
+    RefreshRingColor()
+    RefreshLoot()
+end
 
 local function Play()
     if scene:IsPlaying() then return end
@@ -312,6 +371,7 @@ local function Stop()
     if testing then EndCountdown() end
     testing = false
     scene:Stop()
+    ClearLoot()
 end
 
 ---------------------------------------------------------------------------
@@ -414,6 +474,8 @@ local function StartTest()
     StartCountdown(GetTime(), GetTime() + ns.ImmersionScene.TEST_DURATION)
     Refresh()
     Play()
+    AddLoot(nil, L["Test fish"] .. " A", 2)
+    AddLoot(nil, L["Test fish"] .. " B", 1)
     scene:EndTestAfter(function()
         if testing then Stop() end
     end)
@@ -459,6 +521,8 @@ events:SetScript("OnEvent", function(self, event, ...)
             CheckPole()
             Update()
         end
+    elseif event == "CHAT_MSG_LOOT" then
+        if scene:IsPlaying() then OnLootMessage((...)) end
     elseif event == "LOOT_OPENED" then
         -- The loot window belongs to the faded interface: bring it back unless looting is automatic.
         local autoLoot = ...
@@ -481,7 +545,8 @@ local mod = TW:NewModule("FishingMode", {
     title = L["Fishing Mode"],
     icon = MODE_ICON,
     section = "Immersion",
-    desc = L["Requires Fishing Buddy. The interface fades away and black bands show your fishing skill, the catches of the zone and of the session, and a ring showing the bobber's time left. The camera doesn't move and the bobber stays clickable. Start it automatically or with its key. Click the cross or press Escape to get the interface back. The scene pauses in combat."],
+    desc = L["Requires Fishing Buddy. The interface fades away and black bands show your fishing skill, the catches of the zone and of the session, and a ring showing the bobber's time left. The camera doesn't move and the bobber stays clickable. Start it automatically or with its key. Click the cross or press Escape to get the interface back. The scene pauses in combat."]
+        .. " " .. L["What you pick up shows for a few seconds above the bottom band."],
     defaults = { autoMode = "cast", shortcut = "ALT-P" },
     options = {
         { type = "select", key = "autoMode", label = L["Automatic activation"], values = {
@@ -498,7 +563,7 @@ function mod:OnEnable()
     db = self.db
     events:RegisterUnitEvent("UNIT_SPELLCAST_CHANNEL_START", "player")
     events:RegisterUnitEvent("UNIT_SPELLCAST_CHANNEL_STOP", "player")
-    for _, e in ipairs({ "PLAYER_EQUIPMENT_CHANGED", "LOOT_OPENED", "LOOT_CLOSED", "PLAYER_REGEN_DISABLED",
+    for _, e in ipairs({ "PLAYER_EQUIPMENT_CHANGED", "CHAT_MSG_LOOT", "LOOT_OPENED", "LOOT_CLOSED", "PLAYER_REGEN_DISABLED",
                          "PLAYER_REGEN_ENABLED", "PLAYER_LEAVING_WORLD" }) do
         events:RegisterEvent(e)
     end

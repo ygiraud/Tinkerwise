@@ -29,7 +29,7 @@ A toolbox for WoW Forever: independent modules you can turn on or off from a sin
 - **Immersion Mode:** fades out the interface and can stage your quests as cinematic scenes
 - **AFK Mode:** fades out the interface and slowly turns the camera around your character, showing your time away and the whispers you received
 - **Flight Mode:** during a flight master trip, fades out the interface and shows your destination, the zone below and the flight time
-- **Fishing Mode:** with Fishing Buddy installed, fades out the interface and shows your fishing skill, the catches of the zone and of the session and a ring showing the bobber's time left, automatically (when fishing or with a pole equipped) or with a key (Alt+P); the bobber stays clickable
+- **Fishing Mode:** with Fishing Buddy installed, fades out the interface and shows your fishing skill, the catches of the zone and of the session, what you pick up and a ring showing the bobber's time left, automatically (when fishing or with a pole equipped) or with a key (Alt+P); the bobber stays clickable
 
 **Configuration**
 - **Default Settings:** sets up new characters
