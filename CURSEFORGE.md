@@ -7,7 +7,7 @@ A toolbox for WoW Forever: independent modules you can turn on or off from a sin
 ## Modules
 
 **Preparation**
-- **Check-up:** durability, food, water, potions, ammo, reagents, elixirs, bag space and unspent talent points
+- **Check-up:** durability, food, water, potions, ammo, reagents, elixirs, bag space and unspent talent points; each check can be turned off
 - **Potion Reminder:** shows the best potion in your bags that isn't on your action bars
 
 **Character**
