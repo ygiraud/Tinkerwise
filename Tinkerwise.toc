@@ -3,7 +3,7 @@
 ## Notes: Personal collection of small tools. /tw to configure.
 ## Notes-frFR: Collection d'outils personnels. /tw pour configurer.
 ## Author: Yoan
-## Version: 1.2.0
+## Version: 1.3.0
 ## IconTexture: Interface\Icons\INV_Misc_Wrench_01
 ## X-Curse-Project-ID: 1783286
 ## OptionalDeps: WhatsTraining, FishingBuddy
@@ -17,6 +17,7 @@ Modules\Checkup.lua
 Modules\PotionReminder.lua
 Modules\Bags.lua
 Modules\Characters.lua
+Modules\CharacterGroups.lua
 Modules\StatDelta.lua
 Modules\PortraitInfo.lua
 Modules\ItemCompare.lua
