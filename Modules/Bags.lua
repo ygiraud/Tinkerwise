@@ -19,6 +19,8 @@ local HEARTHSTONE = 6948
 local db
 local bankOpen = false
 local scanPending = false
+local leavingWorld = false -- from the loading screen or logout until the next world entry
+local moneyEmptied = false -- the game has just reported that the character spent all its gold
 
 local function CountContainer(bag, into)
     for slot = 1, NumSlots(bag) or 0 do
@@ -30,6 +32,7 @@ end
 local function CharacterKey()
     return TW:PlayerName() .. " - " .. GetRealmName()
 end
+ns.CharacterKey = CharacterKey
 
 local function CurrentCharacter()
     local key = CharacterKey()
@@ -40,7 +43,12 @@ local function CurrentCharacter()
     end
     c.name, c.realm = TW:PlayerName(), GetRealmName()
     c.class = select(2, UnitClass("player"))
-    c.money = GetMoney()
+    c.mode = ns.CharacterGroups.GameMode()
+    -- The game reads 0 while logging out: a 0 only counts after a real money change.
+    local money = GetMoney()
+    if money > 0 or moneyEmptied or not c.money then
+        c.money, moneyEmptied = money, false
+    end
     return c
 end
 ns.CurrentCharacter = CurrentCharacter -- also fed by the character list
@@ -127,9 +135,11 @@ local win, search, footer, listScroll, listChild
 local selectedKey -- nil = all characters
 local charButtons, itemRows = {}, {}
 
-local function SortedKeys()
+local function SortedKeys(isShown)
     local keys = {}
-    for key in pairs(db.chars) do keys[#keys + 1] = key end
+    for key, c in pairs(db.chars) do
+        if isShown(key, c) then keys[#keys + 1] = key end
+    end
     table.sort(keys)
     return keys
 end
@@ -144,7 +154,7 @@ local function CharButton(i)
     if charButtons[i] then return charButtons[i] end
     local b = CreateFrame("Button", nil, win)
     b:SetSize(LIST_W, 36)
-    b:SetPoint("TOPLEFT", 22, -84 - (i - 1) * 38)
+    b:SetPoint("TOPLEFT", 22, -116 - (i - 1) * 38)
     b:SetHighlightTexture("Interface\\QuestFrame\\UI-QuestTitleHighlight", "ADD")
     b.mark = b:CreateTexture(nil, "BACKGROUND")
     b.mark:SetAllPoints()
@@ -189,7 +199,7 @@ end
 
 local function Build()
     win = CreateFrame("Frame", "TinkerwiseBagsFrame", UIParent, "BackdropTemplate")
-    win:SetSize(640, 540)
+    win:SetSize(640, 572)
     win:SetPoint("CENTER")
     win:SetFrameStrata("DIALOG")
     win:SetMovable(true)
@@ -227,12 +237,12 @@ local function Build()
     forget:SetPoint("BOTTOMRIGHT", -24, 18)
     forget:SetText(L["Forget this character"])
     forget:SetScript("OnClick", function()
-        if not selectedKey then return end
-        db.chars[selectedKey] = nil
-        selectedKey = nil
-        Scan() -- the current character may be the one just forgotten; also refreshes the window
+        if selectedKey then ns.ForgetCharacter(selectedKey) end
     end)
     win.forget = forget
+
+    win.viewMenu = ns.CharacterGroups.CreateViewMenu(win, "TinkerwiseBagsGroupDropDown", 160)
+    win.viewMenu:SetPoint("TOPLEFT", 6, -82)
 
     local function Filter(key, label, x, y)
         local check = CreateFrame("CheckButton", nil, win, "UICheckButtonTemplate")
@@ -269,7 +279,7 @@ local function Totals()
         end
     end
     for key, c in pairs(db.chars) do
-        if not selectedKey or key == selectedKey then
+        if ns.CharacterGroups.IsViewed(key, c) and (not selectedKey or key == selectedKey) then
             if db.showBags then Add(c.bags, "bags") end
             if db.showBank then Add(c.bank, "bank") end
             if db.showMail then Add(c.mail, "mail") end
@@ -282,8 +292,13 @@ end
 function Refresh()
     if not win or not win:IsShown() then return end
 
+    local groups = ns.CharacterGroups
+    UIDropDownMenu_SetText(win.viewMenu, groups.ViewedLabel())
+    local chosen = selectedKey and db.chars[selectedKey]
+    if not chosen or not groups.IsViewed(selectedKey, chosen) then selectedKey = nil end
+
     local gold = 0
-    local keys = SortedKeys()
+    local keys = SortedKeys(groups.IsViewed)
     local allButton = CharButton(1)
     allButton.key = nil
     allButton.name:SetText(L["All characters"])
@@ -348,9 +363,23 @@ end
 local function Toggle()
     if not win then Build() end
     if win:IsShown() then return win:Hide() end
+    ns.CharacterGroups.ResetView()
     Scan()
     win:Show()
     Refresh()
+end
+
+function ns.RefreshCharacterViews()
+    Refresh()
+    ns.CharacterList.Update()
+end
+
+function ns.ForgetCharacter(key)
+    db.chars[key] = nil
+    if selectedKey == key then selectedKey = nil end
+    Scan() -- the current character may be the one just forgotten
+    ns.CharacterList.Update()
+    ns.CharacterGroups.Refresh()
 end
 
 ---------------------------------------------------------------------------
@@ -364,7 +393,7 @@ local function AddOwners(tooltip, link)
     tooltip.twBagsShown = id
 
     local owners, total = {}, 0
-    for _, key in ipairs(SortedKeys()) do
+    for _, key in ipairs(SortedKeys(ns.CharacterGroups.IsCurrentGroup)) do
         local c = db.chars[key]
         local bags, bank = c.bags and c.bags[id] or 0, c.bank and c.bank[id] or 0
         local equip, mail = c.equip and c.equip[id] or 0, c.mail and c.mail[id] or 0
@@ -436,7 +465,7 @@ local function ShowGold(owner)
     local total = 0
     GameTooltip:SetOwner(owner, "ANCHOR_TOPLEFT")
     GameTooltip:AddLine(L["Your characters' gold"])
-    for _, key in ipairs(SortedKeys()) do
+    for _, key in ipairs(SortedKeys(ns.CharacterGroups.IsCurrentGroup)) do
         local c = db.chars[key]
         total = total + (c.money or 0)
         GameTooltip:AddDoubleLine(ClassColored(c), GetCoinTextureString(c.money or 0), 1, 1, 1, 1, 1, 1)
@@ -488,6 +517,13 @@ events:SetScript("OnEvent", function(_, event)
     if event == "MAIL_INBOX_UPDATE" then
         ScanMail()
         return
+    elseif event == "PLAYER_LEAVING_WORLD" then
+        leavingWorld, moneyEmptied = true, false
+        return
+    elseif event == "PLAYER_ENTERING_WORLD" then
+        leavingWorld = false
+    elseif event == "PLAYER_MONEY" then
+        moneyEmptied = not leavingWorld and GetMoney() == 0
     elseif event == "BANKFRAME_OPENED" then
         bankOpen = true
     elseif event == "BANKFRAME_CLOSED" then
@@ -505,25 +541,29 @@ local mod = TW:NewModule("Bags", {
     icon = "Interface\\Icons\\INV_Misc_GroupNeedMore",
     section = L["Character"],
     accountWide = true,
-    desc = L["Summarizes your characters' gold, level, rested XP and last login (/tw chars), and remembers their bags, keyring, gear, bank and mail (/tw bags), with search and tooltips showing who owns what. A character appears after their first login. Bags and gear update when they play, bank and mail when they open them; only rested XP is estimated, from elapsed time."],
+    perCharacterToggle = true,
+    desc = L["Summarizes your characters' gold, level, rested XP and last login (/tw chars), and remembers their bags, keyring, gear, bank and mail (/tw bags), with search and tooltips showing who owns what. A character appears after their first login. Bags and gear update when they play, bank and mail when they open them; only rested XP is estimated, from elapsed time."]
+        .. "\n\n" .. L["Characters are sorted by game mode (detected) and by the groups you create (/tw groups). The switch only applies to the current character, which stops recording its data when it is off."],
     defaults = { tooltip = true, showBags = true, showBank = true, showMail = false, showWorn = false },
     options = {
         { type = "toggle", key = "tooltip", label = L["Show owners in tooltips"] },
         { type = "execute", label = L["Show characters"], func = function() ns.CharacterList.Toggle() end },
         { type = "execute", label = L["Show bags"], func = Toggle },
+        { type = "execute", label = L["Manage groups"], func = function() ns.CharacterGroups.Toggle() end },
     },
 })
 
 function mod:OnEnable()
     db = self.db
     db.chars = db.chars or {}
+    ns.CharacterGroups.Enable(db)
     ns.CharacterList.Enable(db)
     HookTooltips()
     HookMoneyFrames()
     SetMoneyMouse(true)
     for _, e in ipairs({ "PLAYER_ENTERING_WORLD", "BAG_UPDATE_DELAYED", "PLAYER_MONEY", "BANKFRAME_OPENED",
                          "BANKFRAME_CLOSED", "PLAYERBANKSLOTS_CHANGED", "GET_ITEM_INFO_RECEIVED",
-                         "PLAYER_EQUIPMENT_CHANGED", "MAIL_INBOX_UPDATE" }) do
+                         "PLAYER_EQUIPMENT_CHANGED", "MAIL_INBOX_UPDATE", "PLAYER_LEAVING_WORLD" }) do
         pcall(events.RegisterEvent, events, e)
     end
     if IsLoggedIn() then ScheduleScan() end
@@ -531,6 +571,7 @@ end
 
 function mod:OnDisable()
     ns.CharacterList.Disable()
+    ns.CharacterGroups.Disable()
     SetMoneyMouse(false)
     events:UnregisterAllEvents()
     bankOpen = false

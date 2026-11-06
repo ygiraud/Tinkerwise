@@ -7,6 +7,7 @@
 --   defaults           table of saved settings (copied into mod.db)
 --   alwaysEnabled      true for a module that is always on and cannot be disabled (default: starts disabled)
 --   accountWide        true to share settings between characters (default: per character)
+--   perCharacterToggle with accountWide: settings stay shared, but each character turns the module on or off
 --   options            list of option widgets (see Config.lua)
 --   OnEnable, OnDisable, OnOptionChanged(key)   callbacks
 --   SetEditMode(on)    unlock / lock the module's movable frames
@@ -132,7 +133,7 @@ end
 
 function TW:SetModuleEnabled(mod, enabled)
     if mod.alwaysEnabled then enabled = true end
-    mod.db.enabled = enabled and true or false
+    mod.state.enabled = enabled and true or false
     if enabled and not mod.active then
         mod.active = true
         if mod.OnEnable then
@@ -338,14 +339,24 @@ loader:SetScript("OnEvent", function(_, event, arg1)
             for k, v in pairs(mod.defaults or {}) do
                 if db[k] == nil then db[k] = v end
             end
+            -- Where the on/off choice is saved. A character seen for the first time since the
+            -- module became per character keeps the choice the account had until then.
+            local state = db
+            if mod.perCharacterToggle then
+                state = TinkerwiseCharDB.modules[mod.key]
+                if not state then
+                    state = { enabled = db.enabled, defaultApplied = db.defaultApplied }
+                    TinkerwiseCharDB.modules[mod.key] = state
+                end
+            end
             -- Modules start off once, even if saved as on; then the player's choice stays.
             if mod.alwaysEnabled then
-                db.enabled = true
-            elseif not db.defaultApplied then
-                db.enabled, db.defaultApplied = false, true
+                state.enabled = true
+            elseif not state.defaultApplied then
+                state.enabled, state.defaultApplied = false, true
             end
-            if db.enabled == nil then db.enabled = true end
-            mod.db = db
+            if state.enabled == nil then state.enabled = true end
+            mod.db, mod.state = db, state
         end
         -- The minimap button position used to be saved outside its module, and account-wide
         -- before that (the first character to log in inherits it). Moved once, then removed.
@@ -354,7 +365,7 @@ loader:SetScript("OnEvent", function(_, event, arg1)
         TinkerwiseCharDB.minimap, TinkerwiseDB.minimap = nil, nil
     elseif event == "PLAYER_LOGIN" then
         for _, mod in ipairs(TW.order) do
-            if mod.db.enabled then TW:SetModuleEnabled(mod, true) end
+            if mod.state.enabled then TW:SetModuleEnabled(mod, true) end
         end
     end
 end)

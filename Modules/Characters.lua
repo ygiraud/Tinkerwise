@@ -55,7 +55,7 @@ local function Row(i)
     if rows[i] then return rows[i] end
     local row = CreateFrame("Frame", nil, win)
     row:SetSize(560, ROW_H)
-    row:SetPoint("TOPLEFT", 24, -74 - (i - 1) * ROW_H)
+    row:SetPoint("TOPLEFT", 24, -104 - (i - 1) * ROW_H)
     row.cells = { Cell(row, 1), Cell(row, 2), Cell(row, 3), Cell(row, 4), Cell(row, 5) }
     rows[i] = row
     return row
@@ -78,21 +78,26 @@ local function Build()
 
     local head = CreateFrame("Frame", nil, win)
     head:SetSize(560, ROW_H)
-    head:SetPoint("TOPLEFT", 24, -48)
+    head:SetPoint("TOPLEFT", 24, -78)
     for i, text in ipairs({ L["Character"], L["Lvl"], L["Gold"], L["Rested (≈)"], L["Seen"] }) do
         Cell(head, i, "GameFontNormal"):SetText(text)
     end
     total = win:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     total:SetPoint("BOTTOMRIGHT", -26, 20)
+
+    win.viewMenu = ns.CharacterGroups.CreateViewMenu(win, "TinkerwiseCharactersGroupDropDown", 220)
+    win.viewMenu:SetPoint("TOPLEFT", 8, -42)
 end
 
 local function Refresh()
     Save()
     if not win then Build() end
+    UIDropDownMenu_SetText(win.viewMenu, ns.CharacterGroups.ViewedLabel())
     local list = {}
     local gold = 0
-    for _, c in pairs(db.chars) do
-        if c.level then -- not seen since this list exists: only its bags are known
+    for key, c in pairs(db.chars) do
+        -- Without a level, not seen since this list exists: only its bags are known.
+        if c.level and ns.CharacterGroups.IsViewed(key, c) then
             list[#list + 1] = c
             gold = gold + c.money
         end
@@ -112,11 +117,12 @@ local function Refresh()
     end
     for i = #list + 1, #rows do rows[i]:Hide() end
     total:SetText(L["Total: "] .. GetCoinTextureString(gold))
-    win:SetHeight(120 + #list * ROW_H)
+    win:SetHeight(150 + #list * ROW_H)
 end
 
 local function Toggle()
     if win and win:IsShown() then return win:Hide() end
+    ns.CharacterGroups.ResetView()
     Refresh()
     win:Show()
 end
@@ -124,7 +130,11 @@ end
 local events = CreateFrame("Frame")
 events:SetScript("OnEvent", Save)
 
-ns.CharacterList = { Toggle = Toggle }
+ns.CharacterList = { Toggle = Toggle, Ago = Ago }
+
+function ns.CharacterList.Update()
+    if win and win:IsShown() then Refresh() end
+end
 
 function ns.CharacterList.Enable(moduleDB)
     db = moduleDB

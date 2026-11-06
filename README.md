@@ -20,6 +20,7 @@ Copiez le dossier dans `World of Warcraft\_forever_\Interface\AddOns\`. Il doit 
 | `/tw checkup` | Lance le check-up |
 | `/tw chars` | Affiche Mes personnages |
 | `/tw bags` | Affiche les sacs et banques de vos personnages |
+| `/tw groups` | Gère les groupes de Mes personnages |
 
 ## Modules
 
@@ -32,5 +33,7 @@ Copiez le dossier dans `World of Warcraft\_forever_\Interface\AddOns\`. Il doit 
 - **Configuration :** Réglages par défaut, Bouton de la minicarte
 
 Changements de stats affiche aussi un résumé à chaque niveau gagné. Pour y voir les sorts à apprendre au maître de classe, installez l'addon [What's Training?](https://www.curseforge.com/wow/addons/whats-training). Sans lui, le résumé n'affiche que les stats.
+
+Mes personnages classe vos personnages par mode de jeu (PvE, PvP, Hardcore, RP, RP-PvP, détecté automatiquement) et par groupes que vous créez, par exemple « PvE - Groupe par défaut » et « PvE - Guilde ». Les infobulles ne comptent que le groupe courant, et les fenêtres l'affichent par défaut, avec un menu pour consulter les autres. Le module s'active par personnage.
 
 Les réglages sont enregistrés par personnage, sauf ceux de Réglages par défaut et Mes personnages, communs au compte. Tous les modules sont désactivés par défaut : activez ceux que vous voulez dans `/tw`. Ceux de la section Configuration restent toujours actifs.
