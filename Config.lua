@@ -8,7 +8,6 @@
 --   { type = "color",   key, label }    db[key] holds { r, g, b }; opens the game's color wheel
 --   { type = "input",   key, label }
 --   { type = "select",  key, label, values = { { value, label }, ... } }
---   { type = "keybind", key, label }    db[key] holds a key such as "ALT-P", "" when none
 --   { type = "execute", label, func }   consecutive buttons share a line
 --   { type = "header",  label }         starts a new card
 --   { type = "checklist", key, items }  items() returns names; db[key] holds the unticked ones
@@ -246,62 +245,6 @@ local function CreateSelect(parent, opt, mod)
     return w
 end
 
--- Key capture: left-click then press a key combination, Escape cancels, right-click removes the key.
-local MODIFIER_KEYS = { LSHIFT = true, RSHIFT = true, LCTRL = true, RCTRL = true, LALT = true, RALT = true, UNKNOWN = true }
-
-local function CreateKeybind(parent, opt, mod)
-    local w = CreateFrame("Frame", nil, parent)
-    w:SetSize(380, 44)
-    local label = w:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    label:SetPoint("TOPLEFT", 0, 0)
-    label:SetText(opt.label)
-    local button = CreateFrame("Button", nil, w, "UIPanelButtonTemplate")
-    button:SetSize(200, 22)
-    button:SetPoint("TOPLEFT", label, "BOTTOMLEFT", 0, -4)
-    button:RegisterForClicks("LeftButtonUp", "RightButtonUp")
-
-    local function Listen(on)
-        button:EnableKeyboard(on)
-        if on then
-            button:SetText(L["Press a key..."])
-        else
-            w:Refresh()
-        end
-    end
-
-    button:SetScript("OnClick", function(_, mouseButton)
-        if mouseButton == "RightButton" then
-            TW:SetOption(mod, opt.key, "")
-            Listen(false)
-        else
-            Listen(true)
-        end
-    end)
-    button:SetScript("OnKeyDown", function(_, key)
-        if MODIFIER_KEYS[key] then return end
-        if key ~= "ESCAPE" then
-            local prefix = (IsAltKeyDown() and "ALT-" or "") .. (IsControlKeyDown() and "CTRL-" or "")
-                .. (IsShiftKeyDown() and "SHIFT-" or "")
-            TW:SetOption(mod, opt.key, prefix .. key)
-        end
-        Listen(false)
-    end)
-    button:SetScript("OnHide", function() Listen(false) end)
-    button:SetScript("OnEnter", function(self)
-        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-        GameTooltip:SetText(L["Left-click: change the key. Right-click: remove it."], 1, 1, 1)
-        GameTooltip:Show()
-    end)
-    button:SetScript("OnLeave", function() GameTooltip:Hide() end)
-
-    function w:Refresh()
-        local key = mod.db[opt.key]
-        button:SetText(key and key ~= "" and GetBindingText(key) or L["No key"])
-    end
-    function w:MinWidth() return math.max(label:GetStringWidth(), 200) end
-    return w
-end
-
 -- Pill-shaped on/off button: "ACTIVÉ" in green or "DÉSACTIVÉ" in grey.
 local function CreateSwitch(parent, onClick)
     local b = CreateFrame("Button", nil, parent, "BackdropTemplate")
@@ -507,9 +450,6 @@ local function BuildPanel(mod)
             elseif opt.type == "select" then
                 w = CreateSelect(card, opt, mod)
                 AddItem(w, 56)
-            elseif opt.type == "keybind" then
-                w = CreateKeybind(card, opt, mod)
-                AddItem(w, 50)
             elseif opt.type == "execute" then
                 w = CreateFrame("Button", nil, card, "UIPanelButtonTemplate")
                 w:SetText(opt.label)

@@ -9,6 +9,7 @@
 --   accountWide        true to share settings between characters (default: per character)
 --   perCharacterToggle with accountWide: settings stay shared, but each character turns the module on or off
 --   options            list of option widgets (see Config.lua)
+--   replaces           { oldModuleKey = optionKey } older modules it took over, see ADDON_LOADED
 --   OnEnable, OnDisable, OnOptionChanged(key)   callbacks
 --   SetEditMode(on)    unlock / lock the module's movable frames
 
@@ -320,6 +321,23 @@ loader:SetScript("OnEvent", function(_, event, arg1)
         TinkerwiseDB.modules = TinkerwiseDB.modules or {}
         TinkerwiseCharDB = TinkerwiseCharDB or {}
         TinkerwiseCharDB.modules = TinkerwiseCharDB.modules or {}
+        -- A module that took over older ones starts from their settings: their on/off choice becomes
+        -- one of its options, and it is on if any of them was.
+        local charModules = TinkerwiseCharDB.modules
+        for _, mod in ipairs(TW.order) do
+            for oldKey, option in pairs(mod.replaces or {}) do
+                local old = charModules[oldKey]
+                if old then
+                    local db = charModules[mod.key] or {}
+                    charModules[mod.key] = db
+                    db[option] = old.enabled and true or false
+                    db.enabled = db.enabled or old.enabled
+                    for k, v in pairs(old) do
+                        if db[k] == nil then db[k] = v end
+                    end
+                end
+            end
+        end
         -- Forget the settings of modules that no longer exist.
         for _, store in ipairs({ TinkerwiseDB.modules, TinkerwiseCharDB.modules }) do
             for key in pairs(store) do

@@ -26,10 +26,8 @@ A toolbox for WoW Forever: independent modules you can turn on or off from a sin
 - **Chat:** a new tab for each whisper conversation with a close button, group and guild tabs, a channel that follows the selected tab, class-colored names, timestamps, clickable links, copying and resizable windows with a custom background
 
 **Immersion**
-- **Immersion Mode:** fades out the interface and can stage your quests as cinematic scenes
-- **AFK Mode:** fades out the interface and slowly turns the camera around your character, showing your time away and the whispers you received
-- **Flight Mode:** during a flight master trip, fades out the interface and shows your destination, the zone below and the flight time
-- **Fishing Mode:** with Fishing Buddy installed, fades out the interface and shows your fishing skill, the catches of the zone and of the session, what you pick up and a ring showing the bobber's time left, automatically (when fishing or with a pole equipped) or with a key (Alt+P); the bobber stays clickable
+- **Immersion Mode:** fades out the interface and can stage your quests as cinematic scenes. With Fishing Buddy and a fishing pole equipped, it also shows your fishing skill, the catches of the zone and of the session and a ring showing the bobber's time left, and can start by itself when you equip the pole; the bobber stays clickable
+- **AFK and Flight Modes:** each can be turned on separately. When you're away, fades out the interface and slowly turns the camera around your character, showing your time away and the whispers you received. During a flight master trip, fades out the interface and shows your destination, the zone below and the flight time
 
 **Configuration**
 - **Default Settings:** sets up new characters
@@ -39,7 +37,7 @@ A toolbox for WoW Forever: independent modules you can turn on or off from a sin
 
 Install **What's Training?** to see the spells to learn from your class trainer, and their total cost, in the level-up panel. Without it, the panel only shows your stats.
 
-Install **Fishing Buddy** to use the Fishing Mode.
+Install **Fishing Buddy** to get the fishing displays of the Immersion Mode.
 
 ## Commands
 

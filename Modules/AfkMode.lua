@@ -6,7 +6,6 @@
 
 local _, ns = ...
 local L = ns.L
-local TW = ns.TW
 local ImmersionScene = ns.ImmersionScene
 
 local REFRESH_EVERY = 0.5
@@ -156,20 +155,14 @@ events:SetScript("OnEvent", function(_, event)
     end
 end)
 
-local mod = TW:NewModule("AfkMode", {
-    title = L["AFK Mode"],
-    icon = "Interface\\Icons\\Spell_Nature_Sleep",
-    section = "Immersion",
-    desc = L["When you go AFK (/afk or after a while), the interface fades away and the camera turns slowly around your character. The screen shows the time away and the whispers received. Move or send a message to come back, or click the cross or press Escape to get the interface back while staying AFK. Out of combat only. The camera uses the game's view slot 5."],
-    defaults = { camera = true },
-    options = {
-        { type = "toggle", key = "camera", label = L["Camera movement"] },
-        { type = "execute", label = L["Test (15 s)"], func = StartTest },
-    },
-})
+---------------------------------------------------------------------------
+-- Interface for the module holding the options (AwayModes)
+---------------------------------------------------------------------------
 
-function mod:OnEnable()
-    db = self.db
+ns.AfkMode = {}
+
+function ns.AfkMode.Enable(settings)
+    db = settings
     events:RegisterUnitEvent("PLAYER_FLAGS_CHANGED", "player")
     for _, e in ipairs({ "PLAYER_ENTERING_WORLD", "PLAYER_LEAVING_WORLD", "PLAYER_REGEN_DISABLED",
                          "PLAYER_REGEN_ENABLED", "CHAT_MSG_WHISPER", "CHAT_MSG_BN_WHISPER" }) do
@@ -178,13 +171,18 @@ function mod:OnEnable()
     Update()
 end
 
-function mod:OnDisable()
+function ns.AfkMode.Disable()
     events:UnregisterAllEvents()
     afkSince, whispers, dismissed = nil, 0, false
     Stop()
 end
 
-function mod:OnOptionChanged(key)
-    if key ~= "camera" or not scene:IsPlaying() then return end
+function ns.AfkMode.Test(settings)
+    db = settings
+    StartTest()
+end
+
+function ns.AfkMode.OnCameraChanged()
+    if not scene:IsPlaying() then return end
     if db.camera then StartCamera() else ImmersionScene.RestoreCamera() end
 end

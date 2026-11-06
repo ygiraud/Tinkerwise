@@ -3,7 +3,8 @@
 -- when closable, a cross and the Escape key. Also the slowly turning camera.
 --
 -- ns.ImmersionScene.Create(options) returns a scene:
---   options: name, bandHeight, fadeTime, closable, clickThrough (only the bands take the mouse)
+--   options: name, bandHeight, fadeTime, closable, clickThrough (only the bands take the mouse),
+--            overlay (bands drawn during the immersion mode: the interface is left to that mode)
 --   scene.frame, scene.topBand, scene.bottomBand, scene.topRule, scene.closeButton
 --   scene.onClose(), scene.onUpdate(elapsed), scene.onFade(progress)   set by the module
 --
@@ -35,15 +36,15 @@ end
 
 function Scene:OtherPlaying()
     for _, other in ipairs(scenes) do
-        if other ~= self and other.playing then return true end
+        if other ~= self and other.playing and not other.overlay then return true end
     end
     return false
 end
 
 function Scene:Play()
     if self.playing then return end
-    if ns.FinishImmersionFade then ns.FinishImmersionFade() end
-    self.playing, self.fadeIn, self.interfaceKept = true, 0, false
+    if ns.FinishImmersionFade and not self.overlay then ns.FinishImmersionFade() end
+    self.playing, self.fadeIn = true, 0
     local frame = self.frame
     frame:ClearAllPoints()
     frame:SetAllPoints(WorldFrame)
@@ -57,20 +58,14 @@ end
 
 function Scene:Stop()
     if not self.playing then return end
-    self.playing, self.interfaceKept = false, false
+    self.playing = false
     self.frame:Hide()
     if self.minimapHidden then
         self.minimapHidden = false
         Minimap:Show()
     end
-    UIParent:SetAlpha(1)
+    if not self.overlay then UIParent:SetAlpha(1) end
     if self.closeButton and not InCombatLockdown() then ClearOverrideBindings(self.closeButton) end
-end
-
--- Brings the interface back for a moment while the scene stays on screen.
-function Scene:KeepInterface(on)
-    self.interfaceKept = on
-    if self.playing then UIParent:SetAlpha(on and 1 or 1 - self.fadeIn) end
 end
 
 -- Calls stop at the end of a test, unless another test started meanwhile.
@@ -98,10 +93,10 @@ local function OnUpdate(scene, elapsed)
     if scene.fadeIn < 1 then
         scene.fadeIn = math.min(scene.fadeIn + elapsed / scene.fadeTime, 1)
         scene.frame:SetAlpha(scene.fadeIn)
-        if not scene.interfaceKept then UIParent:SetAlpha(1 - scene.fadeIn) end
+        if not scene.overlay then UIParent:SetAlpha(1 - scene.fadeIn) end
         if scene.onFade then scene.onFade(scene.fadeIn) end
         -- The minimap's arrow ignores the interface's transparency: it has to be hidden for real.
-        if scene.fadeIn >= 1 and Minimap:IsShown() then
+        if scene.fadeIn >= 1 and not scene.overlay and Minimap:IsShown() then
             scene.minimapHidden = true
             Minimap:Hide()
         end
@@ -137,12 +132,19 @@ end
 function M.Create(options)
     -- No parent: the scene must stay visible while the interface is transparent.
     local frame = CreateFrame("Frame", options.name)
-    frame:SetFrameStrata("FULLSCREEN_DIALOG")
+    if options.overlay then
+        -- Over the immersion mode's black bars, under the elements it keeps on screen.
+        frame:SetFrameStrata("BACKGROUND")
+        frame:SetFrameLevel(20)
+    else
+        frame:SetFrameStrata("FULLSCREEN_DIALOG")
+    end
     frame:EnableMouse(not options.clickThrough) -- the invisible interface must take no clicks
     frame:Hide()
 
     local scene = setmetatable({
         frame = frame,
+        overlay = options.overlay,
         fadeTime = options.fadeTime or DEFAULT_FADE_TIME,
         playing = false,
         fadeIn = 0,
@@ -166,7 +168,7 @@ end
 
 function M.AnyPlaying()
     for _, scene in ipairs(scenes) do
-        if scene.playing then return true end
+        if scene.playing and not scene.overlay then return true end
     end
     return false
 end

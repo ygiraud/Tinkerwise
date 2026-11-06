@@ -4,7 +4,6 @@
 
 local _, ns = ...
 local L = ns.L
-local TW = ns.TW
 local ImmersionScene = ns.ImmersionScene
 
 local issecretvalue = _G.issecretvalue
@@ -151,29 +150,25 @@ hooksecurefunc("TakeTaxiNode", function(slot)
 end)
 
 ---------------------------------------------------------------------------
--- Module
+-- Interface for the module holding the options (AwayModes)
 ---------------------------------------------------------------------------
 
-local mod = TW:NewModule("FlightMode", {
-    title = L["Flight Mode"],
-    icon = "Interface\\Icons\\Ability_Mount_Wyvern_01",
-    section = "Immersion",
-    desc = L["During a flight master trip, the interface fades away and the screen shows the destination, the zone below and the flight time. The time left appears once you have flown that route. The camera doesn't move. Click the cross or press Escape to get the interface back. Out of combat only."],
-    defaults = { routes = {} },
-    options = {
-        { type = "execute", label = L["Test (15 s)"], func = StartTest },
-    },
-})
+ns.FlightMode = {}
 
-function mod:OnEnable()
-    db = self.db
+function ns.FlightMode.Enable(settings)
+    db = settings
     ticker = C_Timer.NewTicker(CHECK_EVERY, Update)
     Update()
 end
 
-function mod:OnDisable()
+function ns.FlightMode.Disable()
     if ticker then ticker:Cancel() end
     ticker = nil
     flying, dismissed, route, pendingRoute = false, false, nil, nil
     Stop()
+end
+
+function ns.FlightMode.Test(settings)
+    db = settings
+    StartTest()
 end

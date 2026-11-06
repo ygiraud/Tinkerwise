@@ -29,7 +29,8 @@ Modules\Immersion.lua
 Modules\QuestScene.lua
 Modules\AfkMode.lua
 Modules\FlightMode.lua
-Modules\FishingMode.lua
+Modules\AwayModes.lua
+Modules\FishingDisplay.lua
 Modules\CharDefaults.lua
 Config.lua
 Minimap.lua
