@@ -13,7 +13,6 @@ A toolbox for WoW Forever: independent modules you can turn on or off from a sin
 **Character**
 - **My Characters:** gold, level, rested XP, bags, bank and mail across your characters, with search. Characters are sorted by game mode (PvE, PvP, Hardcore, RP, RP-PvP, detected automatically) and by groups you create, for instance to keep a guild's characters apart. Can be turned on for each character
 - **Stat Changes:** gains and losses when your gear, buffs, form or talents change, plus a summary panel on level up
-- **Portrait Info:** armor, damage reduction, DPS and spell power when hovering over your portrait
 
 **Items**
 - **Item Comparison:** gains and losses in the tooltip

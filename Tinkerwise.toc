@@ -19,7 +19,6 @@ Modules\Bags.lua
 Modules\Characters.lua
 Modules\CharacterGroups.lua
 Modules\StatDelta.lua
-Modules\PortraitInfo.lua
 Modules\ItemCompare.lua
 Modules\AutoVendor.lua
 Modules\GroupComfort.lua
