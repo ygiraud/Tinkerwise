@@ -69,9 +69,23 @@ local function SetWheelZoom(on)
     end
 end
 
+-- The quest, task and archaeology areas draw a round ring at the edge of the map: hide it when square.
+local RING_SETTERS = {
+    "SetQuestBlobRingScalar", "SetQuestBlobRingAlpha",
+    "SetTaskBlobRingScalar", "SetTaskBlobRingAlpha",
+    "SetArchBlobRingScalar", "SetArchBlobRingAlpha",
+}
+
+local function ShowRings(shown)
+    for _, setter in ipairs(RING_SETTERS) do
+        if Minimap[setter] then Minimap[setter](Minimap, shown and 1 or 0) end
+    end
+end
+
 local function Apply()
     local on = mod.active
     Minimap:SetMaskTexture(on and SQUARE_MASK or ROUND_MASK)
+    ShowRings(not on)
     ShowParts(ROUND_PARTS, not on)
     ShowParts(ZOOM_BUTTONS, not (on and mod.db.hideZoomButtons))
     SetShape(on)
