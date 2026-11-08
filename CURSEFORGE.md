@@ -25,7 +25,7 @@ A toolbox for WoW Forever: independent modules you can turn on or off from a sin
 - **Chat:** a new tab for each whisper conversation with a close button, group and guild tabs, a channel that follows the selected tab, class-colored names, timestamps, clickable links, copying and resizable windows with a custom background
 
 **Interface**
-- **Square Minimap:** a square minimap with a thin border of the color you choose, mouse wheel zoom and no zoom buttons
+- **Minimap:** a square minimap with a thin border of the color you choose, mouse wheel zoom and no zoom buttons
 
 **Immersion**
 - **Immersion Mode:** fades out the interface and can stage your quests as cinematic scenes. With Fishing Buddy and a fishing pole equipped, it also shows your fishing skill, the catches of the zone and of the session and a ring showing the bobber's time left, and can start by itself when you equip the pole; the bobber stays clickable

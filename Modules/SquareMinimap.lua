@@ -1,4 +1,4 @@
--- Square Minimap: square map with a thin border, without the round frame, and optional mouse wheel zoom.
+-- Minimap: square map with a thin border, without the round frame, and optional mouse wheel zoom.
 
 local _, ns = ...
 local L = ns.L
@@ -88,7 +88,7 @@ local function Apply()
 end
 
 mod = TW:NewModule("SquareMinimap", {
-    title = L["Square Minimap"],
+    title = "Minimap", -- same name in every language; L["Minimap"] is Immersion's "Minicarte"
     icon = "Interface\\Icons\\INV_Misc_Map_01",
     section = L["Interface"],
     desc = L["Makes the minimap square, with a thin border instead of the round frame. Can also zoom with the mouse wheel and hide the zoom buttons."],

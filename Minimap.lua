@@ -86,7 +86,7 @@ mod = TW:NewModule("MinimapButton", {
     },
 })
 
-function mod:Place() Place() end -- called by Square Minimap when the shape changes
+function mod:Place() Place() end -- called by the Minimap module when the shape changes
 
 function mod:OnEnable()
     if self.db.clickAction == "bags" then self.db.clickAction = "chars" end -- the bags joined the characters window
