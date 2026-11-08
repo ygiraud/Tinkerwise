@@ -18,8 +18,7 @@ Copiez le dossier dans `World of Warcraft\_forever_\Interface\AddOns\`. Il doit 
 | `/kb` | Ouvre le mode de raccourcis rapides de Blizzard |
 | `/cc` | Ouvre ou ferme la fenêtre des sorts à la souris |
 | `/tw checkup` | Lance le check-up |
-| `/tw chars` | Affiche Mes personnages |
-| `/tw bags` | Affiche les sacs et banques de vos personnages |
+| `/tw chars` | Affiche Mes personnages : niveau, or, repos, sacs et banques de vos personnages |
 | `/tw groups` | Gère les groupes de Mes personnages |
 
 ## Modules

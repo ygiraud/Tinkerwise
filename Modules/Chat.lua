@@ -645,6 +645,37 @@ local function ApplyBackground()
     ApplyTabBackgrounds()
 end
 
+-- Every window, combat log and whisper tabs included. The game keeps the size of the regular
+-- windows itself; whisper windows only get the font.
+local function SetFontSize(frame, size)
+    if not frame.isTemporary and FCF_SetChatWindowFontSize then
+        FCF_SetChatWindowFontSize(nil, frame, size)
+    else
+        local file, _, flags = frame:GetFont()
+        if file then frame:SetFont(file, size, flags) end
+    end
+end
+
+local function ApplyFontSize()
+    local db = mod.db
+    local on = mod.active
+    ForEachWindow(function(frame, i)
+        local backup = db.fontBackup and db.fontBackup[i]
+        if on then
+            if not backup and not frame.isTemporary then
+                local _, size = GetChatWindowInfo(i)
+                db.fontBackup = db.fontBackup or {}
+                db.fontBackup[i] = size
+            end
+            local _, current = frame:GetFont()
+            if not current or math.floor(current + 0.5) ~= db.fontSize then SetFontSize(frame, db.fontSize) end
+        elseif backup then
+            SetFontSize(frame, backup)
+            db.fontBackup[i] = nil
+        end
+    end)
+end
+
 -- The game reads these values each time it fades the tabs.
 local TAB_ALPHAS = { "CHAT_FRAME_TAB_SELECTED_NOMOUSE_ALPHA", "CHAT_FRAME_TAB_NORMAL_NOMOUSE_ALPHA" }
 local tabAlphaBackup
@@ -671,6 +702,7 @@ end
 local function Apply()
     local on, db = mod.active, mod.db
     ApplyBackground()
+    ApplyFontSize()
     ApplyTabVisibility()
     ForEachChatFrame(function(frame)
         WrapFrame(frame)
@@ -740,9 +772,9 @@ mod = TW:NewModule("Chat", {
     defaults = {
         arrowKeys = true, keepHistory = true, links = true,
         timestamps = true, classColors = true, shortChannels = true, noFade = false,
-        copyButton = true, resizeGrip = true,
-        customBackground = false, bgColor = { r = 0, g = 0, b = 0 }, bgOpacity = 25,
-        whisperTabs = true, whisperClose = true, autoChannel = true, tabGroup = true, tabGuild = true, removeFromGeneral = true, colorTabs = true, alwaysShowTabs = false,
+        copyButton = true, resizeGrip = true, fontSize = 12,
+        customBackground = true, bgColor = { r = 0, g = 0, b = 0 }, bgOpacity = 40,
+        whisperTabs = true, whisperClose = true, autoChannel = true, tabGroup = true, tabGuild = true, removeFromGeneral = true, colorTabs = true, alwaysShowTabs = true,
     },
     options = {
         { type = "header", label = L["Typing"] },
@@ -757,6 +789,7 @@ mod = TW:NewModule("Chat", {
         { type = "header", label = L["Windows"] },
         { type = "toggle", key = "copyButton", label = L["Copy button on chat windows"] },
         { type = "toggle", key = "resizeGrip", label = L["Resize handle on chat windows"] },
+        { type = "slider", key = "fontSize", label = L["Font size"], min = 10, max = 20, step = 1 },
         { type = "header", label = L["Background"] },
         { type = "toggle", key = "customBackground", label = L["Custom background"] },
         { type = "color", key = "bgColor", label = L["Background color"] },

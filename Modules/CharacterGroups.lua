@@ -337,7 +337,7 @@ end
 G.Refresh = RefreshWindow
 
 ---------------------------------------------------------------------------
--- Menu shared by the characters and bags windows
+-- Group menu of the characters window
 ---------------------------------------------------------------------------
 
 function G.CreateViewMenu(parent, name, width)

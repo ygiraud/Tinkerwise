@@ -11,7 +11,7 @@ A toolbox for WoW Forever: independent modules you can turn on or off from a sin
 - **Potion Reminder:** shows the best potion in your bags that isn't on your action bars
 
 **Character**
-- **My Characters:** gold, level, rested XP, bags, bank and mail across your characters, with search. Characters are sorted by game mode (PvE, PvP, Hardcore, RP, RP-PvP, detected automatically) and by groups you create, for instance to keep a guild's characters apart. Can be turned on for each character
+- **My Characters:** gold, level, rested XP, bags, bank and mail across your characters in one window, with search. Characters are sorted by game mode (PvE, PvP, Hardcore, RP, RP-PvP, detected automatically) and by groups you create, for instance to keep a guild's characters apart. Can be turned on for each character
 - **Stat Changes:** gains and losses when your gear, buffs, form or talents change, plus a summary panel on level up
 
 **Items**
@@ -49,6 +49,5 @@ Install **Fishing Buddy** to get the fishing displays of the Immersion Mode.
 | `/kb` | Opens Blizzard's Quick Keybind Mode |
 | `/cc` | Opens or closes the Click Casting window |
 | `/tw checkup` | Runs the check-up |
-| `/tw chars` | Shows My Characters |
-| `/tw bags` | Shows your characters' bags and banks |
+| `/tw chars` | Shows My Characters: level, gold, rest, bags and banks of your characters |
 | `/tw groups` | Manages the groups of My Characters |

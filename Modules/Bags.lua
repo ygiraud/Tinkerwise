@@ -1,5 +1,6 @@
--- Bags: remembers the bags, bank and gold of every character of the account, shows them
--- in a searchable window and adds who owns what to item tooltips.
+-- Bags: remembers the bags, bank and gold of every character of the account, shows them with
+-- each character's level and rest in the "Mes personnages" window (/tw chars) and adds who owns
+-- what to item tooltips.
 
 local _, ns = ...
 local L = ns.L
@@ -12,7 +13,7 @@ local GetCoinTextureString = API.GetCoinTextureString
 local FIRST_BANK_BAG, BACKPACK, BANK_CONTAINER = 5, 0, -1
 local LAST_BAG = 4
 local SCAN_DELAY = 0.5 -- bag events come in bursts
-local LIST_W, ROW_H = 190, 26
+local LIST_W, ROW_H = 230, 26
 local FIRST_EQUIP_SLOT, LAST_EQUIP_SLOT = 1, 19 -- 0 (ammo) only mirrors the bags; 20 and up are the bags themselves
 local HEARTHSTONE = 6948
 
@@ -144,6 +145,16 @@ local function SortedKeys(isShown)
     return keys
 end
 
+-- Highest level first, then by name; characters never seen with a level come last.
+local function ByLevel(keys)
+    table.sort(keys, function(a, b)
+        local la, lb = db.chars[a].level or 0, db.chars[b].level or 0
+        if la ~= lb then return la > lb end
+        return a < b
+    end)
+    return keys
+end
+
 local function ClassColored(c)
     local color = RAID_CLASS_COLORS[c.class]
     return color and format("|c%s%s|r", color.colorStr, c.name) or c.name
@@ -161,12 +172,32 @@ local function CharButton(i)
     b.mark:SetColorTexture(1, 0.82, 0, 0.25)
     b.name = b:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
     b.name:SetPoint("TOPLEFT", 6, -3)
+    b.level = b:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    b.level:SetPoint("TOPRIGHT", -6, -4)
     b.money = b:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
     b.money:SetPoint("BOTTOMLEFT", 6, 3)
+    b.rested = b:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+    b.rested:SetPoint("BOTTOMRIGHT", -6, 4)
     b:SetScript("OnClick", function(self)
         selectedKey = self.key
         Refresh()
     end)
+    b:SetScript("OnEnter", function(self)
+        local c = self.key and db.chars[self.key]
+        if not c then return end
+        local list = ns.CharacterList
+        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        GameTooltip:AddLine(ClassColored(c))
+        if c.level then GameTooltip:AddDoubleLine(L["Level"], c.level, 1, 0.82, 0, 1, 1, 1) end
+        GameTooltip:AddDoubleLine(L["Gold"], GetCoinTextureString(c.money or 0), 1, 0.82, 0, 1, 1, 1)
+        local rested = list.Rested(c)
+        if rested then GameTooltip:AddDoubleLine(L["Rested (≈)"], rested, 1, 0.82, 0, 1, 1, 1) end
+        if c.time then GameTooltip:AddDoubleLine(L["Last login"], list.Ago(time() - c.time), 1, 0.82, 0, 1, 1, 1) end
+        GameTooltip:AddDoubleLine(L["Bank"], c.bankTime and date(L["%m/%d/%Y"], c.bankTime) or L["never opened"],
+            1, 0.82, 0, 1, 1, 1)
+        GameTooltip:Show()
+    end)
+    b:SetScript("OnLeave", GameTooltip_Hide)
     charButtons[i] = b
     return b
 end
@@ -199,7 +230,7 @@ end
 
 local function Build()
     win = CreateFrame("Frame", "TinkerwiseBagsFrame", UIParent, "BackdropTemplate")
-    win:SetSize(640, 572)
+    win:SetSize(680, 572)
     win:SetPoint("CENTER")
     win:SetFrameStrata("DIALOG")
     win:SetMovable(true)
@@ -209,7 +240,7 @@ local function Build()
     win:SetScript("OnDragStart", win.StartMoving)
     win:SetScript("OnDragStop", win.StopMovingOrSizing)
     win:Hide()
-    TW:SkinDialog(win, L["Bags"])
+    TW:SkinDialog(win, L["My Characters"])
     tinsert(UISpecialFrames, "TinkerwiseBagsFrame")
 
     search = CreateFrame("EditBox", nil, win, "InputBoxTemplate")
@@ -298,10 +329,12 @@ function Refresh()
     if not chosen or not groups.IsViewed(selectedKey, chosen) then selectedKey = nil end
 
     local gold = 0
-    local keys = SortedKeys(groups.IsViewed)
+    local keys = ByLevel(SortedKeys(groups.IsViewed))
     local allButton = CharButton(1)
     allButton.key = nil
     allButton.name:SetText(L["All characters"])
+    allButton.level:SetText("")
+    allButton.rested:SetText("")
     allButton.mark:SetShown(selectedKey == nil)
     allButton:Show()
     for i, key in ipairs(keys) do
@@ -310,6 +343,9 @@ function Refresh()
         local b = CharButton(i + 1)
         b.key = key
         b.name:SetText(ClassColored(c))
+        b.level:SetText(c.level and (L["Lvl"] .. " " .. c.level) or "")
+        local rested = ns.CharacterList.Rested(c)
+        b.rested:SetText(rested and rested ~= "----" and (L["Rested"] .. " " .. rested) or "")
         b.money:SetText(GetCoinTextureString(c.money or 0))
         b.mark:SetShown(selectedKey == key)
         b:Show()
@@ -364,6 +400,7 @@ local function Toggle()
     if not win then Build() end
     if win:IsShown() then return win:Hide() end
     ns.CharacterGroups.ResetView()
+    ns.CharacterList.Save()
     Scan()
     win:Show()
     Refresh()
@@ -371,14 +408,12 @@ end
 
 function ns.RefreshCharacterViews()
     Refresh()
-    ns.CharacterList.Update()
 end
 
 function ns.ForgetCharacter(key)
     db.chars[key] = nil
     if selectedKey == key then selectedKey = nil end
     Scan() -- the current character may be the one just forgotten
-    ns.CharacterList.Update()
     ns.CharacterGroups.Refresh()
 end
 
@@ -542,13 +577,12 @@ local mod = TW:NewModule("Bags", {
     section = L["Character"],
     accountWide = true,
     perCharacterToggle = true,
-    desc = L["Summarizes your characters' gold, level, rested XP and last login (/tw chars), and remembers their bags, keyring, gear, bank and mail (/tw bags), with search and tooltips showing who owns what. A character appears after their first login. Bags and gear update when they play, bank and mail when they open them; only rested XP is estimated, from elapsed time."]
+    desc = L["Shows in one window (/tw chars) your characters' level, gold and rested XP, and what they keep in their bags, keyring, gear, bank and mail, with search and tooltips showing who owns what. Hover over a character for their last login. A character appears after their first login. Bags and gear update when they play, bank and mail when they open them; only rested XP is estimated, from elapsed time."]
         .. "\n\n" .. L["Characters are sorted by game mode (detected) and by the groups you create (/tw groups). The switch only applies to the current character, which stops recording its data when it is off."],
     defaults = { tooltip = true, showBags = true, showBank = true, showMail = false, showWorn = false },
     options = {
         { type = "toggle", key = "tooltip", label = L["Show owners in tooltips"] },
-        { type = "execute", label = L["Show characters"], func = function() ns.CharacterList.Toggle() end },
-        { type = "execute", label = L["Show bags"], func = Toggle },
+        { type = "execute", label = L["Show characters"], func = Toggle },
         { type = "execute", label = L["Manage groups"], func = function() ns.CharacterGroups.Toggle() end },
     },
 })
@@ -578,6 +612,6 @@ function mod:OnDisable()
     if win then win:Hide() end
 end
 
-TW.commands.bags = function()
-    if mod.active then Toggle() else TW:Print(L["the Bags module is disabled (/tw)."]) end
+TW.commands.chars = function()
+    if mod.active then Toggle() else TW:Print(L["the My Characters module is disabled (/tw)."]) end
 end

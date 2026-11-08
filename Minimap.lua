@@ -31,7 +31,6 @@ button:SetScript("OnDragStop", function(self) self:SetScript("OnUpdate", nil) en
 -- What right click and Ctrl + click can do. Each one needs its module to be active.
 local ACTIONS = {
     checkup = { label = L["check-up"], module = "Checkup", run = function() TW.modules.Checkup:Open() end },
-    bags = { label = L["bags"], module = "Bags", run = function() TW.commands.bags() end },
     chars = { label = L["my characters"], module = "Bags", run = function() TW.commands.chars() end },
 }
 
@@ -76,13 +75,13 @@ mod = TW:NewModule("MinimapButton", {
     options = {
         { type = "select", key = "clickAction", label = L["Right-click and Ctrl + click"], values = {
             { "checkup", "Check-up" },
-            { "bags", L["Bags"] },
             { "chars", L["My Characters"] },
         } },
     },
 })
 
 function mod:OnEnable()
+    if self.db.clickAction == "bags" then self.db.clickAction = "chars" end -- the bags joined the characters window
     Place()
     button:Show()
 end

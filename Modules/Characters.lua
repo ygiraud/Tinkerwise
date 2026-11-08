@@ -1,11 +1,9 @@
--- Characters: gold, level, rested XP and last login of every character of the account.
+-- Characters: level, rested XP and last login of every character of the account, shown in the
+-- "Mes personnages" window (see Bags.lua), whose saved table it shares.
 -- A character's data is saved while it is played; rested XP is then estimated from the elapsed time.
--- Part of the "Mes personnages" module (see Bags.lua), whose saved table it shares.
 
 local _, ns = ...
 local L = ns.L
-local TW = ns.TW
-local GetCoinTextureString = ns.API.GetCoinTextureString
 
 local HOURS_PER_REST_STEP = 8
 local REST_STEP = 0.05        -- 5 % of a level per 8 hours in an inn
@@ -24,11 +22,14 @@ local function Save()
     c.time = time()
 end
 
-local function RestedPercent(c)
-    if c.xpMax <= 0 then return 0 end
+-- "12 %", or "----" at the maximum level. Nil for a character not seen since this was recorded.
+local function Rested(c)
+    if not c.level or not c.xpMax then return nil end
+    if c.level >= GetMaxPlayerLevel() then return "----" end
+    if c.xpMax <= 0 then return "0 %" end
     local steps = (time() - c.time) / 3600 / HOURS_PER_REST_STEP
     local gain = steps * REST_STEP * c.xpMax * (c.resting and 1 or OUTSIDE_FACTOR)
-    return math.min(c.rested + gain, c.xpMax * REST_CAP) / c.xpMax * 100
+    return format("%d %%", math.min(c.rested + gain, c.xpMax * REST_CAP) / c.xpMax * 100)
 end
 
 local function Ago(seconds)
@@ -37,104 +38,10 @@ local function Ago(seconds)
     return format(L["%d d ago"], seconds / 86400)
 end
 
----------------------------------------------------------------------------
--- Window
----------------------------------------------------------------------------
-
-local ROW_H, COLUMNS = 22, { 24, 170, 220, 370, 460 }
-local win, total
-local rows = {}
-
-local function Cell(row, i, font)
-    local fs = row:CreateFontString(nil, "OVERLAY", font or "GameFontHighlight")
-    fs:SetPoint("LEFT", COLUMNS[i] - 24, 0)
-    return fs
-end
-
-local function Row(i)
-    if rows[i] then return rows[i] end
-    local row = CreateFrame("Frame", nil, win)
-    row:SetSize(560, ROW_H)
-    row:SetPoint("TOPLEFT", 24, -104 - (i - 1) * ROW_H)
-    row.cells = { Cell(row, 1), Cell(row, 2), Cell(row, 3), Cell(row, 4), Cell(row, 5) }
-    rows[i] = row
-    return row
-end
-
-local function Build()
-    win = CreateFrame("Frame", "TinkerwiseCharactersFrame", UIParent, "BackdropTemplate")
-    win:SetSize(620, 200)
-    win:SetPoint("CENTER")
-    win:SetFrameStrata("DIALOG")
-    win:SetMovable(true)
-    win:SetClampedToScreen(true)
-    win:EnableMouse(true)
-    win:RegisterForDrag("LeftButton")
-    win:SetScript("OnDragStart", win.StartMoving)
-    win:SetScript("OnDragStop", win.StopMovingOrSizing)
-    win:Hide()
-    TW:SkinDialog(win, L["My Characters"])
-    tinsert(UISpecialFrames, "TinkerwiseCharactersFrame")
-
-    local head = CreateFrame("Frame", nil, win)
-    head:SetSize(560, ROW_H)
-    head:SetPoint("TOPLEFT", 24, -78)
-    for i, text in ipairs({ L["Character"], L["Lvl"], L["Gold"], L["Rested (≈)"], L["Seen"] }) do
-        Cell(head, i, "GameFontNormal"):SetText(text)
-    end
-    total = win:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    total:SetPoint("BOTTOMRIGHT", -26, 20)
-
-    win.viewMenu = ns.CharacterGroups.CreateViewMenu(win, "TinkerwiseCharactersGroupDropDown", 220)
-    win.viewMenu:SetPoint("TOPLEFT", 8, -42)
-end
-
-local function Refresh()
-    Save()
-    if not win then Build() end
-    UIDropDownMenu_SetText(win.viewMenu, ns.CharacterGroups.ViewedLabel())
-    local list = {}
-    local gold = 0
-    for key, c in pairs(db.chars) do
-        -- Without a level, not seen since this list exists: only its bags are known.
-        if c.level and ns.CharacterGroups.IsViewed(key, c) then
-            list[#list + 1] = c
-            gold = gold + c.money
-        end
-    end
-    table.sort(list, function(a, b)
-        if a.level ~= b.level then return a.level > b.level end
-        return a.name < b.name
-    end)
-    for i, c in ipairs(list) do
-        local row = Row(i)
-        row.cells[1]:SetText(ns.ClassColored(c))
-        row.cells[2]:SetText(c.level)
-        row.cells[3]:SetText(GetCoinTextureString(c.money))
-        row.cells[4]:SetText(c.level >= GetMaxPlayerLevel() and "----" or format("%d %%", RestedPercent(c)))
-        row.cells[5]:SetText(Ago(time() - c.time))
-        row:Show()
-    end
-    for i = #list + 1, #rows do rows[i]:Hide() end
-    total:SetText(L["Total: "] .. GetCoinTextureString(gold))
-    win:SetHeight(150 + #list * ROW_H)
-end
-
-local function Toggle()
-    if win and win:IsShown() then return win:Hide() end
-    ns.CharacterGroups.ResetView()
-    Refresh()
-    win:Show()
-end
-
 local events = CreateFrame("Frame")
 events:SetScript("OnEvent", Save)
 
-ns.CharacterList = { Toggle = Toggle, Ago = Ago }
-
-function ns.CharacterList.Update()
-    if win and win:IsShown() then Refresh() end
-end
+ns.CharacterList = { Save = Save, Rested = Rested, Ago = Ago }
 
 function ns.CharacterList.Enable(moduleDB)
     db = moduleDB
@@ -147,9 +54,4 @@ end
 
 function ns.CharacterList.Disable()
     events:UnregisterAllEvents()
-    if win then win:Hide() end
-end
-
-TW.commands.chars = function()
-    if TW.modules.Bags.active then Toggle() else TW:Print(L["the My Characters module is disabled (/tw)."]) end
 end
