@@ -13,8 +13,14 @@ local mod
 local function Place()
     local angle = math.rad(mod.db.angle)
     local radius = Minimap:GetWidth() / 2 + 5
+    local x, y = math.cos(angle) * radius, math.sin(angle) * radius
+    if GetMinimapShape and GetMinimapShape() == "SQUARE" then -- follow the edges, corners included
+        local d = radius * math.sqrt(2)
+        x = math.max(-radius, math.min(math.cos(angle) * d, radius))
+        y = math.max(-radius, math.min(math.sin(angle) * d, radius))
+    end
     button:ClearAllPoints()
-    button:SetPoint("CENTER", Minimap, "CENTER", math.cos(angle) * radius, math.sin(angle) * radius)
+    button:SetPoint("CENTER", Minimap, "CENTER", x, y)
 end
 
 local function FollowCursor()
@@ -79,6 +85,8 @@ mod = TW:NewModule("MinimapButton", {
         } },
     },
 })
+
+function mod:Place() Place() end -- called by Square Minimap when the shape changes
 
 function mod:OnEnable()
     if self.db.clickAction == "bags" then self.db.clickAction = "chars" end -- the bags joined the characters window

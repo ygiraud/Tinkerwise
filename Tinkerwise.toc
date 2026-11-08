@@ -23,6 +23,7 @@ Modules\ItemCompare.lua
 Modules\AutoVendor.lua
 Modules\GroupComfort.lua
 Modules\Chat.lua
+Modules\SquareMinimap.lua
 Modules\ImmersionScene.lua
 Modules\Immersion.lua
 Modules\QuestScene.lua

@@ -28,6 +28,7 @@ Copiez le dossier dans `World of Warcraft\_forever_\Interface\AddOns\`. Il doit 
 - **Objets :** Comparateur d'objets, Vendeur automatique
 - **Groupe :** Confort de groupe
 - **Tchat :** Tchat
+- **Interface :** Minicarte carrée
 - **Immersion :** Mode immersion (avec la scène de quête et, avec Fishing Buddy, les infos de pêche quand une canne est équipée), Modes AFK et vol
 - **Configuration :** Réglages par défaut, Bouton de la minicarte
 
