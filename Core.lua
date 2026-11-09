@@ -390,6 +390,30 @@ SlashCmdList.TINKERWISEKEYBIND = function()
     end
 end
 
+-- On Forever, the Click Casting window opens the spells frame next to it on its default tab,
+-- Talents, instead of the spellbook you drag spells from. Switch it to the spellbook,
+-- whichever way the window was opened (/cc or Blizzard's own button).
+local clickBindingHooked
+local function HookClickBinding()
+    if clickBindingHooked or not ClickBindingFrame then return end
+    clickBindingHooked = true
+    ClickBindingFrame:HookScript("OnShow", function()
+        local frame, util = PlayerSpellsFrame, PlayerSpellsUtil
+        if frame and frame:IsShown() and frame.TrySetTab and util and util.FrameTabs then
+            frame:TrySetTab(util.FrameTabs.SpellBook)
+        end
+    end)
+end
+
+local clickBindingWatcher = CreateFrame("Frame")
+clickBindingWatcher:RegisterEvent("ADDON_LOADED")
+clickBindingWatcher:SetScript("OnEvent", function(self, _, name)
+    if name == "Blizzard_ClickBindingUI" or ClickBindingFrame then
+        HookClickBinding()
+        self:UnregisterEvent("ADDON_LOADED")
+    end
+end)
+
 -- Opens or closes Blizzard's Click Casting window, which is loaded on demand.
 SLASH_TINKERWISECLICKCAST1 = "/cc"
 SlashCmdList.TINKERWISECLICKCAST = function()
@@ -401,6 +425,7 @@ SlashCmdList.TINKERWISECLICKCAST = function()
         local loadAddOn = C_AddOns and C_AddOns.LoadAddOn or LoadAddOn
         loadAddOn("Blizzard_ClickBindingUI")
     end
+    HookClickBinding()
     if not ClickBindingFrame then
         TW:Print(L["Click Casting is not available."])
     elseif ClickBindingFrame:IsShown() then
