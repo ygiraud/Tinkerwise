@@ -390,6 +390,19 @@ SlashCmdList.TINKERWISEKEYBIND = function()
     end
 end
 
+-- Blizzard bug: a help tip closed while the interface is hidden (Immersion, AFK and flight modes,
+-- Alt + Z) keeps its OnUpdate without its info, and errors in HelpTip.lua once the interface is back.
+-- Release those orphans as soon as the interface shows again.
+UIParent:HookScript("OnShow", function()
+    local pool = HelpTip and HelpTip.framePool
+    if not pool then return end
+    local orphans = {}
+    for frame in pool:EnumerateActive() do
+        if not frame.info then orphans[#orphans + 1] = frame end
+    end
+    for _, frame in ipairs(orphans) do HelpTip:Release(frame) end
+end)
+
 -- On Forever, the Click Casting window opens the spells frame next to it on its default tab,
 -- Talents, instead of the spellbook you drag spells from. Switch it to the spellbook,
 -- whichever way the window was opened (/cc or Blizzard's own button).
