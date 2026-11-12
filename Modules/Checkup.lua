@@ -525,8 +525,7 @@ win:SetBackdrop({
     tile = true, tileSize = 32, edgeSize = 32,
     insets = { left = 11, right = 12, top = 12, bottom = 11 },
 })
-win:SetBackdropColor(0.45, 0.32, 0.2, 1) -- warm brown tint
-TW:AddSolidBackground(win, 0.14, 0.1, 0.06)
+local winSolid = TW:AddSolidBackground(win, 0.14, 0.1, 0.06) -- colors: see TW:OnTheme below
 win:SetToplevel(true) -- comes in front as a whole when shown or clicked
 CreateFrame("Button", nil, win, "UIPanelCloseButton"):SetPoint("TOPRIGHT", -6, -6)
 
@@ -550,9 +549,9 @@ local function Disk(size, r, g, b, a, sub)
     t:SetVertexColor(r, g, b, a)
     return t
 end
-Disk(140, GOLD[1], GOLD[2], GOLD[3], 0.55, 1)  -- outer gold line
+local outerLine = Disk(140, GOLD[1], GOLD[2], GOLD[3], 0.55, 1)
 Disk(136, 0.07, 0.04, 0.02, 0.95, 2)           -- dark disk
-Disk(98, GOLD[1], GOLD[2], GOLD[3], 0.35, 3)   -- inner gold line
+local innerLine = Disk(98, GOLD[1], GOLD[2], GOLD[3], 0.35, 3)
 Disk(95, 0.1, 0.06, 0.03, 1, 4)
 
 local ticks = {}
@@ -725,7 +724,7 @@ talentNote:SetScript("OnMouseUp", function(_, mouse)
     if mouse == "LeftButton" then OpenTalents() end
 end)
 talentNote:SetScript("OnEnter", function(self)
-    self:SetBackdropBorderColor(1, 0.82, 0.3, 1)
+    self:SetBackdropBorderColor(GOLD[1], GOLD[2], GOLD[3], 1)
     GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
     GameTooltip:SetText(L["Click to open your talents"])
     GameTooltip:Show()
@@ -738,6 +737,26 @@ end)
 local tipsTitle = win:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
 tipsTitle:SetText(Spaced("CONSEILS"))
 tipsTitle:SetTextColor(GOLD[1], GOLD[2], GOLD[3])
+
+-- Gold or class colors (Core.lua, TW:OnTheme).
+TW:OnTheme(function(theme)
+    GOLD = theme.accent
+    local a, t, m = theme.accent, theme.title, theme.muted
+    win:SetBackdropColor(theme.backdrop[1], theme.backdrop[2], theme.backdrop[3], 1)
+    winSolid:SetColorTexture(theme.solid[1], theme.solid[2], theme.solid[3], 0.96)
+    sep:SetColorTexture(a[1], a[2], a[3], 0.3)
+    outerLine:SetVertexColor(a[1], a[2], a[3], 0.55)
+    innerLine:SetVertexColor(a[1], a[2], a[3], 0.35)
+    badgeRim:SetVertexColor(a[1], a[2], a[3], 1)
+    scoreLabel:SetTextColor(m[1], m[2], m[3])
+    subtitle:SetTextColor(m[1], m[2], m[3])
+    title:SetTextColor(t[1], t[2], t[3])
+    banner:SetBackdropColor(theme.banner[1], theme.banner[2], theme.banner[3], 0.95)
+    banner:SetBackdropBorderColor(a[1], a[2], a[3], 1)
+    scanning:SetTextColor(a[1], a[2], a[3])
+    talentNote:SetBackdropColor(theme.banner[1], theme.banner[2], theme.banner[3], 0.6)
+    tipsTitle:SetTextColor(a[1], a[2], a[3])
+end)
 local tipLines = {}
 local function TipLine(i)
     if tipLines[i] then return tipLines[i] end

@@ -123,6 +123,61 @@ function TW:AddSolidBackground(frame, r, g, b)
     solid:SetColorTexture(r, g, b, 0.96)
     solid:SetPoint("TOPLEFT", 11, -12)
     solid:SetPoint("BOTTOMRIGHT", -12, 11)
+    return solid
+end
+
+---------------------------------------------------------------------------
+-- Colors of the brown "grimoire" windows (configuration, check-up): gold, or the player's class
+-- color. TW:OnTheme(fn) calls fn(theme) now and again each time the colors change.
+---------------------------------------------------------------------------
+
+local GOLD_THEME = {
+    accent = { 1, 0.82, 0 },        -- lines, rims, module names, headings
+    title = { 1, 0.9, 0.7 },        -- big titles
+    muted = { 0.8, 0.7, 0.5 },      -- small captions
+    backdrop = { 0.45, 0.32, 0.2 }, -- tint of the dialog texture
+    solid = { 0.14, 0.1, 0.06 },    -- solid layer under it
+    border = { 0.6, 0.5, 0.35 },    -- card borders
+    banner = { 0.3, 0.15, 0.05 },   -- check-up banner and notes
+}
+
+local function Mix(c, t, base)
+    return { base[1] + (c[1] - base[1]) * t, base[2] + (c[2] - base[2]) * t, base[3] + (c[3] - base[3]) * t }
+end
+
+local function ClassTheme()
+    local _, class = UnitClass("player")
+    local colors = CUSTOM_CLASS_COLORS or RAID_CLASS_COLORS
+    local c = class and colors and colors[class]
+    if not c then return GOLD_THEME end
+    local accent = { c.r, c.g, c.b }
+    -- Dark class colors (shaman blue) are lightened so names stay readable on the brown.
+    local light = 0.299 * c.r + 0.587 * c.g + 0.114 * c.b
+    if light < 0.5 then accent = Mix({ 1, 1, 1 }, 0.4, accent) end
+    return {
+        accent = accent,
+        title = Mix(accent, 0.25, { 1, 0.95, 0.85 }),
+        muted = Mix(accent, 0.45, GOLD_THEME.muted),
+        backdrop = Mix(accent, 0.35, GOLD_THEME.backdrop),
+        solid = Mix(accent, 0.12, GOLD_THEME.solid),
+        border = Mix(accent, 0.5, GOLD_THEME.border),
+        banner = Mix(accent, 0.3, GOLD_THEME.banner),
+    }
+end
+
+TW.theme = GOLD_THEME
+local themeListeners = {}
+
+function TW:OnTheme(fn)
+    themeListeners[#themeListeners + 1] = fn
+    fn(self.theme)
+end
+
+function TW:SetClassTheme(on)
+    local theme = on and ClassTheme() or GOLD_THEME
+    if theme == self.theme then return end
+    self.theme = theme
+    for _, fn in ipairs(themeListeners) do fn(theme) end
 end
 
 -- Classic dialog look: stone background, gold border, title on a header banner and a close button.

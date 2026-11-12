@@ -32,5 +32,6 @@ Modules\FlightMode.lua
 Modules\AwayModes.lua
 Modules\FishingDisplay.lua
 Modules\CharDefaults.lua
+Modules\Appearance.lua
 Config.lua
 Minimap.lua

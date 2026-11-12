@@ -33,6 +33,7 @@ A toolbox for WoW Forever: independent modules you can turn on or off from a sin
 
 **Configuration**
 - **Default Settings:** sets up new characters
+- **Appearance:** the configuration and check-up windows in gold or in your class color
 - **Minimap Button:** quick access and customizable clicks
 
 ## Optional addons

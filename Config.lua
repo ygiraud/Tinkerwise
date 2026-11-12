@@ -21,7 +21,7 @@ local MIN_WIDTH, MIN_HEIGHT = 760, 480
 local LIST_W = 250
 local PANEL_MARGINS = LIST_W + 34 + 22 + 30 -- window width minus the width of the option cards
 local TITLE_FONT = "Fonts\\MORPHEUS.TTF"
-local GOLD = { 1, 0.82, 0 }
+local GOLD, TITLE, MUTED, BORDER -- set from TW.theme, see TW:OnTheme at the end
 local PARCHMENT = { 0.9, 0.84, 0.72 }
 local DEFAULT_ICON = "Interface\\Icons\\INV_Misc_QuestionMark"
 
@@ -47,7 +47,7 @@ local function GoldRule(parent, layer)
     t:SetHeight(1)
     t:SetColorTexture(GOLD[1], GOLD[2], GOLD[3], 0.6)
     if CreateColor then
-        pcall(t.SetGradient, t, "HORIZONTAL", CreateColor(1, 0.82, 0, 0.7), CreateColor(1, 0.82, 0, 0))
+        pcall(t.SetGradient, t, "HORIZONTAL", CreateColor(GOLD[1], GOLD[2], GOLD[3], 0.7), CreateColor(GOLD[1], GOLD[2], GOLD[3], 0))
     end
     return t
 end
@@ -79,6 +79,7 @@ local function CreateSlider(parent, opt)
     holder:SetSize(380, 40)
 
     local label = holder:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    label:SetTextColor(GOLD[1], GOLD[2], GOLD[3])
     label:SetPoint("TOPLEFT", 0, 0)
     label:SetText(opt.label)
 
@@ -185,6 +186,7 @@ local function CreateInput(parent, opt, mod)
     local w = CreateFrame("Frame", nil, parent)
     w:SetSize(380, 44)
     local label = w:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    label:SetTextColor(GOLD[1], GOLD[2], GOLD[3])
     label:SetPoint("TOPLEFT", 0, 0)
     label:SetText(opt.label)
     local box = CreateFrame("EditBox", nil, w, "InputBoxTemplate")
@@ -212,6 +214,7 @@ local function CreateSelect(parent, opt, mod)
     local w = CreateFrame("Frame", nil, parent)
     w:SetSize(380, 50)
     local label = w:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    label:SetTextColor(GOLD[1], GOLD[2], GOLD[3])
     label:SetPoint("TOPLEFT", 0, 0)
     label:SetText(opt.label)
 
@@ -352,11 +355,11 @@ local function BuildPanel(mod)
     local section = outer:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
     section:SetPoint("TOPLEFT", iconHolder, "TOPRIGHT", 14, 0)
     section:SetText(Spaced((mod.section or L["Misc"]):upper()))
-    section:SetTextColor(0.8, 0.7, 0.5)
+    section:SetTextColor(MUTED[1], MUTED[2], MUTED[3])
 
     local title = outer:CreateFontString(nil, "OVERLAY")
     title:SetFont(TITLE_FONT, 24, "")
-    title:SetTextColor(1, 0.9, 0.7)
+    title:SetTextColor(TITLE[1], TITLE[2], TITLE[3])
     title:SetPoint("TOPLEFT", section, "BOTTOMLEFT", 0, -2)
     title:SetText(mod.title or mod.key)
 
@@ -415,9 +418,10 @@ local function BuildPanel(mod)
         cards[#cards + 1] = card
         card:SetBackdrop(CARD_BACKDROP)
         card:SetBackdropColor(0.06, 0.04, 0.02, 0.75)
-        card:SetBackdropBorderColor(0.6, 0.5, 0.35, 0.9)
+        card:SetBackdropBorderColor(BORDER[1], BORDER[2], BORDER[3], 0.9)
         local head = card:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
         head:SetPoint("TOPLEFT", 14, -10)
+        head:SetTextColor(GOLD[1], GOLD[2], GOLD[3])
         head:SetText(Spaced(label:upper()))
         local line = GoldRule(card)
         line:SetPoint("LEFT", head, "RIGHT", 8, 0)
@@ -588,8 +592,9 @@ local function BuildWindow()
         tile = true, tileSize = 32, edgeSize = 32,
         insets = { left = 11, right = 12, top = 12, bottom = 11 },
     })
-    window:SetBackdropColor(0.45, 0.32, 0.2, 1)
-    TW:AddSolidBackground(window, 0.14, 0.1, 0.06)
+    local theme = TW.theme
+    window:SetBackdropColor(theme.backdrop[1], theme.backdrop[2], theme.backdrop[3], 1)
+    TW:AddSolidBackground(window, theme.solid[1], theme.solid[2], theme.solid[3])
     window:SetToplevel(true) -- comes in front as a whole when shown or clicked
     CreateFrame("Button", nil, window, "UIPanelCloseButton"):SetPoint("TOPRIGHT", -6, -6)
     window:SetScript("OnShow", function() PlaySound(SOUNDKIT.IG_CHARACTER_INFO_OPEN) end)
@@ -611,12 +616,12 @@ local function BuildWindow()
 
     local title = window:CreateFontString(nil, "OVERLAY")
     title:SetFont(TITLE_FONT, 32, "")
-    title:SetTextColor(1, 0.9, 0.7)
+    title:SetTextColor(TITLE[1], TITLE[2], TITLE[3])
     title:SetPoint("TOPLEFT", emblem, "TOPRIGHT", 16, 4)
     title:SetText("Tinkerwise")
     local tagline = window:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
     tagline:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 2, -2)
-    tagline:SetTextColor(0.8, 0.7, 0.5)
+    tagline:SetTextColor(MUTED[1], MUTED[2], MUTED[3])
     local version = (C_AddOns and C_AddOns.GetAddOnMetadata or GetAddOnMetadata)("Tinkerwise", "Version") or ""
     tagline:SetText(Spaced(L["PERSONAL TOOLBOX"]) .. "   |cff998866v" .. version .. "|r")
 
@@ -631,7 +636,7 @@ local function BuildWindow()
     inset:SetWidth(LIST_W + 6)
     inset:SetBackdrop(CARD_BACKDROP)
     inset:SetBackdropColor(0.04, 0.03, 0.02, 0.8)
-    inset:SetBackdropBorderColor(0.6, 0.5, 0.35, 0.9)
+    inset:SetBackdropBorderColor(BORDER[1], BORDER[2], BORDER[3], 0.9)
 
     local sections, bySection = {}, {}
     for _, mod in ipairs(TW.order) do
@@ -655,6 +660,7 @@ local function BuildWindow()
     for _, section in ipairs(sections) do
         local head = list:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
         head:SetPoint("TOPLEFT", list, "TOPLEFT", 6, y - 4)
+        head:SetTextColor(GOLD[1], GOLD[2], GOLD[3])
         head:SetText(Spaced(section:upper()))
         local line = GoldRule(list, "OVERLAY")
         line:SetPoint("LEFT", head, "RIGHT", 6, 0)
@@ -671,7 +677,7 @@ local function BuildWindow()
     -- Footer: active modules count and close button
     footer = window:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
     footer:SetPoint("BOTTOMLEFT", 26, 22)
-    footer:SetTextColor(0.8, 0.7, 0.5)
+    footer:SetTextColor(MUTED[1], MUTED[2], MUTED[3])
     local close = CreateFrame("Button", nil, window, "UIPanelButtonTemplate")
     close:SetSize(100, 22)
     close:SetPoint("BOTTOMRIGHT", -22, 16)
@@ -769,3 +775,25 @@ function TW:ToggleConfig()
         self:RefreshConfig()
     end
 end
+
+-- Colors follow the theme (gold or class color). The window is built with them, so a change
+-- rebuilds it, on the same module and at the same place.
+TW:OnTheme(function(theme)
+    GOLD, TITLE, MUTED, BORDER = theme.accent, theme.title, theme.muted, theme.border
+    if not window then return end
+    local old, wasShown, current = window, window:IsShown(), selected
+    local point = { old:GetPoint() }
+    old.ready = false -- no closing sound
+    old:Hide()
+    rows, panels, selected = {}, {}, nil
+    BuildWindow()
+    if point[1] then
+        window:ClearAllPoints()
+        window:SetPoint(point[1], UIParent, point[3], point[4], point[5])
+    end
+    if current then Select(current) end
+    if wasShown then
+        window:Show()
+        TW:RefreshConfig()
+    end
+end)
