@@ -6,7 +6,7 @@
 ## Version: 1.5.0
 ## IconTexture: Interface\Icons\INV_Misc_Wrench_01
 ## X-Curse-Project-ID: 1783286
-## OptionalDeps: WhatsTraining, FishingBuddy
+## OptionalDeps: WhatsTraining
 ## SavedVariables: TinkerwiseDB
 ## SavedVariablesPerCharacter: TinkerwiseCharDB
 
@@ -30,7 +30,6 @@ Modules\QuestScene.lua
 Modules\AfkMode.lua
 Modules\FlightMode.lua
 Modules\AwayModes.lua
-Modules\FishingDisplay.lua
 Modules\CharDefaults.lua
 Modules\Appearance.lua
 Config.lua

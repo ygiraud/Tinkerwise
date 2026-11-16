@@ -1,9 +1,7 @@
--- Immersion: the "hide interface" key (Alt+Z) fades the interface in and out, can keep a few
--- chosen elements on screen and lists recent loot for a few seconds. With a fishing pole equipped,
--- FishingDisplay adds its statistics (and can start the mode by itself).
--- Kept elements are detached from the interface while it is hidden. Action bars are deliberately
--- not offered. Combat brings the interface back and the mode starts again when it ends. During combat
--- the normal key behavior stays, as protected frames cannot be detached.
+-- Immersion: follows the game's "hide interface" key (Alt+Z). While the interface is hidden, black bars,
+-- a few chosen elements kept on screen and the recent loot for a few seconds; it comes back with a fade.
+-- The addon never hides or shows the interface itself: see "Following the game's key". Kept elements are
+-- detached from the interface while it is hidden, out of combat only. Action bars are deliberately not offered.
 
 local _, ns = ...
 local L = ns.L
@@ -22,8 +20,6 @@ local DEFAULTS = {
     zoom = 8,
     lootLog = true,
     lootHold = 6,
-    fishingDisplay = true,
-    fishingAuto = true,
     point = "BOTTOM", x = 0, y = 180,
 }
 
@@ -33,8 +29,8 @@ local KEPT_FRAMES = {
     -- Not an option: always kept. The tooltip is there for the quest rewards.
     -- The game places these itself each time they are shown, so they are not pinned.
     always = { "QuestFrame", "GossipFrame", "GameTooltip" },
-    -- Not an option either: the bags key keeps working, and loot can be picked up. See bagHolder.
-    bags = { "ContainerFrameCombinedBags", "LootFrame" },
+    -- Not an option either: loot can be picked up. See lootHolder.
+    loot = { "LootFrame" },
     keepTinkerwise = {
         "TinkerwiseStatDeltaFrame",
         "TinkerwisePotionFrame",
@@ -50,23 +46,16 @@ for i = 1, NUM_CHAT_WINDOWS do
     CHAT_TABS["ChatFrame" .. i .. "Tab"] = "ChatFrame" .. i
 end
 
-for i = 1, NUM_CONTAINER_FRAMES or 13 do
-    tinsert(KEPT_FRAMES.bags, "ContainerFrame" .. i)
-end
-
--- The game sets the scale of the bags each time they open, expecting the interface's scale above it:
--- this parent stands in for the interface, so they keep their usual size and place. It needs the
--- interface's rectangle too, as the first bag is anchored to its parent's corner. The loot window
--- uses it as well.
-local bagHolder = CreateFrame("Frame")
-bagHolder:SetAllPoints(UIParent)
+-- The game sets the loot window's scale and place expecting the interface above it: this parent stands
+-- in for the interface, with its rectangle and scale.
+local lootHolder = CreateFrame("Frame")
+lootHolder:SetAllPoints(UIParent)
 
 local FADE_OUT_TIME = 1 -- seconds a loot line takes to disappear
 local MAX_LOOT = 6
 local ROW_H = 28
 
 local db
-local fading, from, to, elapsedTime = false, 1, 1, 0
 local detached = {} -- frame -> { parent, scale, strata, level, points }
 
 ---------------------------------------------------------------------------
@@ -93,9 +82,9 @@ end
 
 local function Detach()
     if InCombatLockdown() then return end
-    bagHolder:SetScale(UIParent:GetEffectiveScale())
+    lootHolder:SetScale(UIParent:GetEffectiveScale())
     for option, names in pairs(KEPT_FRAMES) do
-        if option == "always" or option == "bags" or db[option] then
+        if option == "always" or option == "loot" or db[option] then
             for _, name in ipairs(names) do
                 local f = _G[name]
                 -- A docked tab stays inside the dock, which is kept as a whole.
@@ -107,14 +96,14 @@ local function Detach()
                     local left, top, width, height = f:GetLeft(), f:GetTop(), f:GetSize()
                     local points = {}
                     for i = 1, f:GetNumPoints() do points[i] = { f:GetPoint(i) } end
-                    if option == "bags" then
-                        Reparent(f, bagHolder)
+                    if option == "loot" then
+                        Reparent(f, lootHolder)
                     else
                         Reparent(f, nil)
                         f:SetScale(effectiveScale)
                     end
                     -- Pin it where it is on screen: its anchors may depend on the hidden interface.
-                    if option ~= "always" and option ~= "bags" and left and top then
+                    if option ~= "always" and option ~= "loot" and left and top then
                         saved.points = points
                         f:ClearAllPoints()
                         f:SetPoint("TOPLEFT", WorldFrame, "BOTTOMLEFT", left, top)
@@ -289,201 +278,125 @@ local function ShowLetterbox()
 end
 
 ---------------------------------------------------------------------------
--- Fade
+-- Following the game's key
 ---------------------------------------------------------------------------
 
+-- The interface is hidden and shown again by the game's own key only. Doing it from the addon would run
+-- the interface's show and hide scripts under Tinkerwise's taint, and the action bars would then refuse
+-- their cooldowns and buttons in combat. So the mode only reacts: no fade out (the game hides at once),
+-- a fade in when the interface comes back, out of combat.
 local driver = CreateFrame("Frame")
 driver:Hide()
+local fadingIn, elapsedTime = false, 0
 
--- The game refuses to open bags while the interface is hidden. Showing it for the call opens them with
--- the game's own logic, and nothing is drawn as it is hidden again within the same frame.
-local togglingBags = false
-
-local bagToggle = CreateFrame("Frame") -- owns the bindings of the bag keys
--- Closing needs no interface: only opening is refused.
-local function BagKey(name, open)
-    local button = CreateFrame("Button", name)
-    button:SetScript("OnClick", function()
-        if IsAnyBagOpen() then
-            CloseAllBags()
-        elseif UIParent:IsShown() then -- still fading
-            open()
-        elseif not InCombatLockdown() then
-            togglingBags = true
-            UIParent:Show()
-            open()
-            UIParent:Hide()
-            togglingBags = false
-        end
-    end)
-end
-
-local BAG_KEYS = { OPENALLBAGS = "TinkerwiseImmersionAllBags", TOGGLEBACKPACK = "TinkerwiseImmersionBackpack" }
-BagKey(BAG_KEYS.OPENALLBAGS, function() OpenAllBags() end)
-BagKey(BAG_KEYS.TOGGLEBACKPACK, function() OpenBackpack() end)
-
--- Only during the mode: the rest of the time, the bag keys stay the game's.
-local function BindBagKeys(on)
-    if InCombatLockdown() then return end
-    ClearOverrideBindings(bagToggle)
-    if not on then return end
-    for action, button in pairs(BAG_KEYS) do
-        local key1, key2 = GetBindingKey(action)
-        if key1 then SetOverrideBindingClick(bagToggle, false, key1, button) end
-        if key2 then SetOverrideBindingClick(bagToggle, false, key2, button) end
-    end
-end
-
-local function UpdateFade(self, elapsed)
+driver:SetScript("OnUpdate", function(self, elapsed)
     elapsedTime = elapsedTime + elapsed
     local p = math.min(elapsedTime / db.duration, 1)
-    local alpha = from + (to - from) * p
-    UIParent:SetAlpha(alpha)
-    letterbox:SetAlpha(1 - alpha)
+    if fadingIn then
+        UIParent:SetAlpha(p)
+        letterbox:SetAlpha(1 - p)
+    else
+        letterbox:SetAlpha(p)
+    end
     if p >= 1 then
-        fading = false
         self:Hide()
-        if to == 0 then
-            SetUIVisibility(false)
-            UIParent:SetAlpha(1) -- ready for any other way of showing it again
-        else
+        if fadingIn then
+            fadingIn = false
             letterbox:Hide()
-            Attach()
         end
     end
-end
-driver:SetScript("OnUpdate", UpdateFade)
+end)
 
-local function Fade(a, b)
-    from, to, elapsedTime, fading = a, b, 0, true
+local function StartFade(inward)
+    fadingIn, elapsedTime = inward, 0
     driver:Show()
 end
 
 -- Ends a running fade at once: the quest scene takes over the interface's alpha.
 function ns.FinishImmersionFade()
-    if fading then UpdateFade(driver, db.duration) end
-end
-
--- Whether the interface is hidden or on its way out.
-local function IsOn()
-    if fading then return to == 0 end
-    return not UIParent:IsShown()
-end
-
--- Set when combat interrupts the mode, which starts again once it ends.
-local resumeAfterCombat, resumable = false, true
-
--- The running scene manages the interface's alpha: Enter and Leave wait for it to end.
--- Returns whether the mode started. A mode that must not come back after combat (a test) says so.
-local function Enter(noResume)
-    if fading or InCombatLockdown() or ns.ImmersionScene.AnyPlaying() or not UIParent:IsShown() then
-        return false
-    end
-    resumable = not noResume
-    Detach() -- kept elements must not fade with the rest
-    ShowLetterbox()
-    BindBagKeys(true)
-    Fade(1, 0)
-    ns.FishingDisplay.Update()
-    return true
-end
-
--- At once, without a fade: for combat, and for a mode ended while the interface was still fading out.
-local function Restore()
-    fading = false
+    if not driver:IsShown() then return end
     driver:Hide()
-    letterbox:Hide()
-    BindBagKeys(false)
-    UIParent:SetAlpha(1)
-    if not UIParent:IsShown() then
-        -- The bag keys hide it with UIParent:Hide(), which SetUIVisibility may not know about.
-        if not InCombatLockdown() then UIParent:Show() end
-        SetUIVisibility(true)
-    end
-    ClearLog()
-    Attach()
-end
-
-local function Leave()
-    resumeAfterCombat = false
-    if ns.ImmersionScene.AnyPlaying() then return end
-    if fading then
-        if to == 0 then Restore() end
-    elseif not UIParent:IsShown() then
-        ClearLog()
-        BindBagKeys(false)
-        Fade(0, 1) -- first, so the interface reappears transparent
-        UIParent:SetAlpha(0)
-        -- See Restore.
-        if not InCombatLockdown() then UIParent:Show() end
-        SetUIVisibility(true)
-    end
-    ns.FishingDisplay.Update()
-end
-
-ns.ImmersionMode = {
-    IsOn = IsOn, Enter = Enter, Leave = Leave,
-    IsResuming = function() return resumeAfterCombat end,
-}
-
-local toggle = CreateFrame("Button", "TinkerwiseImmersionToggle")
-toggle:SetScript("OnClick", function()
-    if UIParent:IsShown() then Enter() else Leave() end
-end)
-
--- The interface can come back another way, such as the normal key in combat.
-UIParent:HookScript("OnShow", function()
-    if db and not fading and not togglingBags then
-        BindBagKeys(false)
+    if fadingIn then
+        fadingIn = false
+        UIParent:SetAlpha(1)
         letterbox:Hide()
-        ClearLog()
-        Attach()
+    else
+        letterbox:SetAlpha(1)
     end
-end)
-
-local function ApplyBinding()
-    if not db or InCombatLockdown() then return end
-    ClearOverrideBindings(toggle)
-    local key1, key2 = GetBindingKey("TOGGLEUI")
-    if key1 then SetOverrideBindingClick(toggle, false, key1, "TinkerwiseImmersionToggle") end
-    if key2 then SetOverrideBindingClick(toggle, false, key2, "TinkerwiseImmersionToggle") end
-    BindBagKeys(IsOn())
 end
 
 local function CancelFade()
-    if not fading then return end
-    fading = false
+    if not driver:IsShown() then return end
     driver:Hide()
-    UIParent:SetAlpha(1)
-    letterbox:Hide()
+    if fadingIn then UIParent:SetAlpha(1) end
+    fadingIn = false
 end
+
+local entered = false -- the interface was hidden while the mode was on
+
+-- Whether the interface is hidden by the mode's key.
+local function IsOn()
+    return entered and not UIParent:IsShown()
+end
+
+ns.ImmersionMode = { IsOn = IsOn }
+
+-- A cinematic or a movie hides the interface too: it is not the mode.
+local function Cinematic()
+    return (CinematicFrame and CinematicFrame:IsShown()) or (MovieFrame and MovieFrame:IsShown())
+end
+
+-- Forever Fishing hides the interface itself while its fishing bar is open (its "Hide Blizzard UI" option)
+-- and moves the minimap and the tooltips under its own frame meanwhile: the mode stays out of its way,
+-- or both would move the same frames and the minimap's tooltip would end up misplaced.
+local function ForeverFishingHides()
+    local ff = _G.ForeverFishing
+    if type(ff) ~= "table" then return false end
+    if ff.fishingUIChangeInProgress then return true end
+    local ok, mode = pcall(ff.GetBlizzardUIHideMode, ff)
+    return ok and mode ~= "never" and ff.bar ~= nil and ff.bar:IsShown()
+end
+
+UIParent:HookScript("OnHide", function()
+    if not (db and TW.modules.Immersion.active) or Cinematic() or ForeverFishingHides() then return end
+    entered = true
+    CancelFade()
+    Detach() -- not in combat: the kept elements then hide with the rest
+    if db.letterbox then
+        ShowLetterbox()
+        StartFade(false)
+    end
+end)
+
+UIParent:HookScript("OnShow", function()
+    if not db then return end
+    ClearLog()
+    Attach() -- in combat, done when it ends
+    local wasOn = entered
+    entered = false
+    if wasOn and TW.modules.Immersion.active and not InCombatLockdown() and not ns.ImmersionScene.AnyPlaying() then
+        UIParent:SetAlpha(0)
+        if not letterbox:IsShown() then letterbox:SetAlpha(0) end
+        StartFade(true)
+    else
+        CancelFade()
+        letterbox:Hide()
+    end
+end)
 
 local events = CreateFrame("Frame")
 events:SetScript("OnEvent", function(_, event, message)
     if event == "CHAT_MSG_LOOT" then
         OnLootMessage(message)
     elseif event == "PLAYER_REGEN_DISABLED" then
-        if IsOn() then
-            resumeAfterCombat = resumable
-            Restore()
-        else
-            CancelFade()
-        end
-        ClearOverrideBindings(toggle)
-        ClearOverrideBindings(bagToggle)
+        -- The interface shown again in combat stays fully visible.
+        if fadingIn then CancelFade() letterbox:Hide() end
     elseif not TW.modules.Immersion.active then
         -- Disabled in combat (see OnDisable): only this cleanup was left to do.
         events:UnregisterAllEvents()
-        ClearOverrideBindings(toggle)
-        ClearOverrideBindings(bagToggle)
         Attach()
-    else
-        ApplyBinding()
-        if UIParent:IsShown() and not fading then Attach() end
-        if event == "PLAYER_REGEN_ENABLED" and resumeAfterCombat then
-            resumeAfterCombat = false
-            Enter()
-        end
+    elseif UIParent:IsShown() then
+        Attach()
     end
 end)
 
@@ -491,8 +404,7 @@ local mod = TW:NewModule("Immersion", {
     title = L["Immersion Mode"],
     icon = "Interface\\Icons\\Spell_Shadow_Twilight",
     section = "Immersion",
-    desc = L["The key that hides the interface (Alt+Z by default) fades it out and can keep a few elements on screen. Your bags can still be opened and your loot shows for a few seconds, with item details on hover. In combat, the interface comes back until the fight ends.\n\nThe optional quest scene stages the quests you open or turn in, with the interface shown or hidden: black bars, a slowly turning camera and text that writes itself. Click the screen to show it all at once. Out of combat only. The camera uses the game's view slot 5."]
-        .. "\n\n" .. L["With Fishing Buddy and a fishing pole equipped, black bands add your fishing skill, the catches of the zone and of the session, and a ring showing the bobber's time left. The bobber stays clickable."],
+    desc = L["When the game's key hides the interface (Alt+Z by default), black bars come in and a few elements can stay on screen. Your loot shows for a few seconds, with item details on hover. The same key brings the interface back with a fade, in combat too.\n\nThe optional quest scene stages the quests you open or turn in, with the interface shown or hidden: black bars, a slowly turning camera and text that writes itself. Click the screen to show it all at once. Out of combat only. The camera uses the game's view slot 5."],
     defaults = DEFAULTS,
     options = {
         { type = "slider", key = "duration", label = L["Fade duration (s)"], min = 0.1, max = 2, step = 0.1 },
@@ -517,39 +429,27 @@ local mod = TW:NewModule("Immersion", {
             RenderLog()
         end },
         { type = "execute", label = L["Reset position"], func = function() log:ResetPosition() end },
-        { type = "header", label = L["Fishing"] },
-        { type = "toggle", key = "fishingDisplay", label = L["Show the fishing displays with a pole equipped"] },
-        { type = "toggle", key = "fishingAuto", label = L["Start the mode when a pole is equipped"] },
-        { type = "execute", label = L["Test (15 s)"], func = function() ns.FishingDisplay.Test() end },
     },
 })
 
 function mod:OnEnable()
     db = self.db
     log:ApplyPosition()
-    for _, e in ipairs({ "PLAYER_REGEN_DISABLED", "PLAYER_REGEN_ENABLED", "UPDATE_BINDINGS",
-                         "PLAYER_ENTERING_WORLD", "CHAT_MSG_LOOT" }) do
+    for _, e in ipairs({ "PLAYER_REGEN_DISABLED", "PLAYER_REGEN_ENABLED", "PLAYER_ENTERING_WORLD", "CHAT_MSG_LOOT" }) do
         events:RegisterEvent(e)
     end
-    ApplyBinding()
     if db.questScene then ns.QuestScene.Enable(db) end
-    if db.fishingDisplay then ns.FishingDisplay.Enable(db) end
 end
 
 function mod:OnOptionChanged(key)
     if key == "questScene" then
         ns.QuestScene.Disable()
         if db.questScene then ns.QuestScene.Enable(db) end
-    elseif key == "fishingDisplay" then
-        ns.FishingDisplay.Disable()
-        if db.fishingDisplay then ns.FishingDisplay.Enable(db) end
     end
 end
 
 function mod:OnDisable()
     ns.QuestScene.Disable()
-    ns.FishingDisplay.Disable()
-    resumeAfterCombat = false
     events:UnregisterAllEvents()
     CancelFade()
     letterbox:Hide()
@@ -558,8 +458,6 @@ function mod:OnDisable()
     if InCombatLockdown() then
         events:RegisterEvent("PLAYER_REGEN_ENABLED")
     else
-        ClearOverrideBindings(toggle)
-        ClearOverrideBindings(bagToggle)
         Attach()
     end
 end

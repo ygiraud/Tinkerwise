@@ -28,8 +28,8 @@ A toolbox for WoW Forever: independent modules you can turn on or off from a sin
 - **Minimap:** a square minimap with a thin border of the color you choose, mouse wheel zoom and no zoom buttons
 
 **Immersion**
-- **Immersion Mode:** fades out the interface and can stage your quests as cinematic scenes. With Fishing Buddy and a fishing pole equipped, it also shows your fishing skill, the catches of the zone and of the session and a ring showing the bobber's time left, and can start by itself when you equip the pole; the bobber stays clickable
-- **AFK and Flight Modes:** each can be turned on separately. When you're away, fades out the interface and slowly turns the camera around your character, showing your time away and the whispers you received. During a flight master trip, fades out the interface and shows your destination, the zone below and the flight time
+- **Immersion Mode:** when the game's key hides the interface, adds black bars, keeps the elements you choose on screen and brings the interface back with a fade; it can also stage your quests as cinematic scenes
+- **AFK and Flight Modes:** each can be turned on separately. When you're away, fades out the interface and slowly turns the camera around your character, showing your time away and the whispers you received. During a flight master trip, fades out the interface and shows your destination, the zone below and the flight time. In both, your bags and the world map open above the scene with their usual keys
 
 **Configuration**
 - **Default Settings:** sets up new characters
@@ -39,8 +39,6 @@ A toolbox for WoW Forever: independent modules you can turn on or off from a sin
 ## Optional addons
 
 Install **What's Training?** to see the spells to learn from your class trainer, and their total cost, in the level-up panel. Without it, the panel only shows your stats.
-
-Install **Fishing Buddy** to get the fishing displays of the Immersion Mode.
 
 ## Commands
 

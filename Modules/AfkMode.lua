@@ -19,7 +19,7 @@ local sinceRefresh = 0
 -- Frames
 ---------------------------------------------------------------------------
 
-local scene = ImmersionScene.Create({ name = "TinkerwiseAfkScene", bandHeight = 150, closable = true })
+local scene = ImmersionScene.Create({ name = "TinkerwiseAfkScene", bandHeight = 150, closable = true, windows = true })
 local topBand, bottomBand = scene.topBand, scene.bottomBand
 
 local title = scene:CreateTitle(topBand, 38)
@@ -127,7 +127,10 @@ end
 
 local function Update()
     if testing then return end
-    if not UnitIsAFK("player") then
+    local afk = UnitIsAFK("player")
+    -- Secret in some places (instances): nothing can be told, the scene stays as it is.
+    if issecretvalue and issecretvalue(afk) then return end
+    if not afk then
         afkSince, whispers, dismissed = nil, 0, false
         Stop()
         return

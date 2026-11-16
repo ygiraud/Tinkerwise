@@ -19,7 +19,7 @@ local startedAt, route, pendingRoute
 -- Frames
 ---------------------------------------------------------------------------
 
-local scene = ImmersionScene.Create({ name = "TinkerwiseFlightScene", bandHeight = 110, closable = true })
+local scene = ImmersionScene.Create({ name = "TinkerwiseFlightScene", bandHeight = 110, closable = true, windows = true })
 local topBand, bottomBand = scene.topBand, scene.bottomBand
 
 local title = scene:CreateTitle(topBand, 34)

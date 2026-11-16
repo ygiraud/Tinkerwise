@@ -26,7 +26,7 @@ local kind, choice, fullText, shownBytes, typed = nil, nil, "", 0, 0
 -- Frames
 ---------------------------------------------------------------------------
 
-local scene = ImmersionScene.Create({ name = "TinkerwiseQuestScene", bandHeight = BAND_H, fadeTime = FADE_TIME })
+local scene = ImmersionScene.Create({ name = "TinkerwiseQuestScene", bandHeight = BAND_H, fadeTime = FADE_TIME, windows = true })
 local topBand, bottomBand = scene.topBand, scene.bottomBand
 scene.topRule:Hide()
 
@@ -127,6 +127,8 @@ end
 local function Play()
     if scene:IsPlaying() then return true end
     if InCombatLockdown() then return false end
+    -- Not over the AFK or flight scene: its end would show the interface and stop the camera under it.
+    if scene:OtherPlaying() then return false end
     -- Mode immersion keeps this window on screen while the interface is hidden.
     QuestFrame:SetAlpha(0)
     scene:Play()

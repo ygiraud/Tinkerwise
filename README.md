@@ -29,7 +29,7 @@ Copiez le dossier dans `World of Warcraft\_forever_\Interface\AddOns\`. Il doit 
 - **Groupe :** Confort de groupe
 - **Tchat :** Tchat
 - **Interface :** Minimap
-- **Immersion :** Mode immersion (avec la scène de quête et, avec Fishing Buddy, les infos de pêche quand une canne est équipée), Modes AFK et vol
+- **Immersion :** Mode immersion (avec la scène de quête), Modes AFK et vol
 - **Configuration :** Réglages par défaut, Apparence (fenêtres en or ou aux couleurs de la classe), Bouton de la minicarte
 
 Changements de stats affiche aussi un résumé à chaque niveau gagné. Pour y voir les sorts à apprendre au maître de classe, installez l'addon [What's Training?](https://www.curseforge.com/wow/addons/whats-training). Sans lui, le résumé n'affiche que les stats.

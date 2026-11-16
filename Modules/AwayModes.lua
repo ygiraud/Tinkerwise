@@ -17,7 +17,8 @@ local mod = TW:NewModule("AwayModes", {
     icon = "Interface\\Icons\\Spell_Nature_Sleep",
     section = "Immersion",
     desc = L["When you go AFK (/afk or after a while), the interface fades away and the camera turns slowly around your character. The screen shows the time away and the whispers received. Move or send a message to come back, or click the cross or press Escape to get the interface back while staying AFK. Out of combat only. The camera uses the game's view slot 5."]
-        .. "\n\n" .. L["During a flight master trip, the interface fades away and the screen shows the destination, the zone below and the flight time. The time left appears once you have flown that route. The camera doesn't move. Click the cross or press Escape to get the interface back. Out of combat only."],
+        .. "\n\n" .. L["During a flight master trip, the interface fades away and the screen shows the destination, the zone below and the flight time. The time left appears once you have flown that route. The camera doesn't move. Click the cross or press Escape to get the interface back. Out of combat only."]
+        .. "\n\n" .. L["In both modes, your bags and the world map open with their usual keys, above the scene. Escape closes them first."],
     defaults = { afk = true, flight = true, camera = true, routes = {} },
     replaces = { AfkMode = "afk", FlightMode = "flight" },
     options = {
