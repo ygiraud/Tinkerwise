@@ -17,28 +17,22 @@ local function CheckAutoLoot()
     end
 end
 
+-- Only the game's own function: running Blizzard's settings or bar code from here would taint the action
+-- bars, and a bar button hovered in combat would then be blocked (SetShown in UpdateShownButtons). The
+-- bars follow at the next /reload or login. 7 bar values on recent clients, 4 on older ones; trailing
+-- values are kept. Returns whether anything changed.
 local function ApplyActionBars()
-    if not db.applyBars then return end
-
-    -- Newer settings panel: one setting per bar, numbered like the Blizzard options.
-    local getSetting = Settings and Settings.GetSetting
-    if getSetting and getSetting("PROXY_SHOW_ACTIONBAR_2") then
-        for n = FIRST_BAR, LAST_BAR do
-            local setting = getSetting("PROXY_SHOW_ACTIONBAR_" .. n)
-            if setting then setting:SetValue(db["bar" .. n] and true or false) end
-        end
-        return
-    end
-
-    -- Otherwise: 7 bar values on recent clients, 4 on older ones. Trailing values are kept.
-    if not (SetActionBarToggles and GetActionBarToggles) then return end
+    if not (db.applyBars and SetActionBarToggles and GetActionBarToggles) then return false end
     local count = select("#", GetActionBarToggles())
     local toggles = { GetActionBarToggles() }
-    for i = 1, count >= 7 and 7 or 4 do
-        toggles[i] = db["bar" .. (i + 1)] and true or false
+    local changed = false
+    for i = 1, math.min(count >= 7 and 7 or 4, LAST_BAR - FIRST_BAR + 1) do
+        local wanted = db["bar" .. (i + 1)] and true or false
+        if (toggles[i] and true or false) ~= wanted then changed = true end
+        toggles[i] = wanted
     end
-    SetActionBarToggles(unpack(toggles, 1, count))
-    if MultiActionBar_Update then MultiActionBar_Update() end
+    if changed then SetActionBarToggles(unpack(toggles, 1, count)) end
+    return changed
 end
 
 -- Blizzard edit mode only exists on some game versions.
@@ -76,7 +70,7 @@ local function ApplyProfile()
         TW:Print(L["cannot apply settings in combat."])
         return false
     end
-    ApplyActionBars()
+    if ApplyActionBars() then TW:Print(L["action bars changed: they show after a /reload."]) end
     return ApplyLayout() -- false: tried again at the next login
 end
 

@@ -13,10 +13,6 @@ local URL_EVENTS = {
     "RAID_WARNING", "BATTLEGROUND", "BATTLEGROUND_LEADER", "WHISPER", "WHISPER_INFORM", "BN_WHISPER", "BN_WHISPER_INFORM", "CHANNEL",
 }
 
-local SHORT_CHANNELS = {
-    GUILD = L["G"], OFFICER = L["O"], PARTY = L["P"], RAID = L["R"],
-}
-
 local TABS = {
     { key = "tabGuild", name = L["Guild"], groups = { "GUILD", "OFFICER" } },
     { key = "tabGroup", name = L["Group"], groups = {
@@ -258,6 +254,8 @@ local function LinkifyWord(word)
 end
 
 local function URLFilter(_, _, message, ...)
+    -- A secret message (combat, instance) can be neither read nor compared: it is left as it is.
+    if type(message) ~= "string" or (issecretvalue and issecretvalue(message)) then return end
     local linked = message:gsub("[^%s|]+", LinkifyWord)
     if linked ~= message then return false, linked, ... end
 end
@@ -284,36 +282,43 @@ local function SetURLFilter(on)
 end
 
 ---------------------------------------------------------------------------
--- Readability: rewrites each line just before it is displayed
+-- Readability: through the game's own mechanisms
 ---------------------------------------------------------------------------
 
-local function ShortenChannels(text)
-    text = text:gsub("|h%[(%d+)%. [^%]]-%]|h", "|h[%1]|h")
-    text = text:gsub("(|Hchannel:(%u+)|h)%[[^%]]-%](|h)", function(open, channel, close)
-        local short = SHORT_CHANNELS[channel]
-        if short then return open .. "[" .. short .. "]" .. close end
-    end)
-    return text
+-- The chat windows' AddMessage is not replaced: every line would then be written by the addon, and the
+-- game's fading code would run under its taint, with secret messages in instances and in combat.
+
+-- Numbered channels: "[1. General - Elwynn Forest]" becomes "[1]". A message filter changes the channel
+-- name the game writes between the brackets, and nothing else.
+local function ChannelFilter(_, _, message, author, language, channelString, target, flags, zoneID, number, ...)
+    if type(number) == "number" and not (issecretvalue and (issecretvalue(channelString) or issecretvalue(number))) then
+        channelString = tostring(number)
+    end
+    return false, message, author, language, channelString, target, flags, zoneID, number, ...
 end
 
-local wrapped = {}
+local function SetChannelFilter(on)
+    ChatFrame_RemoveMessageEventFilter("CHAT_MSG_CHANNEL", ChannelFilter)
+    if on then ChatFrame_AddMessageEventFilter("CHAT_MSG_CHANNEL", ChannelFilter) end
+end
 
-local function WrapFrame(frame)
-    if wrapped[frame] then return end
-    wrapped[frame] = true
-    local original = frame.AddMessage
-    frame.AddMessage = function(self, text, ...)
-        if mod.active and type(text) == "string" then
-            if mod.db.shortChannels then text = ShortenChannels(text) end
-            -- Blizzard's own timestamp setting already adds one.
-            if mod.db.timestamps and GetCVar("showTimestamps") == "none" then
-                text = "|cff888888" .. date("%H:%M") .. "|r " .. text
-            end
+-- The time: the game's own setting (Interface > Chat). Turned on only if it was off, and turned back off
+-- only if Tinkerwise turned it on.
+local TIMESTAMP_FORMAT = "%H:%M "
+
+local function ApplyTimestamps(on)
+    local db = mod.db
+    local current = GetCVar("showTimestamps")
+    if on then
+        if current == "none" then
+            SetCVar("showTimestamps", TIMESTAMP_FORMAT)
+            db.timestampsSet = true
         end
-        return original(self, text, ...)
+    elseif db.timestampsSet then
+        if current == TIMESTAMP_FORMAT then SetCVar("showTimestamps", "none") end
+        db.timestampsSet = nil
     end
 end
-
 local classColorBackup
 
 local function ApplyClassColors()
@@ -705,7 +710,6 @@ local function Apply()
     ApplyFontSize()
     ApplyTabVisibility()
     ForEachChatFrame(function(frame)
-        WrapFrame(frame)
         if frame.editBox then frame.editBox:SetAltArrowKeyMode(not (on and db.arrowKeys)) end
         frame:SetFading(not (on and db.noFade))
         if on and db.copyButton then
@@ -726,6 +730,8 @@ local function Apply()
     end)
     if on and db.links then InstallLinkHandler() end
     SetURLFilter(on and db.links)
+    SetChannelFilter(on and db.shortChannels)
+    ApplyTimestamps(on and db.timestamps)
     ApplyClassColors()
     ApplyWhisperMode()
 end

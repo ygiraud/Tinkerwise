@@ -106,6 +106,8 @@ local function Snapshot()
     if defBase then s.DEFENSE = defBase + (defMod or 0) end
 
     local base, pos, neg = UnitAttackPower("player")
+    -- Secret at times (combat): no arithmetic on it, the snapshot is given up (callers keep the baseline).
+    if issecretvalue and (issecretvalue(base) or issecretvalue(pos) or issecretvalue(neg)) then error("secret stats") end
     s.AP = base + pos + neg
     base, pos, neg = try(UnitRangedAttackPower, "player")
     if base then s.RAP = base + pos + neg end
@@ -156,6 +158,12 @@ local function Snapshot()
     local _, casting = try(GetManaRegen)
     if casting then s.MP5 = casting * 5 end
 
+    -- A secret value stored here would break the comparison made later, outside any pcall.
+    if issecretvalue then
+        for _, v in pairs(s) do
+            if issecretvalue(v) then error("secret stats") end
+        end
+    end
     return s
 end
 

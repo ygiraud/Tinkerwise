@@ -351,10 +351,14 @@ loader:SetScript("OnEvent", function(_, event, arg1)
                 end
             end
         end
-        -- Forget the settings of modules that no longer exist.
-        for _, store in ipairs({ TinkerwiseDB.modules, TinkerwiseCharDB.modules }) do
-            for key in pairs(store) do
-                if not TW.modules[key] then store[key] = nil end
+        -- Forget the settings of the modules taken over above, and only those: a module missing for
+        -- another reason (its file failed to load) keeps its settings, Bags' records of every character
+        -- included, until it comes back.
+        for _, mod in ipairs(TW.order) do
+            for oldKey in pairs(mod.replaces or {}) do
+                if not TW.modules[oldKey] then
+                    TinkerwiseDB.modules[oldKey], TinkerwiseCharDB.modules[oldKey] = nil, nil
+                end
             end
         end
         for _, mod in ipairs(TW.order) do
