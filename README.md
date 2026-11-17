@@ -26,7 +26,7 @@ Copiez le dossier dans `World of Warcraft\_forever_\Interface\AddOns\`. Il doit 
 - **Préparation :** Check-up, Rappel potion
 - **Personnage :** Mes personnages, Changements de stats
 - **Objets :** Comparateur d'objets, Vendeur automatique
-- **Groupe :** Confort de groupe
+- **Groupe :** Confort de groupe, Buffs et remerciements
 - **Tchat :** Tchat
 - **Interface :** Minimap
 - **Immersion :** Mode immersion (avec la scène de quête), Modes AFK et vol

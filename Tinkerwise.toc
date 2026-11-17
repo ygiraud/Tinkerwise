@@ -22,6 +22,7 @@ Modules\StatDelta.lua
 Modules\ItemCompare.lua
 Modules\AutoVendor.lua
 Modules\GroupComfort.lua
+Modules\Courtesy.lua
 Modules\Chat.lua
 Modules\SquareMinimap.lua
 Modules\ImmersionScene.lua
