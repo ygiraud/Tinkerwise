@@ -10,7 +10,11 @@ button:Hide()
 
 local mod
 
+-- Square map: the Minimap module stands the icons in a column beside it.
+local function InColumn() return ns.MinimapIconsInColumn and ns.MinimapIconsInColumn() end
+
 local function Place()
+    if InColumn() then ns.LayoutMinimapIcons() return end
     local angle = math.rad(mod.db.angle)
     local radius = Minimap:GetWidth() / 2 + 5
     local x, y = math.cos(angle) * radius, math.sin(angle) * radius
@@ -31,7 +35,9 @@ local function FollowCursor()
     Place()
 end
 
-button:SetScript("OnDragStart", function(self) self:SetScript("OnUpdate", FollowCursor) end)
+button:SetScript("OnDragStart", function(self)
+    if not InColumn() then self:SetScript("OnUpdate", FollowCursor) end
+end)
 button:SetScript("OnDragStop", function(self) self:SetScript("OnUpdate", nil) end)
 
 -- What right click and Ctrl + click can do. Each one needs its module to be active.
@@ -66,7 +72,7 @@ button:SetScript("OnEnter", function(self)
         GameTooltip:AddLine(L["Right-click or Ctrl + click: "] .. action.label, 1, 1, 1)
     end
     GameTooltip:AddLine(L["Shift + click: move windows"], 1, 1, 1)
-    GameTooltip:AddLine(L["Drag: move around the minimap"], 0.7, 0.7, 0.7)
+    if not InColumn() then GameTooltip:AddLine(L["Drag: move around the minimap"], 0.7, 0.7, 0.7) end
     GameTooltip:Show()
 end)
 button:SetScript("OnLeave", GameTooltip_Hide)
@@ -90,10 +96,11 @@ function mod:Place() Place() end -- called by the Minimap module when the shape 
 
 function mod:OnEnable()
     if self.db.clickAction == "bags" then self.db.clickAction = "chars" end -- the bags joined the characters window
+    button:Show() -- before Place: the column only lines up shown buttons
     Place()
-    button:Show()
 end
 
 function mod:OnDisable()
     button:Hide()
+    if InColumn() then ns.LayoutMinimapIcons() end
 end

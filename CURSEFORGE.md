@@ -25,7 +25,7 @@ A toolbox for WoW Forever: independent modules you can turn on or off from a sin
 - **Chat:** a new tab for each whisper conversation with a close button, group and guild tabs, a channel that follows the selected tab, class-colored names, timestamps, clickable links, copying and resizable windows with a custom background
 
 **Interface**
-- **Minimap:** a square minimap with a thin border of the color you choose, mouse wheel zoom and no zoom buttons
+- **Minimap:** a square minimap with a bronze border (thickness and color of your choice), its icons in a column on the left or right, mouse wheel zoom and no zoom buttons
 
 **Immersion**
 - **Immersion Mode:** when the game's key hides the interface, adds black bars, keeps the elements you choose on screen and brings the interface back with a fade; it can also stage your quests as cinematic scenes
