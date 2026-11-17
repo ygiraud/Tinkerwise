@@ -15,6 +15,7 @@ local DEFAULTS = {
     group = true,
     thanks = true,
     buffBack = true,
+    track = true,
     size = 40,
     point = "CENTER", x = 0, y = -160,
 }
@@ -92,6 +93,15 @@ local CLASS_BUFFS = {
     PALADIN = { "blessing" },
     WARRIOR = { "battleshout" },
 }
+
+-- Tracking: only one at a time. The gathering ones are offered, first known first, when nothing is
+-- tracked; any of the others (a hunter's, a paladin's...) already takes the slot.
+local TRACK_OFFERED = {
+    { id = 2383 }, -- Find Herbs
+    { id = 2580 }, -- Find Minerals
+    { id = 2481 }, -- Find Treasure
+}
+local TRACK_IDS = { 2383, 2580, 2481, 1494, 19883, 19884, 19885, 19880, 19878, 19882, 19879, 5225, 5502, 5500 }
 
 -- Every spell id of a buff somebody else can put on you: what counts as a favour.
 local FAVOUR_IDS = {}
@@ -219,6 +229,40 @@ local function MissingBuff(unit, class)
             and not (unit and Wears(unit, key)) then
             return key
         end
+    end
+end
+
+-- Whether some tracking is on. Asked three ways, since clients differ: the minimap's tracking list
+-- (newer clients), the tracking texture (older ones) and the tracking aura on you.
+local function Tracking()
+    local tracked = {}
+    for _, id in ipairs(TRACK_IDS) do
+        tracked[id] = true
+        local name = SpellName(id)
+        if name then
+            tracked[name] = true
+            if HasAura("player", name) then return true end
+        end
+    end
+    local minimap = C_Minimap
+    if minimap and minimap.GetNumTrackingTypes and minimap.GetTrackingInfo then
+        for i = 1, minimap.GetNumTrackingTypes() or 0 do
+            local info = minimap.GetTrackingInfo(i)
+            if type(info) == "table" and Plain(info.active)
+                and (tracked[Plain(info.spellID) or 0] or tracked[Plain(info.name) or ""]) then
+                return true
+            end
+        end
+    end
+    if _G.GetTrackingTexture and Plain(GetTrackingTexture()) then return true end
+    return false
+end
+
+-- The tracking to offer, or nil.
+local function MissingTracking()
+    if Tracking() then return nil end
+    for _, track in ipairs(TRACK_OFFERED) do
+        if SpellKnown(track.id) then return track.id end
     end
 end
 
@@ -434,6 +478,15 @@ local function NextAction()
             end
         end
     end
+
+    if db.track then
+        local id = MissingTracking()
+        local spell = id and SpellName(id)
+        if spell then
+            return { icon = SpellIcon(id), title = L["Start tracking"], detail = spell,
+                     text = format(L["Start tracking: %s"], spell), macro = "/cast " .. spell }
+        end
+    end
 end
 
 local function Refresh()
@@ -501,13 +554,14 @@ local mod = TW:NewModule("Courtesy", {
     title = L["Buffs and Thanks"],
     icon = "Interface\\Icons\\Spell_Holy_WordFortitude",
     section = L["Group"],
-    desc = L["Shows a button, outside combat, to buff yourself, to buff the members of your group who lack your buff, and to thank whoever buffs you (buffing them back when you can)."],
+    desc = L["Shows a button, outside combat, to buff yourself, to buff the members of your group who lack your buff, to thank whoever buffs you (buffing them back when you can) and to turn tracking back on."],
     defaults = DEFAULTS,
     options = {
         { type = "toggle", key = "self", label = L["Buff myself"] },
         { type = "toggle", key = "group", label = L["Buff my group"] },
         { type = "toggle", key = "thanks", label = L["Thank whoever buffs me"] },
         { type = "toggle", key = "buffBack", label = L["Buff them back when I can"] },
+        { type = "toggle", key = "track", label = L["Track herbs, minerals or treasures"] },
         { type = "slider", key = "size", label = L["Icon size"], min = 24, max = 80, step = 2 },
         { type = "execute", label = L["Move / Lock"], func = function()
             if InCombatLockdown() then return end
@@ -524,7 +578,8 @@ function mod:OnEnable()
     db = self.db
     if not InCombatLockdown() then container:ApplyPosition() end
     for _, e in ipairs({ "UNIT_AURA", "GROUP_ROSTER_UPDATE", "PLAYER_REGEN_ENABLED", "PLAYER_REGEN_DISABLED",
-                         "SPELLS_CHANGED", "PLAYER_ENTERING_WORLD", "PLAYER_LEVEL_UP", "PLAYER_TARGET_CHANGED" }) do
+                         "SPELLS_CHANGED", "PLAYER_ENTERING_WORLD", "PLAYER_LEVEL_UP", "PLAYER_TARGET_CHANGED",
+                         "MINIMAP_UPDATE_TRACKING" }) do
         pcall(events.RegisterEvent, events, e)
     end
     -- Group members walk in and out of range without any event.
