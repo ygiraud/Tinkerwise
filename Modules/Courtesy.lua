@@ -42,7 +42,7 @@ local BUFFS = {
     salvation = { ranks = { 1038 }, group = { 25895 }, blessing = true },
     light = { ranks = { 19979, 19978, 19977 }, group = { 25890 }, blessing = true },
     sanctuary = { ranks = { 20914, 20913, 20912, 20911 }, group = { 25899 }, blessing = true },
-    breath = { ranks = { 5697 }, group = { 131 } },
+    breath = { ranks = { 5697 }, group = { 131 }, swimOnly = true }, -- only offered in the water
     battleshout = { ranks = { 25289, 11551, 11550, 11549, 6192, 5242, 6673 }, selfCast = true },
 
     -- Buffs only for yourself (ranks as Manners has them for Forever: Demon Skin is Demon Armor's
@@ -92,6 +92,7 @@ local CLASS_BUFFS = {
     DRUID = { "motw" },
     PALADIN = { "blessing" },
     WARRIOR = { "battleshout" },
+    WARLOCK = { "breath" },
 }
 
 -- Tracking: only one at a time. The gathering ones are offered, first known first, when nothing is
@@ -215,6 +216,18 @@ local function Blessing(unit, class)
     if Knows("wisdom") then return "wisdom" end
 end
 
+-- Whether you are in the water: the buffs only worth having there (Unending Breath) wait for it.
+local function InWater()
+    for _, check in ipairs({ _G.IsSubmerged, _G.IsSwimming }) do
+        if check and Plain(check()) then return true end
+    end
+    return false
+end
+
+local function Worthwhile(key)
+    return not BUFFS[key].swimOnly or InWater()
+end
+
 -- The first of my buffs this unit lacks, or nil. Without a unit (a stranger now out of reach)
 -- nothing can be checked, and the first one I know is offered.
 local function MissingBuff(unit, class)
@@ -225,7 +238,7 @@ local function MissingBuff(unit, class)
         if key == "blessing" then
             local blessing = Blessing(unit, class)
             if blessing then return blessing end
-        elseif not BUFFS[key].selfCast and Knows(key) and (hasMana or not BUFFS[key].manaOnly)
+        elseif not BUFFS[key].selfCast and Knows(key) and Worthwhile(key) and (hasMana or not BUFFS[key].manaOnly)
             and not (unit and Wears(unit, key)) then
             return key
         end
@@ -296,8 +309,11 @@ local function UnitForName(name)
 end
 
 local function NoteFavours(info)
-    if not info or info.isFullUpdate or not info.addedAuras then return end
-    for _, aura in ipairs(info.addedAuras) do
+    -- The game may hide the whole update (secret values): nothing to read then.
+    if not info or Plain(info.isFullUpdate) ~= false then return end
+    local added = Plain(info.addedAuras)
+    if type(added) ~= "table" then return end
+    for _, aura in ipairs(added) do
         local id, source = Plain(aura.spellId), Plain(aura.sourceUnit)
         if id and FAVOUR_IDS[id] and source and Plain(aura.isHelpful) ~= false
             and not UnitIsUnit(source, "player") and UnitIsPlayer(source) then
@@ -454,7 +470,7 @@ local function NextAction()
             local wanted = key
             if key == "blessing" then wanted = Blessing("player", class) end
             local buff = wanted and BUFFS[wanted]
-            if buff and Knows(wanted) and (UnitPowerType("player") == 0 or not buff.manaOnly)
+            if buff and Knows(wanted) and Worthwhile(wanted) and (UnitPowerType("player") == 0 or not buff.manaOnly)
                 and not Wears("player", wanted) then
                 return Self(wanted, buff.selfCast and "/cast " or "/cast [@player] ")
             end
@@ -489,10 +505,24 @@ local function NextAction()
     end
 end
 
+-- Nothing to offer while dead, on a flight path or out of control of your character. An answer the
+-- game keeps secret counts as busy.
+local function Busy()
+    for _, check in ipairs({ UnitIsDeadOrGhost, UnitOnTaxi }) do
+        local v = check("player")
+        if issecretvalue and issecretvalue(v) then return true end
+        if v then return true end
+    end
+    if HasFullControl then
+        local control = HasFullControl()
+        if (issecretvalue and issecretvalue(control)) or not control then return true end
+    end
+    return false
+end
+
 local function Refresh()
     if not db or InCombatLockdown() then return end
-    local busy = UnitIsDeadOrGhost("player") or UnitOnTaxi("player")
-    local action = not busy and NextAction()
+    local action = not Busy() and NextAction() or nil -- nil, not false: SetShown below tests ~= nil
     if not action and container:IsUnlocked() then
         action = { icon = THANKS_ICON, title = L["Buffs and Thanks"], detail = L["Drag to move"], macro = "" }
     end
@@ -579,7 +609,7 @@ function mod:OnEnable()
     if not InCombatLockdown() then container:ApplyPosition() end
     for _, e in ipairs({ "UNIT_AURA", "GROUP_ROSTER_UPDATE", "PLAYER_REGEN_ENABLED", "PLAYER_REGEN_DISABLED",
                          "SPELLS_CHANGED", "PLAYER_ENTERING_WORLD", "PLAYER_LEVEL_UP", "PLAYER_TARGET_CHANGED",
-                         "MINIMAP_UPDATE_TRACKING" }) do
+                         "MINIMAP_UPDATE_TRACKING", "PLAYER_CONTROL_LOST", "PLAYER_CONTROL_GAINED" }) do
         pcall(events.RegisterEvent, events, e)
     end
     -- Group members walk in and out of range without any event.
