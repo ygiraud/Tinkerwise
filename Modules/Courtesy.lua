@@ -20,8 +20,11 @@ local DEFAULTS = {
     point = "CENTER", x = 0, y = -160,
 }
 
-local FAVOUR_SECONDS = 90   -- how long a favour waits for its thanks
+local db -- the module's saved settings, once enabled
+
+local FAVOUR_SECONDS = 90  -- how long a favour waits for its thanks
 local THANKED_SECONDS = 300 -- the same person is not thanked twice within this
+local REBUFF_SECONDS = 120  -- a buff of yours with this little left is offered again
 local THANKS_ICON = "Interface\\Icons\\INV_Misc_Gift_01"
 
 ---------------------------------------------------------------------------
@@ -94,6 +97,25 @@ local CLASS_BUFFS = {
     WARRIOR = { "battleshout" },
     WARLOCK = { "breath" },
 }
+
+local BLESSINGS = { "kings", "might", "wisdom", "salvation", "light", "sanctuary" }
+
+-- The buffs your class may offer, as the options list them: your own first, then what you hand out.
+local function ClassBuffKeys()
+    local class = select(2, UnitClass("player"))
+    local keys = {}
+    for _, family in ipairs(OWN_BUFFS[class] or {}) do
+        for _, key in ipairs(family) do keys[#keys + 1] = key end
+    end
+    for _, key in ipairs(CLASS_BUFFS[class] or {}) do
+        if key == "blessing" then
+            for _, blessing in ipairs(BLESSINGS) do keys[#keys + 1] = blessing end
+        else
+            keys[#keys + 1] = key
+        end
+    end
+    return keys
+end
 
 -- Tracking: only one at a time. The gathering ones are offered, first known first, when nothing is
 -- tracked; any of the others (a hunter's, a paladin's...) already takes the slot.
@@ -184,14 +206,46 @@ local function CastId(key)
     return ranks[#ranks]
 end
 
+-- The buff's name in the options: every name its ranks carry, lowest first ("Frost Armor / Ice
+-- Armor"), so it stays the same as you learn ranks and the unticked boxes keep their meaning.
+local function OptionName(key)
+    local buff = BUFFS[key]
+    if buff.optionName then return buff.optionName end
+    local names, seen, complete = {}, {}, true
+    for i = #buff.ranks, 1, -1 do
+        local name = SpellName(buff.ranks[i])
+        if not name then complete = false
+        elseif not seen[name] then seen[name] = true; names[#names + 1] = name end
+    end
+    local label = #names > 0 and table.concat(names, " / ") or key
+    if complete then buff.optionName = label end
+    return label
+end
+
+-- Whether the buff is ticked in the options (db.skipBuffs holds the unticked names).
+local function Wanted(key)
+    local skipped = db and db.skipBuffs
+    return not (skipped and skipped[OptionName(key)])
+end
+
 local function CastName(key) return SpellName(CastId(key)) end
 local function CastIcon(key) return SpellIcon(CastId(key)) end
 
-local function HasAura(unit, name)
+-- Whether the unit wears the aura, and when it runs out (nil when the game keeps it secret).
+local function FindAura(unit, name)
     if C_UnitAuras and C_UnitAuras.GetAuraDataBySpellName then
-        return Plain(C_UnitAuras.GetAuraDataBySpellName(unit, name, "HELPFUL")) ~= nil
+        local aura = Plain(C_UnitAuras.GetAuraDataBySpellName(unit, name, "HELPFUL"))
+        return aura ~= nil, aura and Plain(aura.expirationTime)
     end
-    return AuraUtil and AuraUtil.FindAuraByName(name, unit, "HELPFUL") ~= nil
+    if AuraUtil then
+        local found, _, _, _, _, expires = AuraUtil.FindAuraByName(name, unit, "HELPFUL")
+        return found ~= nil, Plain(expires)
+    end
+    return false
+end
+
+local function HasAura(unit, name)
+    return (FindAura(unit, name))
 end
 
 local function Wears(unit, key)
@@ -201,19 +255,51 @@ local function Wears(unit, key)
     return false
 end
 
+-- When the buff the unit wears runs out, if that is within REBUFF_SECONDS; nil otherwise (not
+-- worn, lasting, never running out or kept secret).
+local function FadingExpires(unit, key)
+    local latest
+    for _, name in ipairs(AuraNames(key)) do
+        local found, expires = FindAura(unit, name)
+        if found then
+            if not (expires and expires > 0) then return nil end
+            if expires - GetTime() > REBUFF_SECONDS then return nil end
+            latest = math.max(latest or 0, expires)
+        end
+    end
+    return latest
+end
+
+-- Whether the unit wears the buff with more than REBUFF_SECONDS left. A buff that never runs out
+-- (an aura, an aspect) or whose end the game keeps secret counts as lasting.
+local function WearsLasting(unit, key)
+    for _, name in ipairs(AuraNames(key)) do
+        local found, expires = FindAura(unit, name)
+        if found and not (expires and expires > 0 and expires - GetTime() <= REBUFF_SECONDS) then
+            return true
+        end
+    end
+    return false
+end
+
 local MANA_CLASSES = { MAGE = true, PRIEST = true, WARLOCK = true, DRUID = true, PALADIN = true, SHAMAN = true, HUNTER = true }
 local CASTERS = { MAGE = true, PRIEST = true, WARLOCK = true }
 
 -- A paladin's blessing for this person: Kings when known, else Wisdom for casters, else Might.
--- Nil when they already wear a blessing, since one paladin's blessings do not stack.
-local function Blessing(unit, class)
-    for _, key in ipairs({ "kings", "might", "wisdom", "salvation", "light", "sanctuary" }) do
-        if unit and Wears(unit, key) then return nil end
+-- Nil when they already wear a blessing, since one paladin's blessings do not stack. With rebuff
+-- (your own), a blessing about to run out is offered again when you know it.
+local function Blessing(unit, class, rebuff)
+    for _, key in ipairs(BLESSINGS) do
+        if unit and Wears(unit, key) then
+            if rebuff and not WearsLasting(unit, key) and Knows(key) and Wanted(key) then return key end
+            return nil
+        end
     end
-    if Knows("kings") then return "kings" end
-    if CASTERS[class] and Knows("wisdom") then return "wisdom" end
-    if Knows("might") then return "might" end
-    if Knows("wisdom") then return "wisdom" end
+    local function Can(key) return Knows(key) and Wanted(key) end
+    if Can("kings") then return "kings" end
+    if CASTERS[class] and Can("wisdom") then return "wisdom" end
+    if Can("might") then return "might" end
+    if Can("wisdom") then return "wisdom" end
 end
 
 -- Whether you are in the water: the buffs only worth having there (Unending Breath) wait for it.
@@ -238,7 +324,7 @@ local function MissingBuff(unit, class)
         if key == "blessing" then
             local blessing = Blessing(unit, class)
             if blessing then return blessing end
-        elseif not BUFFS[key].selfCast and Knows(key) and Worthwhile(key) and (hasMana or not BUFFS[key].manaOnly)
+        elseif not BUFFS[key].selfCast and Knows(key) and Wanted(key) and Worthwhile(key) and (hasMana or not BUFFS[key].manaOnly)
             and not (unit and Wears(unit, key)) then
             return key
         end
@@ -331,7 +417,6 @@ end
 -- whom below it, on a dark card. The whole card is the secure button: a click anywhere does it.
 ---------------------------------------------------------------------------
 
-local db
 local PAD, GAP, MIN_WIDTH = 6, 10, 150
 
 local container = CreateFrame("Frame", "TinkerwiseCourtesyFrame", UIParent, "BackdropTemplate")
@@ -386,11 +471,36 @@ alpha:SetDuration(0.25)
 alpha:SetSmoothing("OUT")
 container:SetScript("OnShow", function() fade:Play() end)
 
--- The glow breathes slowly while the card is up.
-local t = 0
+-- A buff of yours still on you counts down after its name: "Frost Armor  ·  1:42".
+local countdown, countdownDetail -- the buff's expirationTime, and the detail without the time
+local DOT = "  |cff808080\194\183|r  " -- a grey middle dot between the name and the spell
+
+local function CountdownText(seconds)
+    seconds = math.max(0, math.ceil(seconds))
+    return format("%s%s|cffffffff%d:%02d|r", countdownDetail, DOT, math.floor(seconds / 60), seconds % 60)
+end
+
+local Schedule -- set further down
+
+-- The glow breathes slowly while the card is up, and the countdown ticks (a few times a second,
+-- only while the card is shown: it is hidden during any fight).
+local t, sinceTick = 0, 0
 container:SetScript("OnUpdate", function(_, elapsed)
     t = t + elapsed
     glow:SetAlpha(0.25 + 0.35 * (0.5 + 0.5 * math.sin(t * 2.2)))
+    if not countdown then return end
+    sinceTick = sinceTick + elapsed
+    if sinceTick < 0.25 then return end
+    sinceTick = 0
+    local left = countdown - GetTime()
+    if left > 0 then
+        detail:SetText(CountdownText(left))
+    else
+        -- Gone: back to the plain card, and let the next refresh see the buff missing.
+        countdown = nil
+        detail:SetText(countdownDetail)
+        Schedule()
+    end
 end)
 
 local button = CreateFrame("Button", "TinkerwiseCourtesyButton", container, "SecureActionButtonTemplate")
@@ -422,8 +532,6 @@ local function Colored(name, class)
     return color and format("|cff%02x%02x%02x%s|r", color.r * 255, color.g * 255, color.b * 255, name) or name
 end
 
-local DOT = "  |cff808080\194\183|r  " -- a grey middle dot between the name and the spell
-
 -- What the next click does, or nil: { icon, title, detail, text (tooltip), macro, thanks = name }.
 local function NextAction()
     local now = GetTime()
@@ -453,25 +561,29 @@ local function NextAction()
     local function Self(key, macro)
         local spell = CastName(key)
         return { icon = CastIcon(key), title = L["Buff yourself"], detail = spell,
-                 text = format(L["Buff yourself: %s"], spell), macro = macro .. spell }
+                 text = format(L["Buff yourself: %s"], spell), macro = macro .. spell,
+                 expires = FadingExpires("player", key) } -- still on you: the card counts down
     end
 
     if db.self then
-        -- Your own buffs first (an armor, an aura, an aspect): any of a family will do.
+        -- Your own buffs first (an armor, an aura, an aspect): any of a family will do. One about
+        -- to run out (REBUFF_SECONDS) is offered again, the same one you wear.
         for _, family in ipairs(OWN_BUFFS[class] or {}) do
-            local worn, offer = false, nil
+            local worn, fading, offer = false, nil, nil
             for _, key in ipairs(family) do
-                if Wears("player", key) then worn = true break end
-                if not offer and Knows(key) then offer = key end
+                if WearsLasting("player", key) then worn = true break end
+                if not fading and Wears("player", key) and Knows(key) and Wanted(key) then fading = key end
+                if not offer and Knows(key) and Wanted(key) then offer = key end
             end
+            offer = fading or offer
             if not worn and offer then return Self(offer, "/cast ") end
         end
         for _, key in ipairs(mine) do
             local wanted = key
-            if key == "blessing" then wanted = Blessing("player", class) end
+            if key == "blessing" then wanted = Blessing("player", class, true) end
             local buff = wanted and BUFFS[wanted]
-            if buff and Knows(wanted) and Worthwhile(wanted) and (UnitPowerType("player") == 0 or not buff.manaOnly)
-                and not Wears("player", wanted) then
+            if buff and Knows(wanted) and Wanted(wanted) and Worthwhile(wanted) and (UnitPowerType("player") == 0 or not buff.manaOnly)
+                and not WearsLasting("player", wanted) then
                 return Self(wanted, buff.selfCast and "/cast " or "/cast [@player] ")
             end
         end
@@ -505,9 +617,32 @@ local function NextAction()
     end
 end
 
--- Nothing to offer while dead, on a flight path or out of control of your character. An answer the
--- game keeps secret counts as busy.
+local inEncounter = false -- between ENCOUNTER_START and ENCOUNTER_END
+
+-- Whether the fight is on, even before the game locks the secure button: you are flagged, a boss
+-- encounter runs (it may drop you out of combat for a phase), or somebody in your group already
+-- fights (the tank pulls the boss a moment before the rest of you are flagged).
+local function Fighting()
+    if inEncounter or (_G.IsEncounterInProgress and Plain(IsEncounterInProgress())) then return true end
+    local v = UnitAffectingCombat("player")
+    if v or (issecretvalue and issecretvalue(v)) then return true end
+    if IsInGroup() then
+        local prefix, count = IsInRaid() and "raid" or "party", IsInRaid() and 40 or 4
+        for i = 1, count do
+            local unit = prefix .. i
+            if UnitExists(unit) then
+                v = UnitAffectingCombat(unit)
+                if v and not (issecretvalue and issecretvalue(v)) then return true end
+            end
+        end
+    end
+    return false
+end
+
+-- Nothing to offer while dead, on a flight path, out of control of your character or while a fight
+-- is on. An answer the game keeps secret counts as busy.
 local function Busy()
+    if Fighting() then return true end
     for _, check in ipairs({ UnitIsDeadOrGhost, UnitOnTaxi }) do
         local v = check("player")
         if issecretvalue and issecretvalue(v) then return true end
@@ -535,8 +670,13 @@ local function Refresh()
         glow:SetSize(size * 1.75, size * 1.75)
         icon:SetTexture(action.icon or THANKS_ICON)
         title:SetText(action.title)
-        detail:SetText(action.detail or "")
+        countdownDetail = action.detail or ""
+        countdown = action.expires and action.expires > GetTime() and action.expires or nil
+        sinceTick = 0
+        -- Sized for the widest time ("0:00" digits are about as wide as any), so it never jitters.
+        detail:SetText(countdown and CountdownText(0) or countdownDetail)
         local textWidth = math.max(title:GetStringWidth(), detail:GetStringWidth())
+        if countdown then detail:SetText(CountdownText(countdown - GetTime())) end
         container:SetSize(math.max(MIN_WIDTH, PAD + size + GAP + textWidth + 14), size + 2 * PAD)
     end
     container:SetShown(action ~= nil)
@@ -551,7 +691,7 @@ button:SetScript("PostClick", function(self)
 end)
 
 local pending
-local function Schedule()
+function Schedule()
     if pending then return end
     pending = true
     C_Timer.After(0.3, function()
@@ -562,7 +702,9 @@ end
 
 local events = CreateFrame("Frame")
 events:SetScript("OnEvent", function(_, event, unit, info)
-    if event == "PLAYER_REGEN_DISABLED" then
+    if event == "ENCOUNTER_START" then inEncounter = true end
+    if event == "ENCOUNTER_END" or event == "PLAYER_ENTERING_WORLD" then inEncounter = false end
+    if event == "PLAYER_REGEN_DISABLED" or event == "ENCOUNTER_START" then
         -- The last moment the secure button may still be hidden before the fight locks it.
         if not InCombatLockdown() then container:Hide() end
         return
@@ -604,15 +746,27 @@ local mod = TW:NewModule("Courtesy", {
     },
 })
 
+-- One box per buff of your class (none for a class without any): an unticked one is never
+-- offered, to you or to your group.
+if #ClassBuffKeys() > 0 then
+    mod.options[#mod.options + 1] = { type = "header", label = L["Buffs to offer"] }
+    mod.options[#mod.options + 1] = { type = "checklist", key = "skipBuffs", items = function()
+        local names = {}
+        for _, key in ipairs(ClassBuffKeys()) do names[#names + 1] = OptionName(key) end
+        return names
+    end }
+end
+
 function mod:OnEnable()
     db = self.db
     if not InCombatLockdown() then container:ApplyPosition() end
     for _, e in ipairs({ "UNIT_AURA", "GROUP_ROSTER_UPDATE", "PLAYER_REGEN_ENABLED", "PLAYER_REGEN_DISABLED",
                          "SPELLS_CHANGED", "PLAYER_ENTERING_WORLD", "PLAYER_LEVEL_UP", "PLAYER_TARGET_CHANGED",
-                         "MINIMAP_UPDATE_TRACKING", "PLAYER_CONTROL_LOST", "PLAYER_CONTROL_GAINED" }) do
+                         "MINIMAP_UPDATE_TRACKING", "PLAYER_CONTROL_LOST", "PLAYER_CONTROL_GAINED",
+                         "ENCOUNTER_START", "ENCOUNTER_END" }) do
         pcall(events.RegisterEvent, events, e)
     end
-    -- Group members walk in and out of range without any event.
+    -- Group members walk in and out of range, and into a fight, without any event.
     ticker = C_Timer.NewTicker(2, Schedule)
     Refresh()
 end
