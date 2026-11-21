@@ -442,3 +442,12 @@ L["Friendly players in their class color"] = "Joueurs amicaux aux couleurs de le
 L["Look"] = "Apparence"
 L["Arrows around your target"] = "Flèches autour de votre cible"
 L["Health percentage"] = "Pourcentage de vie"
+
+-- Menu and bags bar
+L["Menu and Bags Bar"] = "Menu et barre des sacs"
+L["Shows the micro menu (character, spells, talents...) and the bags bar always, never or only when the mouse is over them. They are only made transparent, never moved: Edit Mode keeps their place, and they show while it is open."] = "Affiche le minimenu (personnage, sorts, talents...) et la barre des sacs tout le temps, jamais ou seulement au survol de la souris. Ils deviennent seulement transparents, sans être déplacés : le mode édition garde leur place, et ils s'affichent tant qu'il est ouvert."
+L["Micro menu"] = "Minimenu"
+L["Bags bar"] = "Barre des sacs"
+L["Always"] = "Tout le temps"
+L["On mouseover"] = "Au survol"
+L["Never"] = "Jamais"

@@ -31,6 +31,7 @@ Modules\ErrorMessages.lua
 Modules\DarkTheme.lua
 Modules\PlayerFrames.lua
 Modules\Nameplates.lua
+Modules\MenuBars.lua
 Modules\ImmersionScene.lua
 Modules\Immersion.lua
 Modules\QuestScene.lua

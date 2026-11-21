@@ -33,6 +33,7 @@ A toolbox for WoW Forever: independent modules you can turn on or off from a sin
 - **Dark Theme:** darkens unit frames, action bars, minimap, windows and tooltips with a tint of your choice or your class color, without moving anything
 - **Unit Frames:** dresses the game's unit frames without rebuilding them: health in class or reaction colors, bar texture, class colored names, class icon instead of the portrait
 - **Nameplates:** target and other plate sizes, class colors, health texture, arrows around your target and health percentage on the game's own nameplates
+- **Menu and Bags Bar:** shows the micro menu and the bags bar always, never or on mouseover
 
 **Immersion**
 - **Immersion Mode:** when the game's key hides the interface, adds black bars, keeps the elements you choose on screen and brings the interface back with a fade; it can also stage your quests as cinematic scenes

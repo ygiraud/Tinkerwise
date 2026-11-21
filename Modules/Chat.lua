@@ -639,15 +639,18 @@ local function ApplyFontSize()
     ForEachWindow(function(frame, i)
         local backup = db.fontBackup and db.fontBackup[i]
         if on then
+            -- Windows never set up (voice) report a size of 0: nothing to give back for them.
             if not backup and not frame.isTemporary then
                 local _, size = GetChatWindowInfo(i)
-                db.fontBackup = db.fontBackup or {}
-                db.fontBackup[i] = size
+                if size and size > 0 then
+                    db.fontBackup = db.fontBackup or {}
+                    db.fontBackup[i] = size
+                end
             end
             local _, current = frame:GetFont()
             if not current or math.floor(current + 0.5) ~= db.fontSize then SetFontSize(frame, db.fontSize) end
         elseif backup then
-            SetFontSize(frame, backup)
+            if backup > 0 then SetFontSize(frame, backup) end
             db.fontBackup[i] = nil
         end
     end)
