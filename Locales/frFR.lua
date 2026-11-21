@@ -304,7 +304,6 @@ L["Improves the chat: easier typing, more readable lines, copying a window's tex
 L["Whispers"] = "Chuchotements"
 L["Guild"] = "Guilde"
 L["One new tab per whisper conversation"] = "Un nouvel onglet par conversation privée"
-L["Channel follows the selected tab"] = "Canal de discussion selon l'onglet sélectionné"
 L["Copy (Ctrl + C)"] = "Copier (Ctrl + C)"
 L["Copy this chat window"] = "Copier cette fenêtre de tchat"
 L["no free chat window for the \"%s\" tab."] = "plus de fenêtre de tchat libre pour l'onglet « %s »."

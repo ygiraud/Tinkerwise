@@ -383,7 +383,8 @@ local favour        -- { name = "Name-Realm", unit = token when seen, class = "M
 local thanked = {}  -- name -> GetTime() of the thanks
 
 local function UnitForName(name)
-    local function Is(unit) return UnitExists(unit) and GetUnitName(unit, true) == name end
+    -- A name the game keeps secret (a stranger under the mouse) cannot be compared: not that one.
+    local function Is(unit) return UnitExists(unit) and Plain(GetUnitName(unit, true)) == name end
     for _, unit in ipairs({ "target", "focus", "mouseover" }) do
         if Is(unit) then return unit end
     end
@@ -403,7 +404,7 @@ local function NoteFavours(info)
         local id, source = Plain(aura.spellId), Plain(aura.sourceUnit)
         if id and FAVOUR_IDS[id] and source and Plain(aura.isHelpful) ~= false
             and not UnitIsUnit(source, "player") and UnitIsPlayer(source) then
-            local name = GetUnitName(source, true)
+            local name = Plain(GetUnitName(source, true))
             local last = name and thanked[name]
             if name and not (last and GetTime() - last < THANKED_SECONDS) then
                 favour = { name = name, unit = source, class = select(2, UnitClass(source)), time = GetTime() }
@@ -597,7 +598,7 @@ local function NextAction()
                 local unitClass = select(2, UnitClass(unit))
                 local key = MissingBuff(unit, unitClass)
                 if key and CanReach(unit, key) then
-                    local spell, name = CastName(key), GetUnitName(unit, false)
+                    local spell, name = CastName(key), Plain(GetUnitName(unit, false)) or unit
                     return { icon = CastIcon(key), title = L["Buff the group"],
                              detail = Colored(name, unitClass) .. DOT .. spell,
                              text = format(L["Buff %s: %s"], name, spell),

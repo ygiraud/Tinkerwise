@@ -23,7 +23,7 @@ A toolbox for WoW Forever: independent modules you can turn on or off from a sin
 - **Buffs and Thanks:** one button, outside combat, to buff yourself and your group, and to thank (and buff back) whoever buffs you, and to turn herb, mineral or treasure tracking back on
 
 **Chat**
-- **Chat:** a new tab for each whisper conversation with a close button, group and guild tabs, a channel that follows the selected tab, class-colored names, timestamps, clickable links, copying and resizable windows with a custom background
+- **Chat:** a new tab for each whisper conversation with a close button, group and guild tabs, class-colored names, timestamps, clickable links, copying and resizable windows with a custom background
 
 **Interface**
 - **Minimap:** a square minimap with a bronze border (thickness and color of your choice), its icons in a column on the left or right, mouse wheel zoom and no zoom buttons

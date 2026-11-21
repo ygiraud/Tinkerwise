@@ -438,34 +438,6 @@ local function ApplyWhisperMode()
     end
 end
 
----------------------------------------------------------------------------
--- Channel following the selected tab
----------------------------------------------------------------------------
-
--- Returns the chat type and whisper target of a window, or nothing to leave the channel alone.
-local function WindowChannel(frame)
-    if IsWhisperWindow(frame) then return frame.chatType, frame.chatTarget end
-    if frame == ChatFrame1 then return "SAY" end
-    local name = GetChatWindowInfo(frame:GetID())
-    if name == L["Group"] then
-        if IsInRaid() then return "RAID" end
-        if IsInGroup() then return "PARTY" end
-    elseif name == L["Guild"] and IsInGuild() then
-        return "GUILD"
-    end
-end
-
-local function SelectChannel(frame)
-    if not (mod.active and mod.db.autoChannel and frame) then return end
-    local chatType, target = WindowChannel(frame)
-    if not chatType then return end
-    local box = ChatEdit_ChooseBoxForSend(frame)
-    box:SetAttribute("chatType", chatType)
-    box:SetAttribute("stickyType", chatType)
-    if target then box:SetAttribute("tellTarget", target) end
-    ChatEdit_UpdateHeader(box)
-end
-
 local function OpenTab(tab)
     local frame = FindTab(tab.name)
     if frame then
@@ -749,16 +721,10 @@ local function HookGame()
             end
         end)
     end
-    if FCF_Tab_OnClick then
-        hooksecurefunc("FCF_Tab_OnClick", function(tab)
-            SelectChannel(_G["ChatFrame" .. tab:GetID()])
-        end)
-    end
+    -- No channel is chosen for the selected tab: setting the typing box's channel from an addon
+    -- taints it, and protected commands typed afterwards (/invite, /cast...) are then refused.
     if FCFDock_SelectWindow then
-        hooksecurefunc("FCFDock_SelectWindow", function(_, frame)
-            AlignDockedWindows()
-            SelectChannel(frame)
-        end)
+        hooksecurefunc("FCFDock_SelectWindow", function() AlignDockedWindows() end)
     end
 end
 
@@ -780,7 +746,7 @@ mod = TW:NewModule("Chat", {
         timestamps = true, classColors = true, shortChannels = true, noFade = false,
         copyButton = true, resizeGrip = true, fontSize = 12,
         customBackground = true, bgColor = { r = 0, g = 0, b = 0 }, bgOpacity = 40,
-        whisperTabs = true, whisperClose = true, autoChannel = true, tabGroup = true, tabGuild = true, removeFromGeneral = true, colorTabs = true, alwaysShowTabs = true,
+        whisperTabs = true, whisperClose = true, tabGroup = true, tabGuild = true, removeFromGeneral = true, colorTabs = true, alwaysShowTabs = true,
     },
     options = {
         { type = "header", label = L["Typing"] },
@@ -803,7 +769,6 @@ mod = TW:NewModule("Chat", {
         { type = "header", label = L["Tabs"] },
         { type = "toggle", key = "whisperTabs", label = L["One new tab per whisper conversation"] },
         { type = "toggle", key = "whisperClose", label = L["Close button on whisper tabs"] },
-        { type = "toggle", key = "autoChannel", label = L["Channel follows the selected tab"] },
         { type = "toggle", key = "tabGuild", label = L["Guild"] },
         { type = "toggle", key = "tabGroup", label = L["Group and raid"] },
         { type = "toggle", key = "removeFromGeneral", label = L["Remove these messages from the General tab"] },

@@ -236,12 +236,25 @@ local function CreateSelect(parent, opt, mod)
             info.text = v[2]
             info.checked = mod.db[opt.key] == v[1]
             info.func = function()
+                UIDropDownMenu_SetText(dd, v[2]) -- first: the choice shows even if applying it fails
                 TW:SetOption(mod, opt.key, v[1])
-                UIDropDownMenu_SetText(dd, v[2])
             end
             UIDropDownMenu_AddButton(info)
         end
     end)
+
+    -- The game's list can open under this window (same strata): the options below the list then
+    -- took the clicks. Bring it up front each time it opens.
+    local opener = dd.Button or _G[dd:GetName() .. "Button"]
+    if opener then
+        opener:HookScript("OnClick", function()
+            local list = _G.DropDownList1
+            if list and list:IsShown() then
+                list:SetFrameStrata("FULLSCREEN_DIALOG")
+                list:Raise()
+            end
+        end)
+    end
 
     function w:Refresh() UIDropDownMenu_SetText(dd, LabelOf(mod.db[opt.key])) end
     function w:MinWidth() return math.max(label:GetStringWidth(), 236) end
