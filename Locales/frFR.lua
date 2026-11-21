@@ -445,7 +445,7 @@ L["Health percentage"] = "Pourcentage de vie"
 
 -- Menu and bags bar
 L["Menu, Bags and Quests"] = "Menu, sacs et quêtes"
-L["Shows the micro menu (character, spells, talents...), the bags bar and the quest tracker always, never or only when the mouse is over them. They are only made transparent, never moved: Edit Mode keeps their place, and they show while it is open."] = "Affiche le minimenu (personnage, sorts, talents...), la barre des sacs et le suivi des quêtes tout le temps, jamais ou seulement au survol de la souris. Ils deviennent seulement transparents, sans être déplacés : le mode édition garde leur place, et ils s'affichent tant qu'il est ouvert."
+L["Shows the micro menu (character, spells, talents...), the bags bar and the quest tracker always, never or only when the mouse is over them (the quest tracker only once folded). They are only made transparent, never moved: Edit Mode keeps their place, and they show while it is open."] = "Affiche le minimenu (personnage, sorts, talents...), la barre des sacs et le suivi des quêtes tout le temps, jamais ou seulement au survol de la souris (le suivi des quêtes seulement une fois replié). Ils deviennent seulement transparents, sans être déplacés : le mode édition garde leur place, et ils s'affichent tant qu'il est ouvert."
 L["Micro menu"] = "Minimenu"
 L["Bags bar"] = "Barre des sacs"
 L["Always"] = "Tout le temps"

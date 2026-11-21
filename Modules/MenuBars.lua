@@ -29,9 +29,21 @@ local function EditModeOpen()
     return EditModeManagerFrame and EditModeManagerFrame:IsShown()
 end
 
-local function WantedAlpha(frame, mode)
+-- Whether the quest tracker is folded (recent clients, then older ones). Fields are only read.
+local function IsCollapsed(frame)
+    if frame.IsCollapsed then
+        local ok, collapsed = pcall(frame.IsCollapsed, frame)
+        if ok then return collapsed and true or false end
+    end
+    if frame.isCollapsed ~= nil then return frame.isCollapsed and true or false end
+    return frame.collapsed and true or false
+end
+
+local function WantedAlpha(bar, frame, mode)
     if mode == "always" or EditModeOpen() then return 1 end
     if mode == "never" then return 0 end
+    -- An unfolded quest tracker stays shown: the mouseover only applies once it is folded.
+    if bar.key == "questTracker" and not IsCollapsed(frame) then return 1 end
     return frame:IsMouseOver() and 1 or 0
 end
 
@@ -40,7 +52,7 @@ local function Update()
         local frame = FrameOf(bar)
         if frame then
             local mode = mod.active and db[bar.key] or "always"
-            local wanted = WantedAlpha(frame, mode)
+            local wanted = WantedAlpha(bar, frame, mode)
             local alpha = frame:GetAlpha()
             if alpha ~= wanted and (mode ~= "always" or touched[frame]) then
                 touched[frame] = true
@@ -86,7 +98,7 @@ mod = TW:NewModule("MenuBars", {
     title = L["Menu, Bags and Quests"],
     icon = "Interface\\Icons\\INV_Misc_Bag_08",
     section = L["Interface"],
-    desc = L["Shows the micro menu (character, spells, talents...), the bags bar and the quest tracker always, never or only when the mouse is over them. They are only made transparent, never moved: Edit Mode keeps their place, and they show while it is open."],
+    desc = L["Shows the micro menu (character, spells, talents...), the bags bar and the quest tracker always, never or only when the mouse is over them (the quest tracker only once folded). They are only made transparent, never moved: Edit Mode keeps their place, and they show while it is open."],
     defaults = { microMenu = "hover", bagsBar = "hover", questTracker = "always" },
     options = {
         { type = "select", key = "microMenu", label = L["Micro menu"], values = CHOICES },
