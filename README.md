@@ -28,12 +28,12 @@ Copiez le dossier dans `World of Warcraft\_forever_\Interface\AddOns\`. Il doit 
 - **Objets :** Comparateur d'objets, Niveau d'objet, Liens Wowhead, Vendeur automatique
 - **Groupe :** Confort de groupe, Buffs et remerciements
 - **Tchat :** Tchat
-- **Interface :** Minimap, Messages d'erreur, Thème sombre, Cadres de joueurs, Barres d'info, Menu et barre des sacs
+- **Interface :** Thème sombre, Apparence (fenêtres de Tinkerwise en or ou aux couleurs de la classe), Cadres de joueurs, Barres d'info, Minimap, Menu, sacs et quêtes, Messages d'erreur
 - **Immersion :** Mode immersion (avec la scène de quête), Modes AFK et vol
-- **Configuration :** Réglages par défaut, Apparence (fenêtres en or ou aux couleurs de la classe), Bouton de la minicarte
+- **Configuration :** Réglages par défaut, Bouton de la minicarte
 
 Changements de stats affiche aussi un résumé à chaque niveau gagné. Pour y voir les sorts à apprendre au maître de classe, installez l'addon [What's Training?](https://www.curseforge.com/wow/addons/whats-training). Sans lui, le résumé n'affiche que les stats.
 
 Mes personnages classe vos personnages par mode de jeu (PvE, PvP, Hardcore, RP, RP-PvP, détecté automatiquement) et par groupes que vous créez, par exemple « PvE - Groupe par défaut » et « PvE - Guilde ». Les infobulles ne comptent que le groupe courant, et les fenêtres l'affichent par défaut, avec un menu pour consulter les autres. Le module s'active par personnage.
 
-Les réglages sont enregistrés par personnage, sauf ceux de Réglages par défaut et Mes personnages, communs au compte. Tous les modules sont activés par défaut : désactivez ceux dont vous ne voulez pas dans `/tw`. Ceux de la section Configuration restent toujours actifs.
+Les réglages sont enregistrés par personnage, sauf ceux de Réglages par défaut et Mes personnages, communs au compte. Tous les modules sont activés par défaut : désactivez ceux dont vous ne voulez pas dans `/tw`. Apparence, Réglages par défaut et Bouton de la minicarte restent toujours actifs.

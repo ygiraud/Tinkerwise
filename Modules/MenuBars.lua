@@ -1,6 +1,6 @@
--- MenuBars: shows the micro menu and the bags bar always, never, or only while the mouse is over them.
--- Only their transparency changes: they are never hidden or moved, so Edit Mode keeps their layout
--- and nothing is blocked in combat. While Edit Mode is open, both show.
+-- MenuBars: shows the micro menu, the bags bar and the quest tracker always, never, or only while the
+-- mouse is over them. Only their transparency changes: they are never hidden or moved, so Edit Mode
+-- keeps their layout and nothing is blocked in combat. While Edit Mode is open, they all show.
 
 local _, ns = ...
 local L = ns.L
@@ -13,6 +13,7 @@ local FADE_STEP = 0.2 -- alpha per check: about a quarter of a second for a full
 local BARS = {
     { key = "microMenu", names = { "MicroMenuContainer", "MicroMenu", "MicroButtonAndBagsBar" } },
     { key = "bagsBar", names = { "BagsBar" } },
+    { key = "questTracker", names = { "ObjectiveTrackerFrame", "QuestWatchFrame", "WatchFrame" } },
 }
 
 local mod, db, ticker
@@ -54,7 +55,11 @@ local function Update()
 end
 
 local function NeedsTicker()
-    return mod.active and (db.microMenu ~= "always" or db.bagsBar ~= "always")
+    if not mod.active then return false end
+    for _, bar in ipairs(BARS) do
+        if db[bar.key] ~= "always" then return true end
+    end
+    return false
 end
 
 local function Apply()
@@ -78,14 +83,15 @@ local CHOICES = {
 }
 
 mod = TW:NewModule("MenuBars", {
-    title = L["Menu and Bags Bar"],
+    title = L["Menu, Bags and Quests"],
     icon = "Interface\\Icons\\INV_Misc_Bag_08",
     section = L["Interface"],
-    desc = L["Shows the micro menu (character, spells, talents...) and the bags bar always, never or only when the mouse is over them. They are only made transparent, never moved: Edit Mode keeps their place, and they show while it is open."],
-    defaults = { microMenu = "hover", bagsBar = "hover" },
+    desc = L["Shows the micro menu (character, spells, talents...), the bags bar and the quest tracker always, never or only when the mouse is over them. They are only made transparent, never moved: Edit Mode keeps their place, and they show while it is open."],
+    defaults = { microMenu = "hover", bagsBar = "hover", questTracker = "always" },
     options = {
         { type = "select", key = "microMenu", label = L["Micro menu"], values = CHOICES },
         { type = "select", key = "bagsBar", label = L["Bags bar"], values = CHOICES },
+        { type = "select", key = "questTracker", label = L["Quest tracker"], values = CHOICES },
     },
 })
 

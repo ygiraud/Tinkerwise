@@ -2,7 +2,7 @@
 
 A toolbox for WoW Forever: independent modules you can turn on or off from a single window.
 
-**Available in English and French**, based on your game language. All modules are on by default: type `/tw` to turn off the ones you don't want. Those in the Configuration section always stay on.
+**Available in English and French**, based on your game language. All modules are on by default: type `/tw` to turn off the ones you don't want. Appearance, Default Settings and Minimap Button always stay on.
 
 ## Modules
 
@@ -28,12 +28,13 @@ A toolbox for WoW Forever: independent modules you can turn on or off from a sin
 - **Chat:** a new tab for each whisper conversation with a close button, group and guild tabs, class-colored names, timestamps, clickable links, a whisper alert, copying and resizable windows with a custom background
 
 **Interface**
-- **Minimap:** a square minimap with a bronze border (thickness and color of your choice), its icons in a column on the left or right, mouse wheel zoom and no zoom buttons
-- **Error Messages:** hides the red error messages and their voice, always or in combat only
 - **Dark Theme:** darkens unit frames, action bars, minimap, windows and tooltips with a tint of your choice or your class color, without moving anything
+- **Appearance:** the Tinkerwise windows (configuration, check-up) in gold or in your class color
 - **Unit Frames:** dresses the game's unit frames without rebuilding them: health in class or reaction colors, bar texture, class colored names, class icon instead of the portrait
 - **Nameplates:** target and other plate sizes, class colors, health texture, arrows around your target and health percentage on the game's own nameplates
-- **Menu and Bags Bar:** shows the micro menu and the bags bar always, never or on mouseover
+- **Minimap:** a square minimap with a bronze border (thickness and color of your choice), its icons in a column on the left or right, mouse wheel zoom and no zoom buttons
+- **Menu, Bags and Quests:** shows the micro menu, the bags bar and the quest tracker always, never or on mouseover
+- **Error Messages:** hides the red error messages and their voice, always or in combat only
 
 **Immersion**
 - **Immersion Mode:** when the game's key hides the interface, adds black bars, keeps the elements you choose on screen and brings the interface back with a fade; it can also stage your quests as cinematic scenes
@@ -41,7 +42,6 @@ A toolbox for WoW Forever: independent modules you can turn on or off from a sin
 
 **Configuration**
 - **Default Settings:** keeps auto loot on, loots faster and sets up new characters
-- **Appearance:** the configuration and check-up windows in gold or in your class color
 - **Minimap Button:** quick access and customizable clicks
 
 ## Optional addons

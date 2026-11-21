@@ -26,12 +26,13 @@ Modules\AutoVendor.lua
 Modules\GroupComfort.lua
 Modules\Courtesy.lua
 Modules\Chat.lua
-Modules\SquareMinimap.lua
-Modules\ErrorMessages.lua
 Modules\DarkTheme.lua
+Modules\Appearance.lua
 Modules\PlayerFrames.lua
 Modules\Nameplates.lua
+Modules\SquareMinimap.lua
 Modules\MenuBars.lua
+Modules\ErrorMessages.lua
 Modules\ImmersionScene.lua
 Modules\Immersion.lua
 Modules\QuestScene.lua
@@ -39,6 +40,5 @@ Modules\AfkMode.lua
 Modules\FlightMode.lua
 Modules\AwayModes.lua
 Modules\CharDefaults.lua
-Modules\Appearance.lua
 Config.lua
 Minimap.lua

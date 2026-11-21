@@ -118,7 +118,7 @@ end)
 
 mod = TW:NewModule("WowheadLinks", {
     title = L["Wowhead Links"],
-    icon = "Interface\\Icons\\INV_Misc_Book_09",
+    icon = "Interface\\Icons\\INV_Scroll_03",
     section = L["Items"],
     desc = L["Hover over an item, a spell, a quest or a creature and press Ctrl + C: a small window shows its Wowhead (Classic) address, ready to copy with Ctrl + C again and paste in your browser."],
     defaults = {},
