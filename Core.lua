@@ -5,7 +5,7 @@
 --   section            group name in the module list (default "Misc")
 --   icon               texture path shown in the configuration window
 --   defaults           table of saved settings (copied into mod.db)
---   alwaysEnabled      true for a module that is always on and cannot be disabled (default: starts disabled)
+--   alwaysEnabled      true for a module that is always on and cannot be disabled (default: starts enabled)
 --   accountWide        true to share settings between characters (default: per character)
 --   perCharacterToggle with accountWide: settings stay shared, but each character turns the module on or off
 --   options            list of option widgets (see Config.lua)
@@ -380,15 +380,17 @@ loader:SetScript("OnEvent", function(_, event, arg1)
             if mod.perCharacterToggle then
                 state = TinkerwiseCharDB.modules[mod.key]
                 if not state then
-                    state = { enabled = db.enabled, defaultApplied = db.defaultApplied }
+                    state = { enabled = db.enabled, allOnApplied = db.allOnApplied }
                     TinkerwiseCharDB.modules[mod.key] = state
                 end
             end
-            -- Modules start off once, even if saved as on; then the player's choice stays.
+            -- Modules start on once, even if saved as off (they all started off before); then the
+            -- player's choice stays.
+            state.defaultApplied = nil
             if mod.alwaysEnabled then
                 state.enabled = true
-            elseif not state.defaultApplied then
-                state.enabled, state.defaultApplied = false, true
+            elseif not state.allOnApplied then
+                state.enabled, state.allOnApplied = true, true
             end
             if state.enabled == nil then state.enabled = true end
             mod.db, mod.state = db, state

@@ -2,7 +2,7 @@
 
 A toolbox for WoW Forever: independent modules you can turn on or off from a single window.
 
-**Available in English and French**, based on your game language. All modules are off by default, except those in the Configuration section: type `/tw` to choose yours.
+**Available in English and French**, based on your game language. All modules are on by default: type `/tw` to turn off the ones you don't want. Those in the Configuration section always stay on.
 
 ## Modules
 
@@ -32,6 +32,7 @@ A toolbox for WoW Forever: independent modules you can turn on or off from a sin
 - **Error Messages:** hides the red error messages and their voice, always or in combat only
 - **Dark Theme:** darkens unit frames, action bars, minimap, windows and tooltips with a tint of your choice or your class color, without moving anything
 - **Unit Frames:** dresses the game's unit frames without rebuilding them: health in class or reaction colors, bar texture, class colored names, class icon instead of the portrait
+- **Nameplates:** target and other plate sizes, class colors, health texture, arrows around your target and health percentage on the game's own nameplates
 
 **Immersion**
 - **Immersion Mode:** when the game's key hides the interface, adds black bars, keeps the elements you choose on screen and brings the interface back with a fade; it can also stage your quests as cinematic scenes
