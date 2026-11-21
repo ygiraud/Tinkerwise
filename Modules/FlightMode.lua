@@ -1,11 +1,12 @@
 -- FlightMode: during a flight master trip, the interface fades away and black bands show the route,
 -- the zone below and the time. The camera is left alone. Each route's duration is remembered, which
 -- gives an estimate of the time left from the second flight on. When the scene doesn't play (turned
--- off, closed, combat), a small timer at the top of the screen shows the time left. The flight map
+-- off, closed, combat), a progress bar at the top of the screen shows the time left. The flight map
 -- tooltips show the duration of the routes already flown.
 
 local _, ns = ...
 local L = ns.L
+local TW = ns.TW
 local ImmersionScene = ns.ImmersionScene
 
 local issecretvalue = _G.issecretvalue
@@ -39,15 +40,46 @@ timer:SetPoint("TOPRIGHT", bottomBand, "TOPRIGHT", -40, -20)
 local remaining = bottomBand:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
 remaining:SetPoint("TOPRIGHT", timer, "BOTTOMRIGHT", 0, -6)
 
--- Small timer shown when the scene doesn't play.
-local mini = CreateFrame("Frame", "TinkerwiseFlightTimer", UIParent)
-mini:SetSize(1, 1)
-mini:SetPoint("TOP", UIParent, "TOP", 0, -110)
+-- Progress bar shown when the scene doesn't play: the destination above, the time on the bar.
+local WHITE = "Interface\\Buttons\\WHITE8x8"
+local mini = CreateFrame("Frame", "TinkerwiseFlightTimer", UIParent, "BackdropTemplate")
+mini:SetSize(264, 20)
+mini:SetPoint("TOP", UIParent, "TOP", 0, -120)
 mini:SetFrameStrata("MEDIUM")
+mini:SetBackdrop({ bgFile = WHITE, edgeFile = WHITE, edgeSize = 1 })
+mini:SetBackdropColor(0, 0, 0, 0.6)
+mini:SetBackdropBorderColor(0, 0, 0, 1)
 mini:Hide()
-local miniText = mini:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
-miniText:SetPoint("TOP")
+
+local miniBar = CreateFrame("StatusBar", nil, mini)
+miniBar:SetPoint("TOPLEFT", 2, -2)
+miniBar:SetPoint("BOTTOMRIGHT", -2, 2)
+miniBar:SetStatusBarTexture("Interface\\TargetingFrame\\UI-StatusBar")
+miniBar:SetMinMaxValues(0, 1)
+miniBar:SetValue(0)
+
+local miniTitle = mini:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+miniTitle:SetPoint("BOTTOM", mini, "TOP", 0, 4)
+miniTitle:SetShadowOffset(1, -1)
+
+local miniText = miniBar:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+miniText:SetPoint("CENTER")
 miniText:SetShadowOffset(1, -1)
+
+-- The bar takes the color of the Tinkerwise windows (gold or class color), a little darker so
+-- the white time stays readable.
+TW:OnTheme(function(theme)
+    local c = theme and theme.accent or { 1, 0.82, 0 }
+    miniBar:SetStatusBarColor(c[1] * 0.75, c[2] * 0.75, c[3] * 0.75)
+    miniTitle:SetTextColor(c[1], c[2], c[3])
+end)
+
+local miniDuration -- known duration of the current route, or nil
+mini:SetScript("OnUpdate", function()
+    if miniDuration and startedAt then
+        miniBar:SetValue(math.min((GetTime() - startedAt) / miniDuration, 1))
+    end
+end)
 
 ---------------------------------------------------------------------------
 -- Route and display
@@ -87,8 +119,11 @@ local function ShowMini(show)
         return
     end
     local elapsed = GetTime() - startedAt
-    local left = TimeLeftText(elapsed) or format(L["%s elapsed"], FormatDuration(elapsed))
-    miniText:SetText(format("%s  |cffffffff%s|r", route and route.to or L["In flight"], left))
+    -- An unknown route (first flight) leaves the bar empty and counts the time flown.
+    miniDuration = KnownDuration()
+    if not miniDuration then miniBar:SetValue(0) end
+    miniTitle:SetText(route and route.to or L["In flight"])
+    miniText:SetText(TimeLeftText(elapsed) or format(L["%s elapsed"], FormatDuration(elapsed)))
     mini:Show()
 end
 

@@ -17,7 +17,7 @@ local DEFAULTS = {
     buffBack = true,
     track = true,
     size = 40,
-    point = "CENTER", x = 0, y = -160,
+    point = "TOP", x = 0, y = -140,
 }
 
 local db -- the module's saved settings, once enabled
@@ -760,6 +760,10 @@ end
 
 function mod:OnEnable()
     db = self.db
+    -- The card used to sit in the middle of the screen: an untouched position moves to the top.
+    if db.point == "CENTER" and db.x == 0 and db.y == -160 then
+        db.point, db.x, db.y = DEFAULTS.point, DEFAULTS.x, DEFAULTS.y
+    end
     if not InCombatLockdown() then container:ApplyPosition() end
     for _, e in ipairs({ "UNIT_AURA", "GROUP_ROSTER_UPDATE", "PLAYER_REGEN_ENABLED", "PLAYER_REGEN_DISABLED",
                          "SPELLS_CHANGED", "PLAYER_ENTERING_WORLD", "PLAYER_LEVEL_UP", "PLAYER_TARGET_CHANGED",

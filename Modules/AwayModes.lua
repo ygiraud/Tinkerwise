@@ -18,7 +18,7 @@ local mod = TW:NewModule("AwayModes", {
     section = "Immersion",
     desc = L["When you go AFK (/afk or after a while), the interface fades away and the camera turns slowly around your character. The screen shows the time away and the whispers received. Move or send a message to come back, or click the cross or press Escape to get the interface back while staying AFK. Out of combat only. The camera uses the game's view slot 5."]
         .. "\n\n" .. L["During a flight master trip, the interface fades away and the screen shows the destination, the zone below and the flight time. The time left appears once you have flown that route. The camera doesn't move. Click the cross or press Escape to get the interface back. Out of combat only."]
-        .. " " .. L["Otherwise, a small timer at the top of the screen shows the time left, and the flight map shows how long the routes you know take."]
+        .. " " .. L["Otherwise, a progress bar at the top of the screen shows the time left, and the flight map shows how long the routes you know take."]
         .. "\n\n" .. L["In both modes, your bags and the world map open with their usual keys, above the scene. Escape closes them first."],
     defaults = { afk = true, flight = true, flightTimer = true, flightTooltip = true, camera = true, routes = {} },
     replaces = { AfkMode = "afk", FlightMode = "flight" },
@@ -29,7 +29,7 @@ local mod = TW:NewModule("AwayModes", {
         { type = "execute", label = L["Test (15 s)"], func = function(self) ns.AfkMode.Test(self.db) end },
         { type = "header", label = L["In flight"] },
         { type = "toggle", key = "flight", label = L["During a flight"] },
-        { type = "toggle", key = "flightTimer", label = L["Small timer when the scene is hidden"] },
+        { type = "toggle", key = "flightTimer", label = L["Progress bar when the scene is hidden"] },
         { type = "toggle", key = "flightTooltip", label = L["Flight time in the flight map tooltips"] },
         { type = "execute", label = L["Test (15 s)"], func = function(self) ns.FlightMode.Test(self.db) end },
     },

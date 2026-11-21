@@ -376,8 +376,8 @@ L["Hides the red error messages at the top of the screen (\"Not enough mana\", \
 L["Only in combat"] = "Seulement en combat"
 
 -- Flight
-L["Otherwise, a small timer at the top of the screen shows the time left, and the flight map shows how long the routes you know take."] = "Sinon, un petit minuteur en haut de l'écran indique le temps restant, et la carte des vols affiche la durée des trajets que vous connaissez."
-L["Small timer when the scene is hidden"] = "Petit minuteur quand la scène est masquée"
+L["Otherwise, a progress bar at the top of the screen shows the time left, and the flight map shows how long the routes you know take."] = "Sinon, une barre de progression en haut de l'écran indique le temps restant, et la carte des vols affiche la durée des trajets que vous connaissez."
+L["Progress bar when the scene is hidden"] = "Barre de progression quand la scène est masquée"
 L["Flight time in the flight map tooltips"] = "Durée du vol dans les infobulles de la carte des vols"
 L["Flight time: %s"] = "Durée du vol : %s"
 L["Flight time not known yet"] = "Durée du vol pas encore connue"
