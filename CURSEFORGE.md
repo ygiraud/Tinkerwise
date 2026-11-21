@@ -16,24 +16,27 @@ A toolbox for WoW Forever: independent modules you can turn on or off from a sin
 
 **Items**
 - **Item Comparison:** gains and losses in the tooltip
+- **Item Level:** the item level on your gear in the character sheet, the inspect window and the game's bags
+- **Wowhead Links:** Ctrl + C over an item, spell, quest or creature gives its Wowhead address to copy
 - **Auto Vendor:** sells gray items and repairs your gear
 
 **Group**
-- **Group Comfort:** accepts invitations from friends and guildmates, resurrections and, optionally, summons
+- **Group Comfort:** accepts invitations from friends and guildmates, resurrections and, optionally, summons, and can turn down duels
 - **Buffs and Thanks:** one button, outside combat, to buff yourself and your group, and to thank (and buff back) whoever buffs you, and to turn herb, mineral or treasure tracking back on
 
 **Chat**
-- **Chat:** a new tab for each whisper conversation with a close button, group and guild tabs, class-colored names, timestamps, clickable links, copying and resizable windows with a custom background
+- **Chat:** a new tab for each whisper conversation with a close button, group and guild tabs, class-colored names, timestamps, clickable links, a whisper alert, copying and resizable windows with a custom background
 
 **Interface**
 - **Minimap:** a square minimap with a bronze border (thickness and color of your choice), its icons in a column on the left or right, mouse wheel zoom and no zoom buttons
+- **Error Messages:** hides the red error messages and their voice, always or in combat only
 
 **Immersion**
 - **Immersion Mode:** when the game's key hides the interface, adds black bars, keeps the elements you choose on screen and brings the interface back with a fade; it can also stage your quests as cinematic scenes
-- **AFK and Flight Modes:** each can be turned on separately. When you're away, fades out the interface and slowly turns the camera around your character, showing your time away and the whispers you received. During a flight master trip, fades out the interface and shows your destination, the zone below and the flight time. In both, your bags and the world map open above the scene with their usual keys
+- **AFK and Flight Modes:** each can be turned on separately. When you're away, fades out the interface and slowly turns the camera around your character, showing your time away and the whispers you received. During a flight master trip, fades out the interface and shows your destination, the zone below and the flight time, with a small timer when the scene is hidden and route durations on the flight map. In both, your bags and the world map open above the scene with their usual keys
 
 **Configuration**
-- **Default Settings:** sets up new characters
+- **Default Settings:** keeps auto loot on, loots faster and sets up new characters
 - **Appearance:** the configuration and check-up windows in gold or in your class color
 - **Minimap Button:** quick access and customizable clicks
 

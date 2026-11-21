@@ -20,11 +20,14 @@ Modules\Characters.lua
 Modules\CharacterGroups.lua
 Modules\StatDelta.lua
 Modules\ItemCompare.lua
+Modules\ItemLevel.lua
+Modules\WowheadLinks.lua
 Modules\AutoVendor.lua
 Modules\GroupComfort.lua
 Modules\Courtesy.lua
 Modules\Chat.lua
 Modules\SquareMinimap.lua
+Modules\ErrorMessages.lua
 Modules\ImmersionScene.lua
 Modules\Immersion.lua
 Modules\QuestScene.lua

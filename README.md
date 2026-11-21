@@ -25,10 +25,10 @@ Copiez le dossier dans `World of Warcraft\_forever_\Interface\AddOns\`. Il doit 
 
 - **Préparation :** Check-up, Rappel potion
 - **Personnage :** Mes personnages, Changements de stats
-- **Objets :** Comparateur d'objets, Vendeur automatique
+- **Objets :** Comparateur d'objets, Niveau d'objet, Liens Wowhead, Vendeur automatique
 - **Groupe :** Confort de groupe, Buffs et remerciements
 - **Tchat :** Tchat
-- **Interface :** Minimap
+- **Interface :** Minimap, Messages d'erreur
 - **Immersion :** Mode immersion (avec la scène de quête), Modes AFK et vol
 - **Configuration :** Réglages par défaut, Apparence (fenêtres en or ou aux couleurs de la classe), Bouton de la minicarte
 

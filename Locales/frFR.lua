@@ -105,7 +105,7 @@ L["Default Settings"] = "Réglages par défaut"
 L["Appearance"] = "Apparence"
 L["Class colors"] = "Couleurs de la classe"
 L["Colors of the Tinkerwise windows (configuration and check-up): the gold of the interface, or the color of the class you play. Each character gets its own class color."] = "Couleurs des fenêtres de Tinkerwise (configuration et check-up) : l'or de l'interface, ou la couleur de la classe que vous jouez. Chaque personnage a la couleur de sa classe."
-L["Keeps auto loot on and sets up new characters (level 1): action bars and Edit Mode profile. Existing characters only change if you click \"Apply to this character\"."] = "Garde la fouille automatique activée et prépare les nouveaux personnages (niveau 1) : barres d'action et profil du mode édition. Les personnages existants ne changent que si vous cliquez sur « Appliquer à ce personnage »."
+L["Keeps auto loot on (and faster) and sets up new characters (level 1): action bars and Edit Mode profile. Existing characters only change if you click \"Apply to this character\"."] = "Garde la fouille automatique activée (et plus rapide) et prépare les nouveaux personnages (niveau 1) : barres d'action et profil du mode édition. Les personnages existants ne changent que si vous cliquez sur « Appliquer à ce personnage »."
 L["Always enable auto loot"] = "Toujours activer la fouille automatique"
 L["Action bars"] = "Barres d'action"
 L["Set up action bars"] = "Régler les barres d'action"
@@ -134,7 +134,7 @@ L["invitation from %s accepted."] = "invitation de %s acceptée."
 L["resurrection from %s accepted."] = "résurrection de %s acceptée."
 L["summon accepted."] = "invocation acceptée."
 L["Group Comfort"] = "Confort de groupe"
-L["Automatically accepts group invitations from your friends and guild, resurrections and, if you wish, summons."] = "Accepte automatiquement les invitations de groupe de vos amis et de votre guilde, les résurrections et, si vous le souhaitez, les invocations."
+L["Automatically accepts group invitations from your friends and guild, resurrections and, if you wish, summons. Can also turn down duels."] = "Accepte automatiquement les invitations de groupe de vos amis et de votre guilde, les résurrections et, si vous le souhaitez, les invocations. Peut aussi refuser les duels."
 L["Invitations from friends and guild"] = "Invitations des amis et de la guilde"
 L["Resurrections"] = "Résurrections"
 L["Not if the resurrecting player is in combat"] = "Pas si celui qui vous relève est en combat"
@@ -361,3 +361,35 @@ L["Buff the group"] = "Buffer le groupe"
 L["Track herbs, minerals or treasures"] = "Pister les herbes, minerais ou trésors"
 L["Start tracking"] = "Activer le pistage"
 L["Start tracking: %s"] = "Activer le pistage : %s"
+
+-- Duels, whisper alert, faster loot
+L["Duels"] = "Duels"
+L["Decline duels"] = "Refuser les duels"
+L["Except from friends and guild"] = "Sauf ceux des amis et de la guilde"
+L["duel from %s declined."] = "duel de %s refusé."
+L["Sound and flashing icon when you are whispered"] = "Son et icône clignotante quand on vous chuchote"
+L["Faster loot"] = "Fouille plus rapide"
+
+-- Error messages
+L["Error Messages"] = "Messages d'erreur"
+L["Hides the red error messages at the top of the screen (\"Not enough mana\", \"Out of range\"...) and the voice of your character that goes with them. Quest progress and other yellow messages still show."] = "Masque les messages d'erreur rouges en haut de l'écran (« Pas assez de mana », « Hors de portée »...) et la voix de votre personnage qui les accompagne. La progression des quêtes et les autres messages jaunes restent affichés."
+L["Only in combat"] = "Seulement en combat"
+
+-- Flight
+L["Otherwise, a small timer at the top of the screen shows the time left, and the flight map shows how long the routes you know take."] = "Sinon, un petit minuteur en haut de l'écran indique le temps restant, et la carte des vols affiche la durée des trajets que vous connaissez."
+L["Small timer when the scene is hidden"] = "Petit minuteur quand la scène est masquée"
+L["Flight time in the flight map tooltips"] = "Durée du vol dans les infobulles de la carte des vols"
+L["Flight time: %s"] = "Durée du vol : %s"
+L["Flight time not known yet"] = "Durée du vol pas encore connue"
+
+-- Item level
+L["Item Level"] = "Niveau d'objet"
+L["Writes the item level on your gear in the character sheet, in the inspect window and on the equippable items of your bags (the game's bags, not those of bag addons)."] = "Inscrit le niveau d'objet sur votre équipement dans la fiche du personnage, dans la fenêtre d'inspection et sur les objets équipables de vos sacs (les sacs du jeu, pas ceux des addons de sacs)."
+L["Character sheet"] = "Fiche du personnage"
+L["Inspect window"] = "Fenêtre d'inspection"
+L["Color by item quality"] = "Couleur selon la qualité de l'objet"
+
+-- Wowhead links
+L["Wowhead Links"] = "Liens Wowhead"
+L["Wowhead link (Ctrl + C to copy)"] = "Lien Wowhead (Ctrl + C pour copier)"
+L["Hover over an item, a spell, a quest or a creature and press Ctrl + C: a small window shows its Wowhead (Classic) address, ready to copy with Ctrl + C again and paste in your browser."] = "Survolez un objet, un sort, une quête ou une créature et appuyez sur Ctrl + C : une petite fenêtre affiche son adresse Wowhead (Classic), prête à être copiée avec Ctrl + C et collée dans votre navigateur."

@@ -1,6 +1,8 @@
 -- FlightMode: during a flight master trip, the interface fades away and black bands show the route,
 -- the zone below and the time. The camera is left alone. Each route's duration is remembered, which
--- gives an estimate of the time left from the second flight on.
+-- gives an estimate of the time left from the second flight on. When the scene doesn't play (turned
+-- off, closed, combat), a small timer at the top of the screen shows the time left. The flight map
+-- tooltips show the duration of the routes already flown.
 
 local _, ns = ...
 local L = ns.L
@@ -37,14 +39,37 @@ timer:SetPoint("TOPRIGHT", bottomBand, "TOPRIGHT", -40, -20)
 local remaining = bottomBand:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
 remaining:SetPoint("TOPRIGHT", timer, "BOTTOMRIGHT", 0, -6)
 
+-- Small timer shown when the scene doesn't play.
+local mini = CreateFrame("Frame", "TinkerwiseFlightTimer", UIParent)
+mini:SetSize(1, 1)
+mini:SetPoint("TOP", UIParent, "TOP", 0, -110)
+mini:SetFrameStrata("MEDIUM")
+mini:Hide()
+local miniText = mini:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+miniText:SetPoint("TOP")
+miniText:SetShadowOffset(1, -1)
+
 ---------------------------------------------------------------------------
 -- Route and display
 ---------------------------------------------------------------------------
 
 local FormatDuration = ImmersionScene.FormatDuration
 
-local function RouteKey()
-    return route and route.from and route.to and (route.from .. " > " .. route.to)
+local function RouteKey(r)
+    return r and r.from and r.to and (r.from .. " > " .. r.to)
+end
+
+local function KnownDuration()
+    local key = RouteKey(route)
+    return route and route.known or (key and db.routes[key])
+end
+
+-- "About 01:20 left", "Landing soon", or nil when the route has never been flown.
+local function TimeLeftText(elapsed)
+    local known = KnownDuration()
+    if not known then return nil end
+    if known > elapsed then return format(L["About %s left"], FormatDuration(known - elapsed)) end
+    return L["Landing soon"]
 end
 
 local function Refresh()
@@ -53,16 +78,18 @@ local function Refresh()
     origin:SetText(route and route.from and format(L["From %s"], route.from) or "")
     zone:SetText(format(L["Flying over %s"], GetRealZoneText() or ""))
     timer:SetText(format(L["%s elapsed"], FormatDuration(elapsed)))
+    remaining:SetText(TimeLeftText(elapsed) or "")
+end
 
-    local key = RouteKey()
-    local known = route and route.known or (key and db.routes[key])
-    if not known then
-        remaining:SetText("")
-    elseif known > elapsed then
-        remaining:SetText(format(L["About %s left"], FormatDuration(known - elapsed)))
-    else
-        remaining:SetText(L["Landing soon"])
+local function ShowMini(show)
+    if not (show and db and db.flightTimer) then
+        mini:Hide()
+        return
     end
+    local elapsed = GetTime() - startedAt
+    local left = TimeLeftText(elapsed) or format(L["%s elapsed"], FormatDuration(elapsed))
+    miniText:SetText(format("%s  |cffffffff%s|r", route and route.to or L["In flight"], left))
+    mini:Show()
 end
 
 local function Stop()
@@ -92,7 +119,7 @@ local function IsOnTaxi()
 end
 
 local function Land()
-    local key = RouteKey()
+    local key = RouteKey(route)
     local duration = GetTime() - startedAt
     if key and duration >= MIN_RECORDED_FLIGHT then db.routes[key] = math.floor(duration) end
     flying, dismissed, route = false, false, nil
@@ -108,17 +135,20 @@ local function Update()
     if not onTaxi then
         if flying then Land() end
         Stop()
+        ShowMini(false)
         return
     end
     if not flying then
         flying, startedAt, route, pendingRoute = true, GetTime(), pendingRoute, nil
     end
-    if dismissed or InCombatLockdown() or scene:OtherPlaying() then
+    local otherScene = scene:OtherPlaying()
+    if db.flight and not dismissed and not InCombatLockdown() and not otherScene then
+        Refresh()
+        scene:Play()
+    else
         Stop()
-        return
     end
-    Refresh()
-    scene:Play()
+    ShowMini(not scene:IsPlaying() and not otherScene)
 end
 
 -- Plays the scene with a sample route. Nothing is recorded, since no real flight is under way.
@@ -150,6 +180,43 @@ hooksecurefunc("TakeTaxiNode", function(slot)
 end)
 
 ---------------------------------------------------------------------------
+-- Flight map tooltips
+---------------------------------------------------------------------------
+
+-- The hovered destination: a pin of the recent flight map, or a button of the older one.
+local function HoveredSlot(owner)
+    if not owner then return end
+    if owner.taxiNodeData then return owner.taxiNodeData.slotIndex end
+    local name = owner.GetName and owner:GetName()
+    if TaxiFrame and TaxiFrame:IsShown() and name and name:match("^TaxiButton%d+$") then
+        return owner:GetID()
+    end
+end
+
+local function OnTooltipShow(tooltip)
+    if not (ticker and db and db.flightTooltip) then return end
+    local slot = HoveredSlot(tooltip:GetOwner())
+    if not slot then return end
+    local ok, found = pcall(ReadRoute, slot)
+    local key = ok and RouteKey(found)
+    if not key or found.from == found.to then return end
+    local known = db.routes[key]
+    if known then
+        tooltip:AddLine(format(L["Flight time: %s"], FormatDuration(known)), 1, 1, 1)
+    else
+        tooltip:AddLine(L["Flight time not known yet"], 0.6, 0.6, 0.6)
+    end
+    tooltip:Show()
+end
+
+local tooltipHooked = false
+local function HookTooltip()
+    if tooltipHooked then return end
+    tooltipHooked = true
+    GameTooltip:HookScript("OnShow", OnTooltipShow)
+end
+
+---------------------------------------------------------------------------
 -- Interface for the module holding the options (AwayModes)
 ---------------------------------------------------------------------------
 
@@ -157,6 +224,7 @@ ns.FlightMode = {}
 
 function ns.FlightMode.Enable(settings)
     db = settings
+    HookTooltip()
     ticker = C_Timer.NewTicker(CHECK_EVERY, Update)
     Update()
 end
@@ -166,6 +234,7 @@ function ns.FlightMode.Disable()
     ticker = nil
     flying, dismissed, route, pendingRoute = false, false, nil, nil
     Stop()
+    mini:Hide()
 end
 
 function ns.FlightMode.Test(settings)

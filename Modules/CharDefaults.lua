@@ -90,6 +90,23 @@ local function CheckNewCharacter()
     end
 end
 
+-- Faster loot: every slot is taken as soon as the window is ready, without waiting for the window
+-- to show. Only when the game loots automatically (the auto loot key reverses it).
+local FAST_LOOT_DELAY = 0.3 -- seconds: LOOT_READY can fire twice for the same corpse
+local lastLoot = 0
+local looter = CreateFrame("Frame")
+looter:SetScript("OnEvent", function()
+    if GetTime() - lastLoot < FAST_LOOT_DELAY then return end
+    if GetCVarBool("autoLootDefault") == IsModifiedClick("AUTOLOOTTOGGLE") then return end
+    lastLoot = GetTime()
+    for i = GetNumLootItems(), 1, -1 do LootSlot(i) end
+end)
+
+local function ApplyFastLoot()
+    looter:UnregisterAllEvents()
+    if db and db.fastLoot then looter:RegisterEvent("LOOT_READY") end
+end
+
 local events = CreateFrame("Frame")
 events:SetScript("OnEvent", function()
     CheckAutoLoot()
@@ -105,9 +122,10 @@ local mod = TW:NewModule("CharDefaults", {
     section = "Configuration",
     alwaysEnabled = true,
     accountWide = true,
-    desc = L["Keeps auto loot on and sets up new characters (level 1): action bars and Edit Mode profile. Existing characters only change if you click \"Apply to this character\"."],
+    desc = L["Keeps auto loot on (and faster) and sets up new characters (level 1): action bars and Edit Mode profile. Existing characters only change if you click \"Apply to this character\"."],
     defaults = {
         autoLoot = true,
+        fastLoot = true,
         applyBars = true,
         bar2 = true,
         bar3 = true,
@@ -120,6 +138,7 @@ local mod = TW:NewModule("CharDefaults", {
     },
     options = {
         { type = "toggle", key = "autoLoot", label = L["Always enable auto loot"] },
+        { type = "toggle", key = "fastLoot", label = L["Faster loot"] },
         { type = "header", label = L["Action bars"] },
         { type = "toggle", key = "applyBars", label = L["Set up action bars"] },
         { type = "toggle", key = "bar2", label = L["Action bar 2"] },
@@ -153,12 +172,15 @@ function mod:OnEnable()
     db.seen = db.seen or {}
     events:RegisterEvent("PLAYER_ENTERING_WORLD")
     if IsLoggedIn() then CheckAutoLoot() end
+    ApplyFastLoot()
 end
 
 function mod:OnDisable()
     events:UnregisterAllEvents()
+    looter:UnregisterAllEvents()
 end
 
 function mod:OnOptionChanged(key)
     if key == "autoLoot" then CheckAutoLoot() end
+    if key == "fastLoot" then ApplyFastLoot() end
 end

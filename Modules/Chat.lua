@@ -676,6 +676,27 @@ local function ApplyTabVisibility()
     if not on then tabAlphaBackup = nil end
 end
 
+-- The game already plays its whisper sound on the effects channel: this one goes through the main
+-- channel, so it is heard with effects muted, and the taskbar icon flashes when the game is in the background.
+local WHISPER_SOUND = SOUNDKIT and SOUNDKIT.TELL_MESSAGE or 3081
+local ALERT_DELAY = 3 -- seconds: one alert for a burst of messages
+local lastAlert = 0
+local alerts = CreateFrame("Frame")
+alerts:SetScript("OnEvent", function()
+    if GetTime() - lastAlert < ALERT_DELAY then return end
+    lastAlert = GetTime()
+    PlaySound(WHISPER_SOUND, "Master")
+    if FlashClientIcon then FlashClientIcon() end
+end)
+
+local function ApplyWhisperAlert(on)
+    alerts:UnregisterAllEvents()
+    if on then
+        alerts:RegisterEvent("CHAT_MSG_WHISPER")
+        alerts:RegisterEvent("CHAT_MSG_BN_WHISPER")
+    end
+end
+
 local function Apply()
     local on, db = mod.active, mod.db
     ApplyBackground()
@@ -706,6 +727,7 @@ local function Apply()
     ApplyTimestamps(on and db.timestamps)
     ApplyClassColors()
     ApplyWhisperMode()
+    ApplyWhisperAlert(on and db.whisperAlert)
 end
 
 local gameHooked
@@ -746,6 +768,7 @@ mod = TW:NewModule("Chat", {
         timestamps = true, classColors = true, shortChannels = true, noFade = false,
         copyButton = true, resizeGrip = true, fontSize = 12,
         customBackground = true, bgColor = { r = 0, g = 0, b = 0 }, bgOpacity = 40,
+        whisperAlert = true,
         whisperTabs = true, whisperClose = true, tabGroup = true, tabGuild = true, removeFromGeneral = true, colorTabs = true, alwaysShowTabs = true,
     },
     options = {
@@ -769,6 +792,7 @@ mod = TW:NewModule("Chat", {
         { type = "header", label = L["Tabs"] },
         { type = "toggle", key = "whisperTabs", label = L["One new tab per whisper conversation"] },
         { type = "toggle", key = "whisperClose", label = L["Close button on whisper tabs"] },
+        { type = "toggle", key = "whisperAlert", label = L["Sound and flashing icon when you are whispered"] },
         { type = "toggle", key = "tabGuild", label = L["Guild"] },
         { type = "toggle", key = "tabGroup", label = L["Group and raid"] },
         { type = "toggle", key = "removeFromGeneral", label = L["Remove these messages from the General tab"] },
