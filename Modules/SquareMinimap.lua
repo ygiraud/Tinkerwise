@@ -210,6 +210,19 @@ local function ShowRings(shown)
     end
 end
 
+-- The dark theme, when it covers the minimap, gives its own tint to the border.
+local function ColorBorder()
+    if not border then return end
+    local c = mod.db.borderColor
+    local r, g, b = c.r, c.g, c.b
+    if ns.DarkThemeTint then
+        local dr, dg, db = ns.DarkThemeTint("minimap")
+        if dr then r, g, b = dr, dg, db end
+    end
+    border:SetBackdropBorderColor(r, g, b, 1)
+end
+ns.ColorMinimapBorder = ColorBorder
+
 local function Apply()
     local on = mod.active
     Minimap:SetMaskTexture(on and SQUARE_MASK or ROUND_MASK)
@@ -222,8 +235,7 @@ local function Apply()
     if on and mod.db.border then
         if not border then BuildBorder() end
         SizeBorder(mod.db.borderSize or 3)
-        local c = mod.db.borderColor
-        border:SetBackdropBorderColor(c.r, c.g, c.b, 1)
+        ColorBorder()
         border:Show()
     elseif border then
         border:Hide()

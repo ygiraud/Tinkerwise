@@ -28,6 +28,7 @@ Modules\Courtesy.lua
 Modules\Chat.lua
 Modules\SquareMinimap.lua
 Modules\ErrorMessages.lua
+Modules\DarkTheme.lua
 Modules\ImmersionScene.lua
 Modules\Immersion.lua
 Modules\QuestScene.lua
