@@ -28,7 +28,7 @@ Copiez le dossier dans `World of Warcraft\_forever_\Interface\AddOns\`. Il doit 
 - **Objets :** Comparateur d'objets, Niveau d'objet, Liens Wowhead, Vendeur automatique
 - **Groupe :** Confort de groupe, Buffs et remerciements
 - **Tchat :** Tchat
-- **Interface :** Minimap, Messages d'erreur, Thème sombre
+- **Interface :** Minimap, Messages d'erreur, Thème sombre, Cadres de joueurs
 - **Immersion :** Mode immersion (avec la scène de quête), Modes AFK et vol
 - **Configuration :** Réglages par défaut, Apparence (fenêtres en or ou aux couleurs de la classe), Bouton de la minicarte
 

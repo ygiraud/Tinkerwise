@@ -31,6 +31,7 @@ A toolbox for WoW Forever: independent modules you can turn on or off from a sin
 - **Minimap:** a square minimap with a bronze border (thickness and color of your choice), its icons in a column on the left or right, mouse wheel zoom and no zoom buttons
 - **Error Messages:** hides the red error messages and their voice, always or in combat only
 - **Dark Theme:** darkens unit frames, action bars, minimap, windows and tooltips with a tint of your choice or your class color, without moving anything
+- **Unit Frames:** dresses the game's unit frames without rebuilding them: health in class or reaction colors, bar texture, class colored names, class icon instead of the portrait
 
 **Immersion**
 - **Immersion Mode:** when the game's key hides the interface, adds black bars, keeps the elements you choose on screen and brings the interface back with a fade; it can also stage your quests as cinematic scenes
