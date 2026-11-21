@@ -1,5 +1,5 @@
--- WowheadLinks: Ctrl + C over the tooltip of an item, a spell, a quest or a creature opens a small
--- window with its Wowhead (Classic) address, selected and ready to be copied with Ctrl + C again.
+-- Wowhead links, an option of Item Tooltips: Ctrl + C over the tooltip of an item, a spell, a quest or
+-- a creature opens a small window with its Wowhead (Classic) address, ready to be copied with Ctrl + C.
 
 local _, ns = ...
 local L = ns.L
@@ -16,8 +16,6 @@ local function Plain(v)
     if issecretvalue and issecretvalue(v) then return nil end
     return v
 end
-
-local mod
 
 ---------------------------------------------------------------------------
 -- What the tooltip shows
@@ -116,21 +114,9 @@ keys:SetScript("OnKeyDown", function(_, key)
     if ok and kind then ShowLink(kind, id) end
 end)
 
-mod = TW:NewModule("WowheadLinks", {
-    title = L["Wowhead Links"],
-    icon = "Interface\\Icons\\INV_Scroll_03",
-    section = L["Items"],
-    desc = L["Hover over an item, a spell, a quest or a creature and press Ctrl + C: a small window shows its Wowhead (Classic) address, ready to copy with Ctrl + C again and paste in your browser."],
-    defaults = {},
-})
-
-function mod:OnEnable()
-    keys:Show()
-    keys:EnableKeyboard(true)
-end
-
-function mod:OnDisable()
-    keys:EnableKeyboard(false)
-    keys:Hide()
-    if window then window:Hide() end
+-- Turned on and off by Item Tooltips (ItemCompare.lua), which holds the option.
+function ns.SetWowheadLinks(on)
+    keys:SetShown(on and true or false)
+    keys:EnableKeyboard(on and true or false)
+    if not on and window then window:Hide() end
 end

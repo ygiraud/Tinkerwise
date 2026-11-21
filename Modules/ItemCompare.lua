@@ -1,5 +1,6 @@
--- ItemCompare: adds to item tooltips what the item would change compared with what you wear
--- in the same slot(s): one line per stat, green for gains, red for losses.
+-- ItemCompare (Item Tooltips): adds to item tooltips what the item would change compared with what
+-- you wear in the same slot(s), one line per stat, green for gains, red for losses. Its Wowhead option
+-- is in WowheadLinks.lua.
 
 local _, ns = ...
 local L = ns.L
@@ -7,8 +8,10 @@ local TW = ns.TW
 local GetItemInfoInstant, GetItemInfo = ns.API.GetItemInfoInstant, ns.API.GetItemInfo
 
 local DEFAULTS = {
+    compare = true,     -- add the comparison to the tooltip
     shiftOnly = false,  -- only compare while Shift is held
     percent = true,     -- add the relative change "(+12 %)"
+    wowhead = true,     -- Ctrl + C over a tooltip gives its Wowhead address (see WowheadLinks.lua)
 }
 
 -- Equip location -> inventory slots it can go into.
@@ -131,7 +134,7 @@ end
 
 local function OnTooltipSetItem(tooltip)
     if not db or not TW.modules.ItemCompare.active then return end
-    if db.shiftOnly and not IsShiftKeyDown() then return end
+    if not db.compare or (db.shiftOnly and not IsShiftKeyDown()) then return end
     local _, link = tooltip:GetItem()
     if not link or tooltip.twCompared == link then return end
     local _, _, _, equipLoc = GetItemInfoInstant(link)
@@ -193,20 +196,38 @@ local function Hook()
         end
     end
 end
-
 local mod = TW:NewModule("ItemCompare", {
-    title = L["Item Comparison"],
+    title = L["Item Tooltips"],
     section = L["Items"],
     icon = "Interface\\Icons\\INV_Misc_Spyglass_02",
-    desc = L["When hovering over equippable items, the tooltip shows what you would gain or lose compared to the item worn in the same slot (both rings, trinkets or one-handed weapons are compared separately). Green = gain, red = loss."],
+    desc = L["Adds to the tooltip of equippable items what you would gain or lose compared to the item worn in the same slot (both rings, trinkets or one-handed weapons are compared separately; green = gain, red = loss). Ctrl + C over an item, a spell, a quest or a creature also gives its Wowhead address."],
     defaults = DEFAULTS,
+    replaces = { WowheadLinks = "wowhead" }, -- Wowhead Links used to be a module of its own
+    whenTurnedOnByReplaced = { compare = false },
     options = {
+        { type = "header", label = L["Comparison"] },
+        { type = "toggle", key = "compare", label = L["Compare with the worn item"] },
         { type = "toggle", key = "shiftOnly", label = L["Compare only while holding Shift"] },
         { type = "toggle", key = "percent", label = L["Show the change in %"] },
+        { type = "header", label = L["Wowhead Links"] },
+        { type = "toggle", key = "wowhead", label = L["Ctrl + C over a tooltip gives its Wowhead address"] },
     },
 })
+
+local function ApplyWowhead()
+    if ns.SetWowheadLinks then ns.SetWowheadLinks(mod.active and db.wowhead) end
+end
 
 function mod:OnEnable()
     db = self.db
     Hook() -- hooks cannot be removed; OnTooltipSetItem checks that the module is active
+    ApplyWowhead()
+end
+
+function mod:OnDisable()
+    ApplyWowhead()
+end
+
+function mod:OnOptionChanged()
+    ApplyWowhead()
 end

@@ -76,6 +76,8 @@ L["OFF"] = "DÉSACTIVÉ"
 L["Settings"] = "Réglages"
 L["Click to disable"] = "Cliquer pour désactiver"
 L["Click to enable"] = "Cliquer pour activer"
+L["Search..."] = "Rechercher..."
+L["No results"] = "Aucun résultat"
 L["PERSONAL TOOLBOX"] = "BOÎTE À OUTILS PERSONNELLE"
 L["Move windows"] = "Déplacer les fenêtres"
 L["%d / %d ACTIVE MODULES"] = "%d / %d MODULES ACTIFS"
@@ -90,8 +92,10 @@ L["Empty slot"] = "Emplacement vide"
 L["No stat difference"] = "Aucune différence de caractéristiques"
 L["Your class cannot use this item"] = "Votre classe ne peut pas porter cet objet"
 L["Usable at level %d"] = "Portable au niveau %d"
-L["Item Comparison"] = "Comparateur d'objets"
-L["When hovering over equippable items, the tooltip shows what you would gain or lose compared to the item worn in the same slot (both rings, trinkets or one-handed weapons are compared separately). Green = gain, red = loss."] = "Au survol d'un objet équipable, l'infobulle indique ce qu'il vous ferait gagner ou perdre par rapport à l'objet porté au même emplacement (les deux anneaux, bijoux ou armes à une main sont comparés séparément). Vert = gain, rouge = perte."
+L["Item Tooltips"] = "Infobulles d'objets"
+L["Adds to the tooltip of equippable items what you would gain or lose compared to the item worn in the same slot (both rings, trinkets or one-handed weapons are compared separately; green = gain, red = loss). Ctrl + C over an item, a spell, a quest or a creature also gives its Wowhead address."] = "Ajoute à l'infobulle des objets équipables ce que vous gagneriez ou perdriez par rapport à l'objet porté au même emplacement (les deux anneaux, bijoux ou armes à une main sont comparés séparément ; vert = gain, rouge = perte). Ctrl + C sur un objet, un sort, une quête ou une créature donne aussi son adresse Wowhead."
+L["Comparison"] = "Comparaison"
+L["Compare with the worn item"] = "Comparer avec l'objet porté"
 L["Compare only while holding Shift"] = "Comparer seulement en maintenant Maj"
 L["Show the change in %"] = "Afficher la variation en %"
 L["Group"] = "Groupe"
@@ -372,7 +376,6 @@ L["Faster loot"] = "Fouille plus rapide"
 
 -- Error messages
 L["Error Messages"] = "Messages d'erreur"
-L["Hides the red error messages at the top of the screen (\"Not enough mana\", \"Out of range\"...) and the voice of your character that goes with them. Quest progress and other yellow messages still show."] = "Masque les messages d'erreur rouges en haut de l'écran (« Pas assez de mana », « Hors de portée »...) et la voix de votre personnage qui les accompagne. La progression des quêtes et les autres messages jaunes restent affichés."
 L["Only in combat"] = "Seulement en combat"
 
 -- Flight
@@ -382,17 +385,10 @@ L["Flight time in the flight map tooltips"] = "Durée du vol dans les infobulles
 L["Flight time: %s"] = "Durée du vol : %s"
 L["Flight time not known yet"] = "Durée du vol pas encore connue"
 
--- Item level
-L["Item Level"] = "Niveau d'objet"
-L["Writes the item level on your gear in the character sheet, in the inspect window and on the equippable items of your bags (the game's bags, not those of bag addons)."] = "Inscrit le niveau d'objet sur votre équipement dans la fiche du personnage, dans la fenêtre d'inspection et sur les objets équipables de vos sacs (les sacs du jeu, pas ceux des addons de sacs)."
-L["Character sheet"] = "Fiche du personnage"
-L["Inspect window"] = "Fenêtre d'inspection"
-L["Color by item quality"] = "Couleur selon la qualité de l'objet"
-
 -- Wowhead links
 L["Wowhead Links"] = "Liens Wowhead"
 L["Wowhead link (Ctrl + C to copy)"] = "Lien Wowhead (Ctrl + C pour copier)"
-L["Hover over an item, a spell, a quest or a creature and press Ctrl + C: a small window shows its Wowhead (Classic) address, ready to copy with Ctrl + C again and paste in your browser."] = "Survolez un objet, un sort, une quête ou une créature et appuyez sur Ctrl + C : une petite fenêtre affiche son adresse Wowhead (Classic), prête à être copiée avec Ctrl + C et collée dans votre navigateur."
+L["Ctrl + C over a tooltip gives its Wowhead address"] = "Ctrl + C sur une infobulle donne son adresse Wowhead"
 
 -- Dark theme
 L["Dark Theme"] = "Thème sombre"
@@ -444,8 +440,10 @@ L["Arrows around your target"] = "Flèches autour de votre cible"
 L["Health percentage"] = "Pourcentage de vie"
 
 -- Menu and bags bar
-L["Menu, Bags and Quests"] = "Menu, sacs et quêtes"
-L["Shows the micro menu (character, spells, talents...), the bags bar and the quest tracker always, never or only when the mouse is over them (the quest tracker only once folded). They are only made transparent, never moved: Edit Mode keeps their place, and they show while it is open."] = "Affiche le minimenu (personnage, sorts, talents...), la barre des sacs et le suivi des quêtes tout le temps, jamais ou seulement au survol de la souris (le suivi des quêtes seulement une fois replié). Ils deviennent seulement transparents, sans être déplacés : le mode édition garde leur place, et ils s'affichent tant qu'il est ouvert."
+L["Interface Elements"] = "Éléments d'interface"
+L["Shows the micro menu (character, spells, talents...), the bags bar and the quest tracker always, never or only when the mouse is over them (the quest tracker only once folded). They are only made transparent, never moved: Edit Mode keeps their place, and they show while it is open. Can also hide the red error messages and the voice that goes with them."] = "Affiche le minimenu (personnage, sorts, talents...), la barre des sacs et le suivi des quêtes tout le temps, jamais ou seulement au survol de la souris (le suivi des quêtes seulement une fois replié). Ils deviennent seulement transparents, sans être déplacés : le mode édition garde leur place, et ils s'affichent tant qu'il est ouvert. Peut aussi masquer les messages d'erreur rouges et la voix qui les accompagne."
+L["Visibility"] = "Visibilité"
+L["Hide the red error messages"] = "Masquer les messages d'erreur rouges"
 L["Micro menu"] = "Minimenu"
 L["Bags bar"] = "Barre des sacs"
 L["Always"] = "Tout le temps"

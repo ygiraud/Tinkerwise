@@ -2,7 +2,7 @@
 
 A toolbox for WoW Forever: independent modules you can turn on or off from a single window.
 
-**Available in English and French**, based on your game language. All modules are on by default: type `/tw` to turn off the ones you don't want. Appearance, Default Settings and Minimap Button always stay on.
+**Available in English and French**, based on your game language. All modules are on by default: type `/tw` to turn off the ones you don't want. Its window shows a page per section, a tab per module and a search box that finds any setting. Appearance, Default Settings and Minimap Button always stay on.
 
 ## Modules
 
@@ -15,9 +15,7 @@ A toolbox for WoW Forever: independent modules you can turn on or off from a sin
 - **Stat Changes:** gains and losses when your gear, buffs, form or talents change, plus a summary panel on level up
 
 **Items**
-- **Item Comparison:** gains and losses in the tooltip
-- **Item Level:** the item level on your gear in the character sheet, the inspect window and the game's bags
-- **Wowhead Links:** Ctrl + C over an item, spell, quest or creature gives its Wowhead address to copy
+- **Item Tooltips:** gains and losses compared with your gear, and Ctrl + C over an item, spell, quest or creature gives its Wowhead address to copy
 - **Auto Vendor:** sells gray items and repairs your gear
 
 **Group**
@@ -33,8 +31,7 @@ A toolbox for WoW Forever: independent modules you can turn on or off from a sin
 - **Unit Frames:** dresses the game's unit frames without rebuilding them: health in class or reaction colors, bar texture, class colored names, class icon instead of the portrait
 - **Nameplates:** target and other plate sizes, class colors, health texture, arrows around your target and health percentage on the game's own nameplates
 - **Minimap:** a square minimap with a bronze border (thickness and color of your choice), its icons in a column on the left or right, mouse wheel zoom and no zoom buttons
-- **Menu, Bags and Quests:** shows the micro menu, the bags bar and the quest tracker always, never or on mouseover
-- **Error Messages:** hides the red error messages and their voice, always or in combat only
+- **Interface Elements:** shows the micro menu, the bags bar and the quest tracker always, never or on mouseover (the quest tracker once folded), and hides the red error messages and their voice, always or in combat only
 
 **Immersion**
 - **Immersion Mode:** when the game's key hides the interface, adds black bars, keeps the elements you choose on screen and brings the interface back with a fade; it can also stage your quests as cinematic scenes

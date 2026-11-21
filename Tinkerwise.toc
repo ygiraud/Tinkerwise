@@ -20,7 +20,6 @@ Modules\Characters.lua
 Modules\CharacterGroups.lua
 Modules\StatDelta.lua
 Modules\ItemCompare.lua
-Modules\ItemLevel.lua
 Modules\WowheadLinks.lua
 Modules\AutoVendor.lua
 Modules\GroupComfort.lua

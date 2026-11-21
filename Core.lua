@@ -10,6 +10,7 @@
 --   perCharacterToggle with accountWide: settings stay shared, but each character turns the module on or off
 --   options            list of option widgets (see Config.lua)
 --   replaces           { oldModuleKey = optionKey } older modules it took over, see ADDON_LOADED
+--   whenTurnedOnByReplaced  settings given when it was off and an old module it took over was on
 --   OnEnable, OnDisable, OnOptionChanged(key)   callbacks
 --   SetEditMode(on)    unlock / lock the module's movable frames
 
@@ -336,14 +337,19 @@ loader:SetScript("OnEvent", function(_, event, arg1)
         TinkerwiseCharDB.modules = TinkerwiseCharDB.modules or {}
         -- A module that took over older ones starts from their settings: their on/off choice becomes
         -- one of its options, and it is on if any of them was.
+        -- A module that was off and gets turned on this way first gets its `whenTurnedOnByReplaced`
+        -- values, so that only the old module's feature starts.
         local charModules = TinkerwiseCharDB.modules
         for _, mod in ipairs(TW.order) do
             for oldKey, option in pairs(mod.replaces or {}) do
-                local old = charModules[oldKey]
+                local old = charModules[oldKey] or TinkerwiseDB.modules[oldKey] -- or from before per character
                 if old then
                     local db = charModules[mod.key] or {}
                     charModules[mod.key] = db
                     db[option] = old.enabled and true or false
+                    if db.enabled == false and old.enabled then
+                        for k, v in pairs(mod.whenTurnedOnByReplaced or {}) do db[k] = v end
+                    end
                     db.enabled = db.enabled or old.enabled
                     for k, v in pairs(old) do
                         if db[k] == nil then db[k] = v end

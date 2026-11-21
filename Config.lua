@@ -1,6 +1,7 @@
 -- Tinkerwise configuration window, in the same style as the check-up: warm brown dialog,
--- quest-title font, gold accents. Module list on the left (grouped by section, with an
--- on/off pip), selected module on the right with its options grouped into cards.
+-- quest-title font, gold accents. Sections on the left (with how many of their modules are on) and
+-- a search box that lists the matching modules instead. On the right, one tab per module of the
+-- section, and the selected module with its options grouped into cards.
 --
 -- Option entries declared by modules:
 --   { type = "toggle",  key, label }
@@ -25,14 +26,24 @@ local GOLD, TITLE, MUTED, BORDER -- set from TW.theme, see TW:OnTheme at the end
 local PARCHMENT = { 0.9, 0.84, 0.72 }
 local DEFAULT_ICON = "Interface\\Icons\\INV_Misc_QuestionMark"
 
-local window, selected, footer
-local rows, panels = {}, {}
+local PANEL_TOP = -92
+local TAB_H, TAB_GAP = 24, 4
+
+local window, selected, footer, searchBox, noResult, list
+local rows, panels = {}, {}       -- module rows (search results) and module panels, by module key
+local sectionRows, tabBars = {}, {} -- one list row and one tab bar per section
+local sectionSel = {}              -- section -> module last shown in it
+local Select
 
 ---------------------------------------------------------------------------
 -- Helpers
 ---------------------------------------------------------------------------
 
 local Spaced = ns.Spaced
+
+local function SectionOf(mod)
+    return mod.section or L["Misc"]
+end
 
 local function RoundMask(tex, parent)
     if not parent.CreateMaskTexture then return end
@@ -348,8 +359,7 @@ end
 local function BuildPanel(mod)
     local outer = CreateFrame("Frame", nil, window)
     outer.signature = ChecklistSignature(mod)
-    outer:SetPoint("TOPLEFT", window, "TOPLEFT", LIST_W + 34, -92)
-    outer:SetPoint("BOTTOMRIGHT", window, "BOTTOMRIGHT", -22, 52)
+    outer.section = SectionOf(mod)
     outer.widgets = {}
 
     -- Header: icon, section, title, on/off switch, description
@@ -367,7 +377,7 @@ local function BuildPanel(mod)
 
     local section = outer:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
     section:SetPoint("TOPLEFT", iconHolder, "TOPRIGHT", 14, 0)
-    section:SetText(Spaced((mod.section or L["Misc"]):upper()))
+    section:SetText(Spaced(SectionOf(mod):upper()))
     section:SetTextColor(MUTED[1], MUTED[2], MUTED[3])
 
     local title = outer:CreateFontString(nil, "OVERLAY")
@@ -503,14 +513,128 @@ local function BuildPanel(mod)
     return outer
 end
 
+
+---------------------------------------------------------------------------
+-- Sections and tabs
+---------------------------------------------------------------------------
+
+-- Sections in the order of their first module, each with its modules.
+local function Sections()
+    local sections, bySection = {}, {}
+    for _, mod in ipairs(TW.order) do
+        local section = SectionOf(mod)
+        if not bySection[section] then
+            bySection[section] = {}
+            sections[#sections + 1] = section
+        end
+        table.insert(bySection[section], mod)
+    end
+    return sections, bySection
+end
+
+-- Tab bar over the panel, one tab per module of the section. A section of one module has none.
+-- Tabs that do not fit on one line go on to the next.
+local function BuildTabBar(section, mods)
+    local bar = CreateFrame("Frame", nil, window)
+    bar:SetPoint("TOPLEFT", window, "TOPLEFT", LIST_W + 34, PANEL_TOP)
+    bar:SetPoint("RIGHT", window, "RIGHT", -22, 0)
+    bar:SetHeight(1)
+    bar:Hide()
+    bar.tabs, bar.height = {}, 0
+    tabBars[section] = bar
+    if #mods < 2 then return end
+
+    for _, mod in ipairs(mods) do
+        local tab = CreateFrame("Button", nil, bar)
+        tab.mod = mod
+        tab.text = tab:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+        tab.text:SetPoint("CENTER", 0, 1)
+        tab.text:SetText(mod.title or mod.key)
+        tab:SetSize(tab.text:GetStringWidth() + 26, TAB_H)
+        tab.bg = tab:CreateTexture(nil, "BACKGROUND")
+        tab.bg:SetAllPoints()
+        tab.bg:SetColorTexture(GOLD[1], GOLD[2], GOLD[3], 0.14)
+        tab.line = tab:CreateTexture(nil, "ARTWORK")
+        tab.line:SetColorTexture(GOLD[1], GOLD[2], GOLD[3], 1)
+        tab.line:SetHeight(2)
+        tab.line:SetPoint("BOTTOMLEFT")
+        tab.line:SetPoint("BOTTOMRIGHT")
+        tab:SetHighlightTexture("Interface\\QuestFrame\\UI-QuestTitleHighlight", "ADD")
+        tab:SetScript("OnClick", function() Select(mod) end)
+        bar.tabs[#bar.tabs + 1] = tab
+    end
+    local rule = GoldRule(bar)
+    rule:SetPoint("BOTTOMLEFT", 0, 6)
+    rule:SetPoint("RIGHT", bar, "RIGHT", 0, 0)
+
+    function bar:Layout()
+        local width = window:GetWidth() - (LIST_W + 34) - 22
+        local x, y = 0, 0
+        for _, tab in ipairs(self.tabs) do
+            local w = tab:GetWidth()
+            if x > 0 and x + w > width then x, y = 0, y - TAB_H - TAB_GAP end
+            tab:ClearAllPoints()
+            tab:SetPoint("TOPLEFT", self, "TOPLEFT", x, y)
+            x = x + w + TAB_GAP
+        end
+        self.height = -y + TAB_H + 14
+        self:SetHeight(self.height)
+    end
+    bar:Layout()
+end
+
+local function PlacePanel(panel, dx)
+    local bar = tabBars[panel.section]
+    dx = dx or 0
+    panel:ClearAllPoints()
+    panel:SetPoint("TOPLEFT", window, "TOPLEFT", LIST_W + 34 + dx, PANEL_TOP - (bar and bar.height or 0))
+    panel:SetPoint("BOTTOMRIGHT", window, "BOTTOMRIGHT", -22 + dx, 52)
+end
+
+---------------------------------------------------------------------------
+-- Search: matches module titles, descriptions, sections and option labels.
+---------------------------------------------------------------------------
+
+local searchText = {} -- module key -> lowercase text searched
+
+-- string.lower leaves accented capitals as they are: "É" must match "é".
+local ACCENTED_CAPITALS = {
+    ["À"] = "à", ["Â"] = "â", ["Ç"] = "ç", ["É"] = "é", ["È"] = "è", ["Ê"] = "ê", ["Ë"] = "ë",
+    ["Î"] = "î", ["Ï"] = "ï", ["Ô"] = "ô", ["Ù"] = "ù", ["Û"] = "û", ["Ü"] = "ü",
+}
+local function Lower(s)
+    return (s:lower():gsub("\195[\128-\159]", ACCENTED_CAPITALS))
+end
+
+local function SearchTextOf(mod)
+    if searchText[mod.key] then return searchText[mod.key] end
+    local parts = { mod.title or mod.key, mod.desc or "", SectionOf(mod) }
+    for _, opt in ipairs(mod.options or {}) do
+        if opt.label then parts[#parts + 1] = opt.label end
+        for _, v in ipairs(opt.values or {}) do parts[#parts + 1] = tostring(v[2]) end
+    end
+    searchText[mod.key] = Lower(table.concat(parts, "\n"))
+    return searchText[mod.key]
+end
+
+local function Query()
+    return searchBox and Lower(strtrim(searchBox:GetText() or "")) or ""
+end
+
+local function Matches(mod, query)
+    return SearchTextOf(mod):find(query, 1, true) ~= nil
+end
+
 ---------------------------------------------------------------------------
 -- Window
 ---------------------------------------------------------------------------
 
 -- Panels slide in from the right when switching modules.
 local slide = { t = 1 }
-local function Select(mod)
+function Select(mod)
     selected = mod
+    local section = SectionOf(mod)
+    sectionSel[section] = mod
     local existing = panels[mod.key]
     if existing and existing.signature ~= ChecklistSignature(mod) then
         existing:Hide()
@@ -518,16 +642,17 @@ local function Select(mod)
     end
     if not panels[mod.key] then panels[mod.key] = BuildPanel(mod) end
     for key, panel in pairs(panels) do panel:SetShown(key == mod.key) end
+    for name, bar in pairs(tabBars) do bar:SetShown(name == section and #bar.tabs > 0) end
+    PlacePanel(panels[mod.key])
     slide.panel, slide.t = panels[mod.key], 0
     PlaySound(SOUNDKIT.IG_QUEST_LIST_SELECT or SOUNDKIT.IG_MAINMENU_OPTION_CHECKBOX_ON)
     TW:RefreshConfig()
 end
 
-local function BuildRow(mod, y, parent)
+-- List row: stripe, gold bar when selected, round icon with a gold ring, name.
+local function NewRow(parent, icon, text)
     local row = CreateFrame("Button", nil, parent)
     row:SetSize(LIST_W - 30, 30)
-    row:SetPoint("TOPLEFT", parent, "TOPLEFT", 4, y)
-    row.mod = mod
 
     row.stripe = row:CreateTexture(nil, "BACKGROUND")
     row.stripe:SetTexture("Interface\\QuestFrame\\UI-QuestTitleHighlight")
@@ -543,7 +668,7 @@ local function BuildRow(mod, y, parent)
     row.icon = row:CreateTexture(nil, "ARTWORK")
     row.icon:SetSize(22, 22)
     row.icon:SetPoint("LEFT", 8, 0)
-    row.icon:SetTexture(mod.icon or DEFAULT_ICON)
+    row.icon:SetTexture(icon or DEFAULT_ICON)
     RoundMask(row.icon, row)
     row.ring = row:CreateTexture(nil, "BORDER") -- thin gold circle around the round icon
     row.ring:SetTexture("Interface\\CharacterFrame\\TempPortraitAlphaMask")
@@ -553,9 +678,41 @@ local function BuildRow(mod, y, parent)
 
     row.text = row:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     row.text:SetPoint("LEFT", row.icon, "RIGHT", 8, 0)
-    row.text:SetPoint("RIGHT", row, "RIGHT", -24, 0)
+    row.text:SetPoint("RIGHT", row, "RIGHT", -34, 0)
     row.text:SetJustifyH("LEFT")
-    row.text:SetText(mod.title or mod.key)
+    row.text:SetText(text)
+    return row
+end
+
+-- Colors a row: selected, on, or off.
+local function PaintRow(row, on, isSel)
+    row.stripe:SetAlpha(isSel and 0.35 or 0)
+    row.bar:SetShown(isSel)
+    row.icon:SetDesaturated(not on)
+    row.icon:SetAlpha(on and 1 or 0.6)
+    if isSel then
+        row.text:SetTextColor(1, 0.95, 0.8)
+    elseif on then
+        row.text:SetTextColor(GOLD[1], GOLD[2], GOLD[3])
+    else
+        row.text:SetTextColor(0.5, 0.45, 0.4)
+    end
+end
+
+-- A section in the list: its modules' on count on the right.
+local function BuildSectionRow(section, mods, parent)
+    local row = NewRow(parent, mods[1].icon, section)
+    row.section, row.mods = section, mods
+    row.count = row:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    row.count:SetPoint("RIGHT", -6, 0)
+    row:SetScript("OnClick", function() Select(sectionSel[section] or mods[1]) end)
+    sectionRows[#sectionRows + 1] = row
+end
+
+-- A module in the search results, with its on/off pip.
+local function BuildRow(mod, parent)
+    local row = NewRow(parent, mod.icon, mod.title or mod.key)
+    row.mod = mod
 
     -- on/off pip: click to toggle the module without selecting it
     row.pip = CreateFrame("Button", nil, row)
@@ -583,8 +740,73 @@ local function BuildRow(mod, y, parent)
     end)
     row.pip:SetScript("OnLeave", GameTooltip_Hide)
 
+    -- the section, small and muted, under the name
+    row.sub = row:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+    row.sub:SetPoint("TOPLEFT", row.text, "BOTTOMLEFT", 0, -1)
+    row.sub:SetText(SectionOf(mod))
+    row.text:ClearAllPoints()
+    row.text:SetPoint("LEFT", row.icon, "RIGHT", 8, 5)
+    row.text:SetPoint("RIGHT", row, "RIGHT", -24, 5)
+
     row:SetScript("OnClick", function() Select(mod) end)
     rows[#rows + 1] = row
+end
+
+-- Sections when the search box is empty, else the matching modules.
+local function LayoutList()
+    local query = Query()
+    local y = -4
+    for _, row in ipairs(sectionRows) do
+        row:SetShown(query == "")
+        if query == "" then
+            row:SetPoint("TOPLEFT", list, "TOPLEFT", 4, y)
+            y = y - 34
+        end
+    end
+    local found = 0
+    for _, row in ipairs(rows) do
+        local show = query ~= "" and Matches(row.mod, query)
+        row:SetShown(show)
+        if show then
+            found = found + 1
+            row:SetPoint("TOPLEFT", list, "TOPLEFT", 4, y)
+            y = y - 34
+        end
+    end
+    noResult:SetShown(query ~= "" and found == 0)
+    list:SetHeight(-y + 4)
+end
+
+local function BuildSearch(inset)
+    searchBox = CreateFrame("EditBox", nil, inset, "InputBoxTemplate")
+    searchBox:SetPoint("TOPLEFT", 16, -10)
+    searchBox:SetPoint("TOPRIGHT", -10, -10)
+    searchBox:SetHeight(22)
+    searchBox:SetAutoFocus(false)
+    local hint = searchBox:CreateFontString(nil, "OVERLAY", "GameFontDisable")
+    hint:SetPoint("LEFT", 2, 0)
+    hint:SetText(L["Search..."])
+    local function UpdateHint()
+        hint:SetShown(searchBox:GetText() == "" and not searchBox:HasFocus())
+    end
+    searchBox:SetScript("OnEditFocusGained", UpdateHint)
+    searchBox:SetScript("OnEditFocusLost", UpdateHint)
+    searchBox:SetScript("OnTextChanged", function()
+        UpdateHint()
+        LayoutList()
+        TW:RefreshConfig()
+    end)
+    searchBox:SetScript("OnEscapePressed", function(self)
+        self:SetText("")
+        self:ClearFocus()
+    end)
+    -- Enter opens the first result.
+    searchBox:SetScript("OnEnterPressed", function(self)
+        self:ClearFocus()
+        for _, row in ipairs(rows) do
+            if row:IsShown() then return Select(row.mod) end
+        end
+    end)
 end
 
 local function BuildWindow()
@@ -642,7 +864,7 @@ local function BuildWindow()
     headRule:SetPoint("TOPLEFT", 22, -80)
     headRule:SetPoint("RIGHT", window, "RIGHT", -22, 0)
 
-    -- Module list in a dark inset
+    -- Section list in a dark inset, with the search box on top
     local inset = CreateFrame("Frame", nil, window, "BackdropTemplate")
     inset:SetPoint("TOPLEFT", 16, -88)
     inset:SetPoint("BOTTOMLEFT", 16, 46)
@@ -650,42 +872,26 @@ local function BuildWindow()
     inset:SetBackdrop(CARD_BACKDROP)
     inset:SetBackdropColor(0.04, 0.03, 0.02, 0.8)
     inset:SetBackdropBorderColor(BORDER[1], BORDER[2], BORDER[3], 0.9)
+    BuildSearch(inset)
 
-    local sections, bySection = {}, {}
-    for _, mod in ipairs(TW.order) do
-        local section = mod.section or L["Misc"]
-        if not bySection[section] then
-            bySection[section] = {}
-            sections[#sections + 1] = section
-        end
-        table.insert(bySection[section], mod)
-    end
-
-    -- The list scrolls when there are more modules than fit.
+    -- The list scrolls when there are more rows than fit.
     local listScroll = CreateFrame("ScrollFrame", nil, inset, "UIPanelScrollFrameTemplate")
-    listScroll:SetPoint("TOPLEFT", 6, -6)
+    listScroll:SetPoint("TOPLEFT", 6, -40)
     listScroll:SetPoint("BOTTOMRIGHT", -26, 6)
-    local list = CreateFrame("Frame", nil, listScroll)
+    list = CreateFrame("Frame", nil, listScroll)
     list:SetWidth(LIST_W - 24)
     listScroll:SetScrollChild(list)
+    noResult = list:CreateFontString(nil, "OVERLAY", "GameFontDisable")
+    noResult:SetPoint("TOPLEFT", 10, -10)
+    noResult:SetText(L["No results"])
 
-    local y = -4
+    local sections, bySection = Sections()
     for _, section in ipairs(sections) do
-        local head = list:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-        head:SetPoint("TOPLEFT", list, "TOPLEFT", 6, y - 4)
-        head:SetTextColor(GOLD[1], GOLD[2], GOLD[3])
-        head:SetText(Spaced(section:upper()))
-        local line = GoldRule(list, "OVERLAY")
-        line:SetPoint("LEFT", head, "RIGHT", 6, 0)
-        line:SetPoint("RIGHT", list, "RIGHT", -4, 0)
-        y = y - 24
-        for _, mod in ipairs(bySection[section]) do
-            BuildRow(mod, y, list)
-            y = y - 34
-        end
-        y = y - 10
+        BuildSectionRow(section, bySection[section], list)
+        BuildTabBar(section, bySection[section])
     end
-    list:SetHeight(-y + 4)
+    for _, mod in ipairs(TW.order) do BuildRow(mod, list) end
+    LayoutList()
 
     -- Footer: active modules count and close button
     footer = window:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
@@ -712,7 +918,13 @@ local function BuildWindow()
         window:SetMinResize(MIN_WIDTH, MIN_HEIGHT)
     end
     window:SetScript("OnSizeChanged", function()
-        for _, panel in pairs(panels) do panel:ApplyWidth() end
+        for _, bar in pairs(tabBars) do
+            if bar.Layout then bar:Layout() end
+        end
+        for _, panel in pairs(panels) do
+            panel:ApplyWidth()
+            PlacePanel(panel)
+        end
     end)
     local grip = CreateFrame("Button", nil, window)
     grip:SetSize(16, 16)
@@ -731,9 +943,7 @@ local function BuildWindow()
         slide.t = math.min(1, slide.t + elapsed / 0.2)
         local p = 1 - (1 - slide.t) ^ 3
         slide.panel:SetAlpha(p)
-        slide.panel:ClearAllPoints()
-        slide.panel:SetPoint("TOPLEFT", window, "TOPLEFT", LIST_W + 34 + (1 - p) * 16, -92)
-        slide.panel:SetPoint("BOTTOMRIGHT", window, "BOTTOMRIGHT", -22 + (1 - p) * 16, 52)
+        PlacePanel(slide.panel, (1 - p) * 16)
     end)
 
     if TW.order[1] then Select(TW.order[1]) end
@@ -744,20 +954,23 @@ end
 function TW:RefreshConfig()
     if not window then return end
     local active = 0
-    for _, row in ipairs(rows) do
-        local on, isSel = row.mod.active, row.mod == selected
-        if on then active = active + 1 end
-        row.stripe:SetAlpha(isSel and 0.35 or 0)
-        row.bar:SetShown(isSel)
-        row.icon:SetDesaturated(not on)
-        row.icon:SetAlpha(on and 1 or 0.6)
-        if isSel then
-            row.text:SetTextColor(1, 0.95, 0.8)
-        elseif on then
-            row.text:SetTextColor(GOLD[1], GOLD[2], GOLD[3])
-        else
-            row.text:SetTextColor(0.5, 0.45, 0.4)
+    for _, mod in ipairs(TW.order) do
+        if mod.active then active = active + 1 end
+    end
+    local selSection = selected and SectionOf(selected)
+
+    for _, row in ipairs(sectionRows) do
+        local on = 0
+        for _, mod in ipairs(row.mods) do
+            if mod.active then on = on + 1 end
         end
+        PaintRow(row, on > 0, row.section == selSection)
+        row.count:SetText(on .. "/" .. #row.mods)
+        row.count:SetTextColor(MUTED[1], MUTED[2], MUTED[3])
+    end
+    for _, row in ipairs(rows) do
+        local on = row.mod.active
+        PaintRow(row, on, row.mod == selected)
         if on then
             row.pip.tex:SetVertexColor(0.36, 0.62, 0.3)
             row.pip.glow:SetVertexColor(0.36, 0.62, 0.3, 0.15)
@@ -767,7 +980,21 @@ function TW:RefreshConfig()
             row.pip.glow:Hide()
         end
     end
-    footer:SetText(Spaced(format(L["%d / %d ACTIVE MODULES"], active, #rows)))
+    -- Tabs: the selected one underlined, the modules turned off in grey.
+    local bar = selSection and tabBars[selSection]
+    for _, tab in ipairs(bar and bar.tabs or {}) do
+        local isSel = tab.mod == selected
+        tab.line:SetShown(isSel)
+        tab.bg:SetShown(isSel)
+        if isSel then
+            tab.text:SetTextColor(1, 0.95, 0.8)
+        elseif tab.mod.active then
+            tab.text:SetTextColor(GOLD[1], GOLD[2], GOLD[3])
+        else
+            tab.text:SetTextColor(0.5, 0.45, 0.4)
+        end
+    end
+    footer:SetText(Spaced(format(L["%d / %d ACTIVE MODULES"], active, #TW.order)))
 
     local panel = selected and panels[selected.key]
     if panel then
@@ -798,7 +1025,7 @@ TW:OnTheme(function(theme)
     local point = { old:GetPoint() }
     old.ready = false -- no closing sound
     old:Hide()
-    rows, panels, selected = {}, {}, nil
+    rows, panels, sectionRows, tabBars, selected = {}, {}, {}, {}, nil
     BuildWindow()
     if point[1] then
         window:ClearAllPoints()

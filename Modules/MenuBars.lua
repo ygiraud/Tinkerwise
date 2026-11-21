@@ -1,6 +1,7 @@
--- MenuBars: shows the micro menu, the bags bar and the quest tracker always, never, or only while the
--- mouse is over them. Only their transparency changes: they are never hidden or moved, so Edit Mode
--- keeps their layout and nothing is blocked in combat. While Edit Mode is open, they all show.
+-- MenuBars (Interface Elements): shows the micro menu, the bags bar and the quest tracker always, never,
+-- or only while the mouse is over them. Only their transparency changes: they are never hidden or
+-- moved, so Edit Mode keeps their layout and nothing is blocked in combat. While Edit Mode is open,
+-- they all show. Its error messages option is in ErrorMessages.lua.
 
 local _, ns = ...
 local L = ns.L
@@ -95,27 +96,41 @@ local CHOICES = {
 }
 
 mod = TW:NewModule("MenuBars", {
-    title = L["Menu, Bags and Quests"],
+    title = L["Interface Elements"],
     icon = "Interface\\Icons\\INV_Misc_Bag_08",
     section = L["Interface"],
-    desc = L["Shows the micro menu (character, spells, talents...), the bags bar and the quest tracker always, never or only when the mouse is over them (the quest tracker only once folded). They are only made transparent, never moved: Edit Mode keeps their place, and they show while it is open."],
-    defaults = { microMenu = "hover", bagsBar = "hover", questTracker = "always" },
+    desc = L["Shows the micro menu (character, spells, talents...), the bags bar and the quest tracker always, never or only when the mouse is over them (the quest tracker only once folded). They are only made transparent, never moved: Edit Mode keeps their place, and they show while it is open. Can also hide the red error messages and the voice that goes with them."],
+    defaults = { microMenu = "hover", bagsBar = "hover", questTracker = "always", hideErrors = true, combatOnly = false },
+    replaces = { ErrorMessages = "hideErrors" }, -- Error Messages used to be a module of its own
+    whenTurnedOnByReplaced = { microMenu = "always", bagsBar = "always", questTracker = "always" },
     options = {
+        { type = "header", label = L["Visibility"] },
         { type = "select", key = "microMenu", label = L["Micro menu"], values = CHOICES },
         { type = "select", key = "bagsBar", label = L["Bags bar"], values = CHOICES },
         { type = "select", key = "questTracker", label = L["Quest tracker"], values = CHOICES },
+        { type = "header", label = L["Error Messages"] },
+        { type = "toggle", key = "hideErrors", label = L["Hide the red error messages"] },
+        { type = "toggle", key = "combatOnly", label = L["Only in combat"] },
     },
 })
+
+local function ApplyErrors()
+    local hide = mod.active and db.hideErrors
+    ns.SetErrorsHidden(hide and (db.combatOnly and "combat" or "always") or nil)
+end
 
 function mod:OnEnable()
     db = self.db
     Apply()
+    ApplyErrors()
 end
 
 function mod:OnDisable()
     Apply()
+    ApplyErrors()
 end
 
 function mod:OnOptionChanged()
     Apply()
+    ApplyErrors()
 end
