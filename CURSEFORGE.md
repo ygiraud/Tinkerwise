@@ -20,7 +20,7 @@ A toolbox for WoW Forever: independent modules you can turn on or off from a sin
 
 **Group**
 - **Group Comfort:** accepts invitations from friends and guildmates, resurrections and, optionally, summons, and can turn down duels
-- **Buffs and Thanks:** one button, outside combat, to buff yourself and your group, and to thank (and buff back) whoever buffs you, and to turn herb, mineral or treasure tracking back on
+- **Buffs and Thanks:** one button, outside combat, to buff yourself and your group, and to thank (and buff back) whoever buffs you, the thanks also going out by themselves if you like, and to turn herb, mineral or treasure tracking back on
 
 **Chat**
 - **Chat:** a new tab for each whisper conversation with a close button, group and guild tabs, class-colored names, timestamps, clickable links, a whisper alert, copying and resizable windows with a custom background

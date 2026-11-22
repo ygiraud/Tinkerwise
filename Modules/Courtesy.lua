@@ -1,5 +1,6 @@
 -- Courtesy: one button that offers, in this order, to thank (and buff back) whoever just buffed you,
--- to buff yourself and to buff the first member of your group who lacks your buff.
+-- to buff yourself and to buff the first member of your group who lacks your buff. The thanks (an
+-- emote) can also go out by themselves; buffing back stays a click.
 --
 -- The button casts through a secure macro, so it only changes outside combat: it hides when a fight
 -- starts and comes back after. WoW Forever gives addons no combat log, so a buff from somebody is
@@ -14,6 +15,7 @@ local DEFAULTS = {
     self = true,
     group = true,
     thanks = true,
+    autoThanks = true, -- the /thank emote goes out by itself; the card only offers to buff back
     buffBack = true,
     track = true,
     size = 40,
@@ -395,6 +397,21 @@ local function UnitForName(name)
     if favour and favour.unit and Is(favour.unit) then return favour.unit end
 end
 
+local Schedule -- set further down
+
+-- Automatic thanks: the /thank emote, a moment after the buff lands. Buffing back is a spell, so it
+-- still waits for a click on the card.
+local function AutoThank(name)
+    C_Timer.After(1, function()
+        if not favour or favour.name ~= name or favour.thanked or not db or not db.autoThanks then return end
+        local unit = UnitForName(name)
+        pcall(DoEmote, "THANK", unit or name)
+        favour.thanked = true
+        thanked[name] = GetTime()
+        Schedule()
+    end)
+end
+
 local function NoteFavours(info)
     -- The game may hide the whole update (secret values): nothing to read then.
     if not info or Plain(info.isFullUpdate) ~= false then return end
@@ -408,6 +425,7 @@ local function NoteFavours(info)
             local last = name and thanked[name]
             if name and not (last and GetTime() - last < THANKED_SECONDS) then
                 favour = { name = name, unit = source, class = select(2, UnitClass(source)), time = GetTime() }
+                if db and db.thanks and db.autoThanks then AutoThank(name) end
             end
         end
     end
@@ -481,8 +499,6 @@ local function CountdownText(seconds)
     return format("%s%s|cffffffff%d:%02d|r", countdownDetail, DOT, math.floor(seconds / 60), seconds % 60)
 end
 
-local Schedule -- set further down
-
 -- The glow breathes slowly while the card is up, and the countdown ticks (a few times a second,
 -- only while the card is shown: it is hidden during any fight).
 local t, sinceTick = 0, 0
@@ -543,17 +559,31 @@ local function NextAction()
         local name = favour.name
         local action = { icon = THANKS_ICON, title = L["Thank"], detail = Colored(name, favour.class),
                          text = format(L["Thank %s"], name), thanks = name }
-        local macro = "/targetexact " .. name .. "\n/thank"
-        if key and (not unit or CanReach(unit, key)) then
-            local spell = CastName(key)
-            macro = macro .. "\n/cast " .. spell
-            action.title = L["Thank and buff back"]
-            action.detail = action.detail .. DOT .. spell
-            action.text = format(L["Thank %s and give %s back"], name, spell)
-            action.icon = CastIcon(key) or THANKS_ICON
+        local canBuffBack = key and (not unit or CanReach(unit, key))
+        -- Thanked automatically: the card is only there to buff back.
+        if db.autoThanks then
+            if canBuffBack then
+                local spell = CastName(key)
+                action.title = L["Buff back"]
+                action.detail = action.detail .. DOT .. spell
+                action.text = format(L["Give %s back to %s"], spell, name)
+                action.icon = CastIcon(key) or THANKS_ICON
+                action.macro = "/targetexact " .. name .. "\n/cast " .. spell .. "\n/targetlasttarget"
+                return action
+            end
+        else
+            local macro = "/targetexact " .. name .. "\n/thank"
+            if canBuffBack then
+                local spell = CastName(key)
+                macro = macro .. "\n/cast " .. spell
+                action.title = L["Thank and buff back"]
+                action.detail = action.detail .. DOT .. spell
+                action.text = format(L["Thank %s and give %s back"], name, spell)
+                action.icon = CastIcon(key) or THANKS_ICON
+            end
+            action.macro = macro .. "\n/targetlasttarget"
+            return action
         end
-        action.macro = macro .. "\n/targetlasttarget"
-        return action
     end
 
     local class = select(2, UnitClass("player"))
@@ -727,12 +757,13 @@ local mod = TW:NewModule("Courtesy", {
     title = L["Buffs and Thanks"],
     icon = "Interface\\Icons\\Spell_Holy_WordFortitude",
     section = L["Group"],
-    desc = L["Shows a button, outside combat, to buff yourself, to buff the members of your group who lack your buff, to thank whoever buffs you (buffing them back when you can) and to turn tracking back on."],
+    desc = L["Shows a button, outside combat, to buff yourself, to buff the members of your group who lack your buff, to thank whoever buffs you (buffing them back when you can) and to turn tracking back on. The thanks can also go out by themselves: the button then only offers to buff back."],
     defaults = DEFAULTS,
     options = {
         { type = "toggle", key = "self", label = L["Buff myself"] },
         { type = "toggle", key = "group", label = L["Buff my group"] },
         { type = "toggle", key = "thanks", label = L["Thank whoever buffs me"] },
+        { type = "toggle", key = "autoThanks", label = L["Thank automatically"] },
         { type = "toggle", key = "buffBack", label = L["Buff them back when I can"] },
         { type = "toggle", key = "track", label = L["Track herbs, minerals or treasures"] },
         { type = "slider", key = "size", label = L["Icon size"], min = 24, max = 80, step = 2 },
