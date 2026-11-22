@@ -15,6 +15,7 @@ local CHECK_EVERY = 0.5
 local MIN_RECORDED_FLIGHT = 5 -- seconds; shorter means the flight did not really happen
 
 local db, ticker
+local routes = {} -- "From > To" -> seconds, shared by all the characters of the account (TinkerwiseDB)
 local flying, dismissed, testing = false, false, false
 local startedAt, route, pendingRoute
 
@@ -93,7 +94,7 @@ end
 
 local function KnownDuration()
     local key = RouteKey(route)
-    return route and route.known or (key and db.routes[key])
+    return route and route.known or (key and routes[key])
 end
 
 -- "About 01:20 left", "Landing soon", or nil when the route has never been flown.
@@ -156,7 +157,7 @@ end
 local function Land()
     local key = RouteKey(route)
     local duration = GetTime() - startedAt
-    if key and duration >= MIN_RECORDED_FLIGHT then db.routes[key] = math.floor(duration) end
+    if key and duration >= MIN_RECORDED_FLIGHT then routes[key] = math.floor(duration) end
     flying, dismissed, route = false, false, nil
 end
 
@@ -235,7 +236,7 @@ local function OnTooltipShow(tooltip)
     local ok, found = pcall(ReadRoute, slot)
     local key = ok and RouteKey(found)
     if not key or found.from == found.to then return end
-    local known = db.routes[key]
+    local known = routes[key]
     if known then
         tooltip:AddLine(format(L["Flight time: %s"], FormatDuration(known)), 1, 1, 1)
     else
@@ -259,6 +260,14 @@ ns.FlightMode = {}
 
 function ns.FlightMode.Enable(settings)
     db = settings
+    -- Durations used to be saved per character: each character brings its own into the account's
+    -- list as it logs in (the longer one when two disagree: a flight cut short reads too short).
+    TinkerwiseDB.flightRoutes = TinkerwiseDB.flightRoutes or {}
+    routes = TinkerwiseDB.flightRoutes
+    for key, seconds in pairs(settings.routes or {}) do
+        if not routes[key] or seconds > routes[key] then routes[key] = seconds end
+    end
+    settings.routes = nil
     HookTooltip()
     ticker = C_Timer.NewTicker(CHECK_EVERY, Update)
     Update()

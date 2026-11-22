@@ -35,7 +35,7 @@ A toolbox for WoW Forever: independent modules you can turn on or off from a sin
 
 **Immersion**
 - **Immersion Mode:** when the game's key hides the interface, adds black bars, keeps the elements you choose on screen and brings the interface back with a fade; it can also stage your quests as cinematic scenes
-- **AFK and Flight Modes:** each can be turned on separately. When you're away, fades out the interface and slowly turns the camera around your character, showing your time away and the whispers you received. During a flight master trip, fades out the interface and shows your destination, the zone below and the flight time, with a progress bar when the scene is hidden and route durations on the flight map. In both, your bags and the world map open above the scene with their usual keys
+- **AFK and Flight Modes:** each can be turned on separately. When you're away, fades out the interface and slowly turns the camera around your character, showing your time away and the whispers you received. During a flight master trip, fades out the interface and shows your destination, the zone below and the flight time, with a progress bar when the scene is hidden and route durations on the flight map, shared by all your characters. In both, your bags and the world map open above the scene with their usual keys
 
 **Configuration**
 - **Default Settings:** keeps auto loot on, loots faster and sets up new characters

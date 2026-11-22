@@ -20,7 +20,7 @@ local mod = TW:NewModule("AwayModes", {
         .. "\n\n" .. L["During a flight master trip, the interface fades away and the screen shows the destination, the zone below and the flight time. The time left appears once you have flown that route. The camera doesn't move. Click the cross or press Escape to get the interface back. Out of combat only."]
         .. " " .. L["Otherwise, a progress bar at the top of the screen shows the time left, and the flight map shows how long the routes you know take."]
         .. "\n\n" .. L["In both modes, your bags and the world map open with their usual keys, above the scene. Escape closes them first."],
-    defaults = { afk = true, flight = true, flightTimer = true, flightTooltip = true, camera = true, routes = {} },
+    defaults = { afk = true, flight = true, flightTimer = true, flightTooltip = true, camera = true },
     replaces = { AfkMode = "afk", FlightMode = "flight" },
     options = {
         { type = "header", label = L["Away"] },
