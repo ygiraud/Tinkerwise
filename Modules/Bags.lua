@@ -30,10 +30,59 @@ local function CountContainer(bag, into)
     end
 end
 
+-- The realm sometimes reads empty on WoW Forever. A character is then on the realm it was seen on
+-- before (when only one realm has a character of that name), so that it is not saved twice.
+local function KnownRealm(name)
+    local found
+    for _, c in pairs(db and db.chars or {}) do
+        if c.name == name and c.realm and c.realm ~= "" then
+            if found and found ~= c.realm then return "" end
+            found = c.realm
+        end
+    end
+    return found or ""
+end
+
+local function RealmFor(name)
+    local realm = GetRealmName()
+    if realm and realm ~= "" then return realm end
+    return KnownRealm(name)
+end
+
 local function CharacterKey()
-    return TW:PlayerName() .. " - " .. GetRealmName()
+    local name = TW:PlayerName()
+    return name .. " - " .. RealmFor(name)
 end
 ns.CharacterKey = CharacterKey
+
+-- Characters saved twice, once with an empty realm: the record without a realm joins the other one,
+-- keeping whichever is newer (the bank on its own, as it is only seen when opened).
+local function MergeEmptyRealms()
+    local BANK = { bank = true, bankTime = true }
+    for key, c in pairs(db.chars) do
+        if c.realm == "" and c.name then
+            local realm = KnownRealm(c.name)
+            local target = realm ~= "" and db.chars[c.name .. " - " .. realm]
+            if target and target ~= c then
+                if (c.time or 0) > (target.time or 0) then
+                    for k, v in pairs(c) do
+                        if not BANK[k] and k ~= "realm" then target[k] = v end
+                    end
+                end
+                if (c.bankTime or 0) > (target.bankTime or 0) then
+                    target.bank, target.bankTime = c.bank, c.bankTime
+                end
+                local groupOf = db.groupOf
+                if groupOf and groupOf[key] then
+                    local newKey = c.name .. " - " .. realm
+                    groupOf[newKey] = groupOf[newKey] or groupOf[key]
+                    groupOf[key] = nil
+                end
+                db.chars[key] = nil
+            end
+        end
+    end
+end
 
 local function CurrentCharacter()
     local key = CharacterKey()
@@ -42,7 +91,8 @@ local function CurrentCharacter()
         c = { bags = {}, bank = {} }
         db.chars[key] = c
     end
-    c.name, c.realm = TW:PlayerName(), GetRealmName()
+    c.name = TW:PlayerName()
+    c.realm = RealmFor(c.name)
     c.class = select(2, UnitClass("player"))
     c.mode = ns.CharacterGroups.GameMode()
     -- The game reads 0 while logging out: a 0 only counts after a real money change.
@@ -590,6 +640,7 @@ local mod = TW:NewModule("Bags", {
 function mod:OnEnable()
     db = self.db
     db.chars = db.chars or {}
+    MergeEmptyRealms()
     ns.CharacterGroups.Enable(db)
     ns.CharacterList.Enable(db)
     HookTooltips()

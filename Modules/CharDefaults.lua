@@ -78,10 +78,19 @@ local function CharacterKey()
     return TW:PlayerName() .. "-" .. GetRealmName()
 end
 
+-- The realm sometimes reads empty on WoW Forever: a character seen on any realm is not new then.
+local function SeenOnAnyRealm()
+    local prefix = TW:PlayerName() .. "-"
+    for key in pairs(db.seen) do
+        if key:sub(1, #prefix) == prefix then return true end
+    end
+    return false
+end
+
 -- Characters already played when first seen are recorded but left untouched.
 local function CheckNewCharacter()
     local key = CharacterKey()
-    if db.seen[key] then return end
+    if db.seen[key] or (GetRealmName() == "" and SeenOnAnyRealm()) then return end
     if UnitLevel("player") > NEW_CHARACTER_LEVEL then
         db.seen[key] = true
     elseif ApplyProfile() then
