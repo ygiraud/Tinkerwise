@@ -38,8 +38,21 @@ function ns.DarkThemeTint(group)
     return Tint()
 end
 
+local issecretvalue = _G.issecretvalue
+local dragonUnit = {} -- dragon around the portrait -> unit token
+
+-- The dragon of elites and world bosses keeps its gold; the silver one of rares (rare elites
+-- included) is tinted with the rest.
+local function KeepsGold(texture)
+    local unit = dragonUnit[texture]
+    if not unit then return false end
+    local kind = UnitClassification(unit)
+    if issecretvalue and issecretvalue(kind) then return false end
+    return kind == "elite" or kind == "worldboss"
+end
+
 local function Wanted(texture)
-    return mod.active and db[groupOf[texture]]
+    return mod.active and db[groupOf[texture]] and not KeepsGold(texture)
 end
 
 local function Paint(texture)
@@ -111,9 +124,7 @@ local UNIT_FRAME_PATHS = {
     "PlayerFrame.PlayerFrameContainer.AlternatePowerFrameTexture",
     "PlayerFrame.PlayerFrameContainer.VehicleFrameTexture",
     "TargetFrame.TargetFrameContainer.FrameTexture",
-    "TargetFrame.TargetFrameContainer.BossPortraitFrameTexture",
     "FocusFrame.TargetFrameContainer.FrameTexture",
-    "FocusFrame.TargetFrameContainer.BossPortraitFrameTexture",
     "TargetFrameToT.FrameTexture",
     "FocusFrameToT.FrameTexture",
     "PetFrameTexture",
@@ -123,7 +134,24 @@ local UNIT_FRAME_PATHS = {
     "FocusFrameSpellBar.Border",
 }
 
+local DRAGONS = {
+    target = "TargetFrame.TargetFrameContainer.BossPortraitFrameTexture",
+    focus = "FocusFrame.TargetFrameContainer.BossPortraitFrameTexture",
+}
+
+-- Also when the target changes: the game may keep the same art, and no hook fires then.
+local function DarkenDragons()
+    for unit, path in pairs(DRAGONS) do
+        local texture = Find(path)
+        if texture then
+            dragonUnit[texture] = unit
+            Darken(texture, "unitFrames")
+        end
+    end
+end
+
 local function DarkenUnitFrames()
+    DarkenDragons()
     DarkenPaths(UNIT_FRAME_PATHS, "unitFrames")
     for i = 1, MAX_PARTY_MEMBERS or 4 do
         DarkenPaths({ "PartyFrame.Member" .. i .. ".Texture", "PartyFrame.Member" .. i .. ".PetFrame.Texture",
@@ -161,6 +189,12 @@ local function DarkenActionBars()
         local button = _G[name]
         if button and button.GetNormalTexture then Darken(button:GetNormalTexture(), "actionBars") end
     end
+end
+
+-- The class bar: its buttons are built after login, and more come as spells are learned.
+function ns.DarkenClassBar()
+    if not mod.active then return end
+    for _, texture in ipairs(ns.actionBarTextures or {}) do Darken(texture, "actionBars") end
 end
 
 local MINIMAP_PATHS = {
@@ -272,6 +306,7 @@ end
 local function Apply()
     DarkenUnitFrames()
     DarkenActionBars()
+    ns.DarkenClassBar()
     DarkenMinimap()
     DarkenWindows()
     DarkenTooltips()
@@ -281,6 +316,9 @@ end
 
 local events = CreateFrame("Frame")
 events:SetScript("OnEvent", function(_, event, addon)
+    if event == "PLAYER_TARGET_CHANGED" or event == "PLAYER_FOCUS_CHANGED" or event == "UNIT_CLASSIFICATION_CHANGED" then
+        return DarkenDragons()
+    end
     if event == "ADDON_LOADED" and not (type(addon) == "string" and addon:match("^Blizzard_")) then return end
     Apply()
 end)
@@ -315,6 +353,9 @@ function mod:OnEnable()
     events:RegisterEvent("PLAYER_ENTERING_WORLD")
     events:RegisterEvent("ADDON_LOADED")
     events:RegisterEvent("GROUP_ROSTER_UPDATE") -- party frames are created when a group forms
+    for _, e in ipairs({ "PLAYER_TARGET_CHANGED", "PLAYER_FOCUS_CHANGED", "UNIT_CLASSIFICATION_CHANGED" }) do
+        pcall(events.RegisterEvent, events, e) -- no focus on some clients
+    end
     Apply()
 end
 
