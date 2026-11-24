@@ -24,6 +24,8 @@ Modules\WowheadLinks.lua
 Modules\AutoVendor.lua
 Modules\GroupComfort.lua
 Modules\Courtesy.lua
+Modules\ClassBar.lua
+Modules\TradeSupplies.lua
 Modules\Chat.lua
 Modules\DarkTheme.lua
 Modules\Appearance.lua

@@ -13,6 +13,7 @@ A toolbox for WoW Forever: independent modules you can turn on or off from a sin
 **Character**
 - **My Characters:** gold, level, rested XP, bags, bank and mail across your characters in one window, with search. Characters are sorted by game mode (PvE, PvP, Hardcore, RP, RP-PvP, detected automatically) and by groups you create, for instance to keep a guild's characters apart. Can be turned on for each character
 - **Stat Changes:** gains and losses when your gear, buffs, form or talents change, plus a summary panel on level up
+- **Class Bar:** your class utility spells on a movable bar (conjured food, portals, demons, stones, pet care, tracking...), with lists to choose from
 
 **Items**
 - **Item Tooltips:** gains and losses compared with your gear, and Ctrl + C over an item, spell, quest or creature gives its Wowhead address to copy
@@ -21,6 +22,7 @@ A toolbox for WoW Forever: independent modules you can turn on or off from a sin
 **Group**
 - **Group Comfort:** accepts invitations from friends and guildmates, resurrections and, optionally, summons, and can turn down duels
 - **Buffs and Thanks:** one button, outside combat, to buff yourself and your group, and to thank (and buff back) whoever buffs you, the thanks also going out by themselves if you like, and to turn herb, mineral or treasure tracking back on
+- **Trade Supplies:** for mages and warlocks, puts conjured water and food or a healthstone in the trade window, for the class and level of the other player
 
 **Chat**
 - **Chat:** a new tab for each whisper conversation with a close button, group and guild tabs, class-colored names, timestamps, clickable links, a whisper alert, copying and resizable windows with a custom background

@@ -24,9 +24,9 @@ Copiez le dossier dans `World of Warcraft\_forever_\Interface\AddOns\`. Il doit 
 ## Modules
 
 - **Préparation :** Check-up, Rappel potion
-- **Personnage :** Mes personnages, Changements de stats
+- **Personnage :** Mes personnages, Changements de stats, Barre de classe
 - **Objets :** Infobulles d'objets (comparaison et liens Wowhead), Vendeur automatique
-- **Groupe :** Confort de groupe, Buffs et remerciements
+- **Groupe :** Confort de groupe, Buffs et remerciements, Provisions en échange
 - **Tchat :** Tchat
 - **Interface :** Thème sombre, Apparence (fenêtres de Tinkerwise en or ou aux couleurs de la classe), Cadres de joueurs, Barres d'info, Minimap, Éléments d'interface (minimenu, sacs, suivi des quêtes et messages d'erreur)
 - **Immersion :** Mode immersion (avec la scène de quête), Modes AFK et vol
