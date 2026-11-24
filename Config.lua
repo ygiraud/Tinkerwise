@@ -834,7 +834,11 @@ local function BuildWindow()
     CreateFrame("Button", nil, window, "UIPanelCloseButton"):SetPoint("TOPRIGHT", -6, -6)
     window:SetScript("OnShow", function() PlaySound(SOUNDKIT.IG_CHARACTER_INFO_OPEN) end)
     window:SetScript("OnHide", function(self)
-        if self.ready then PlaySound(SOUNDKIT.IG_CHARACTER_INFO_CLOSE) end
+        if not self.ready then return end
+        PlaySound(SOUNDKIT.IG_CHARACTER_INFO_CLOSE)
+        -- Closing the window locks what was unlocked from it, unless "Move windows" closed it or the
+        -- whole interface is hidden (still shown then, but under a hidden parent).
+        if not TW.enteringEditMode and not self:IsShown() then TW:SetEditMode(false) end
     end)
 
     -- Header: round emblem, title, tagline

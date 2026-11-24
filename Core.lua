@@ -317,7 +317,11 @@ function TW:SetEditMode(on)
     end
     if not editBar then BuildEditBar() end
     editBar:SetShown(self.editMode)
-    if self.editMode and TinkerwiseConfigFrame then TinkerwiseConfigFrame:Hide() end
+    if self.editMode and TinkerwiseConfigFrame then
+        self.enteringEditMode = true -- closing the configuration locks the windows otherwise
+        TinkerwiseConfigFrame:Hide()
+        self.enteringEditMode = nil
+    end
 end
 
 local loader = CreateFrame("Frame")
