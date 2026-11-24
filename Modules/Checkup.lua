@@ -944,7 +944,6 @@ win:SetScript("OnHide", function() PlaySound(SOUNDKIT.IG_CHARACTER_INFO_CLOSE) e
 local chatButton = TW:CreateRoundButton("TinkerwiseCheckupButton", UIParent, "Interface\\Icons\\INV_Misc_Note_01")
 chatButton:SetMovable(true)
 chatButton:SetClampedToScreen(true)
-chatButton:RegisterForDrag("LeftButton")
 chatButton:Hide()
 
 local CHAT_BUTTONS = {
@@ -975,16 +974,7 @@ local function PlaceChatButton()
     end
 end
 
-local unlocked = false
-chatButton:SetScript("OnDragStart", function(self) if unlocked then self:StartMoving() end end)
-chatButton:SetScript("OnDragStop", function(self)
-    if not unlocked then return end -- the drag moved nothing, keep the saved position
-    self:StopMovingOrSizing()
-    local point, _, _, x, y = self:GetPoint()
-    db.btnPoint, db.btnX, db.btnY = point, x, y
-end)
 chatButton:SetScript("OnClick", function(_, mouse)
-    if unlocked then return end
     if win:IsShown() then
         win:Hide()
     else
@@ -1091,45 +1081,21 @@ end)
 -- Module
 ---------------------------------------------------------------------------
 
--- Placeholder shown while moving: same size and spot as the window, no scan.
-local preview
+-- Shown in the game's Edit Mode: same size and spot as the window, no scan.
+local preview = CreateFrame("Frame", nil, UIParent)
+preview:SetFrameStrata("DIALOG")
+preview:SetMovable(true)
+preview:SetClampedToScreen(true)
+preview:Hide()
 
-local function BuildPreview()
-    preview = CreateFrame("Frame", nil, UIParent)
-    preview:SetFrameStrata("DIALOG")
-    preview:SetMovable(true)
-    preview:SetClampedToScreen(true)
-    preview:EnableMouse(true)
-    preview:RegisterForDrag("LeftButton")
-    -- Same look as the blue overlay of TW:CreateMover.
-    local tex = preview:CreateTexture(nil, "OVERLAY")
-    tex:SetAllPoints()
-    tex:SetColorTexture(0, 0.6, 1, 0.4)
-    local label = preview:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    label:SetPoint("BOTTOM", preview, "TOP", 0, 2)
-    label:SetText("Check-up")
-    preview:SetScript("OnDragStart", preview.StartMoving)
-    preview:SetScript("OnDragStop", function(self)
-        self:StopMovingOrSizing()
-        local point, _, _, x, y = self:GetPoint()
-        db.winPoint, db.winX, db.winY = point, x, y
-        win:ClearAllPoints()
-        win:SetPoint(point, UIParent, point, x, y)
-    end)
-end
-
-local function SetUnlocked(on)
-    unlocked = on
+local function ShowPreview(on)
     if on then
-        if not preview then BuildPreview() end
         win:Hide()
         preview:SetSize(win:GetSize())
         preview:ClearAllPoints()
         preview:SetPoint(win:GetPoint())
-        preview:Show()
-    elseif preview then
-        preview:Hide()
     end
+    preview:SetShown(on)
 end
 
 local function ResetPosition()
@@ -1137,7 +1103,7 @@ local function ResetPosition()
     win:ClearAllPoints()
     win:SetPoint("CENTER", 0, 40)
     PlaceChatButton()
-    if unlocked then SetUnlocked(true) end
+    if preview:IsShown() then ShowPreview(true) end
 end
 
 local mod = TW:NewModule("Checkup", {
@@ -1147,9 +1113,8 @@ local mod = TW:NewModule("Checkup", {
     desc = L["Checks that you're ready to go: durability and repair cost, food and water suited to your level, potions, ammo suited to your level, class reagents, elixirs, unspent talent points and bag space. Button above the chat, right-click on the minimap button, or /tw checkup."],
     defaults = DEFAULTS,
     options = {
-        { type = "execute", label = L["Run the check-up"], func = function() Open() end },
-        { type = "execute", label = L["Move / Lock"], func = function() SetUnlocked(not unlocked) end },
-        { type = "execute", label = L["Reset position"], func = function() ResetPosition() end },
+        { type = "execute", label = L["Run the check-up"], editMode = "never", func = function() Open() end },
+        { type = "execute", label = L["Reset position"], editMode = "only", func = function() ResetPosition() end },
         { type = "header", label = L["Checks"] },
         { type = "toggle", key = "checkArmor", label = L["Armor"] },
         { type = "toggle", key = "checkFood", label = L["Food"] },
@@ -1180,6 +1145,21 @@ local mod = TW:NewModule("Checkup", {
     },
 })
 
+ns.AddToEditMode({
+    frame = preview, mod = mod, label = "Check-up",
+    OnEditing = ShowPreview,
+    Save = function(point, x, y)
+        db.winPoint, db.winX, db.winY = point, x, y
+        win:ClearAllPoints()
+        win:SetPoint(point, UIParent, point, x, y)
+    end,
+})
+ns.AddToEditMode({
+    frame = chatButton, mod = mod, label = L["Button above the chat"],
+    IsAvailable = function() return mod.db.chatButton and chatButtonReady end,
+    Save = function(point, x, y) db.btnPoint, db.btnX, db.btnY = point, x, y end,
+})
+
 function mod:Open() Open() end
 
 function mod:OnEnable()
@@ -1197,15 +1177,11 @@ function mod:OnEnable()
     end
 end
 
-function mod:SetEditMode(on)
-    SetUnlocked(on)
-end
-
 function mod:OnDisable()
     events:UnregisterAllEvents()
     chatButton:Hide()
     win:Hide()
-    SetUnlocked(false)
+    ShowPreview(false)
 end
 
 function mod:OnOptionChanged(key)

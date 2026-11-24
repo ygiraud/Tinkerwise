@@ -463,7 +463,7 @@ container:SetBackdrop({
     edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border", edgeSize = 12,
     insets = { left = 3, right = 3, top = 3, bottom = 3 },
 })
-TW:CreateMover(container, function() return db end, L["Buffs and Thanks"], DEFAULTS)
+TW:CreateMover(container, function() return db end, DEFAULTS)
 
 local iconFrame = CreateFrame("Frame", nil, container, "BackdropTemplate")
 iconFrame:SetPoint("LEFT", PAD, 0)
@@ -784,12 +784,7 @@ local mod = TW:NewModule("Courtesy", {
         { type = "toggle", key = "buffBack", label = L["Buff them back when I can"] },
         { type = "toggle", key = "track", label = L["Track herbs, minerals or treasures"] },
         { type = "slider", key = "size", label = L["Icon size"], min = 24, max = 80, step = 2 },
-        { type = "execute", label = L["Move / Lock"], func = function()
-            if InCombatLockdown() then return end
-            container:ToggleMover()
-            Refresh()
-        end },
-        { type = "execute", label = L["Reset position"], func = function()
+        { type = "execute", label = L["Reset position"], editMode = "only", func = function()
             if not InCombatLockdown() then container:ResetPosition() end
         end },
     },
@@ -805,6 +800,8 @@ if #ClassBuffKeys() > 0 then
         return names
     end }
 end
+
+ns.AddToEditMode({ frame = container, mod = mod, label = L["Buffs and Thanks"], OnEditing = Refresh })
 
 function mod:OnEnable()
     db = self.db
@@ -829,17 +826,10 @@ function mod:OnDisable()
     if ticker then ticker:Cancel() ticker = nil end
     favour = nil
     if not InCombatLockdown() then
-        container:Lock()
         container:Hide()
     end
 end
 
 function mod:OnOptionChanged()
-    Refresh()
-end
-
-function mod:SetEditMode(on)
-    if InCombatLockdown() then return end
-    container:SetUnlocked(on)
     Refresh()
 end

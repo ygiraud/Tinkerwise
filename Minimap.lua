@@ -55,9 +55,7 @@ end
 button:SetScript("OnClick", function(_, mouse)
     if not UIParent:IsShown() then return end -- its windows could not be seen
     local action = CurrentAction()
-    if IsShiftKeyDown() then
-        TW:SetEditMode(not TW.editMode)
-    elseif action and (mouse == "RightButton" or IsControlKeyDown()) then
+    if action and (mouse == "RightButton" or IsControlKeyDown()) then
         action.run()
     else
         TW:ToggleConfig()
@@ -71,7 +69,6 @@ button:SetScript("OnEnter", function(self)
     if action then
         GameTooltip:AddLine(L["Right-click or Ctrl + click: "] .. action.label, 1, 1, 1)
     end
-    GameTooltip:AddLine(L["Shift + click: move windows"], 1, 1, 1)
     if not InColumn() then GameTooltip:AddLine(L["Drag: move around the minimap"], 0.7, 0.7, 0.7) end
     GameTooltip:Show()
 end)

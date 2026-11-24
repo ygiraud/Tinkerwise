@@ -12,7 +12,6 @@
 --   replaces           { oldModuleKey = optionKey } older modules it took over, see ADDON_LOADED
 --   whenTurnedOnByReplaced  settings given when it was off and an old module it took over was on
 --   OnEnable, OnDisable, OnOptionChanged(key)   callbacks
---   SetEditMode(on)    unlock / lock the module's movable frames
 
 local ADDON, ns = ...
 local L = ns.L
@@ -106,9 +105,10 @@ function TW:SetModuleEnabled(mod, enabled)
                 return
             end
         end
-        if self.editMode and mod.SetEditMode then mod:SetEditMode(true) end
+        ns.UpdateEditMode(mod)
     elseif not enabled and mod.active then
         mod.active = false
+        ns.UpdateEditMode(mod) -- first: no preview stays
         if mod.OnDisable then mod:OnDisable() end
     end
 end
@@ -116,6 +116,7 @@ end
 function TW:SetOption(mod, key, value)
     mod.db[key] = value
     if mod.active and mod.OnOptionChanged then mod:OnOptionChanged(key) end
+    ns.UpdateEditMode(mod)
 end
 
 -- The dialog background texture is see-through whatever its color: this solid layer sits under it.
@@ -233,35 +234,12 @@ function TW:CreateRoundButton(name, parent, iconPath)
     return b
 end
 
--- Makes `frame` draggable through a blue overlay, saving its position in db.point/x/y
--- (`default` holds the point/x/y used by ResetPosition).
--- Adds frame:ApplyPosition(), frame:ToggleMover() (returns true when unlocked), frame:ResetPosition(),
--- frame:IsUnlocked().
-function TW:CreateMover(frame, getDB, label, default)
+-- Gives `frame` a position saved in db.point/x/y (`default` holds the point/x/y of ResetPosition). It is
+-- moved in the game's Edit Mode, see EditMode.lua; IsUnlocked() is true meanwhile, for the modules to
+-- show a preview.
+function TW:CreateMover(frame, getDB, default)
     frame:SetMovable(true)
     frame:SetClampedToScreen(true)
-
-    local overlay = CreateFrame("Frame", nil, frame)
-    overlay:SetAllPoints()
-    overlay:SetFrameLevel(frame:GetFrameLevel() + 10)
-    overlay:EnableMouse(true)
-    overlay:RegisterForDrag("LeftButton")
-    overlay:Hide()
-    local tex = overlay:CreateTexture(nil, "OVERLAY")
-    tex:SetAllPoints()
-    tex:SetColorTexture(0, 0.6, 1, 0.4)
-    local text = overlay:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    text:SetPoint("BOTTOM", overlay, "TOP", 0, 2)
-    text:SetText(label or L["Drag to move"])
-
-    overlay:SetScript("OnDragStart", function() frame:StartMoving() end)
-    overlay:SetScript("OnDragStop", function()
-        frame:StopMovingOrSizing()
-        local db = getDB()
-        local point, _, _, x, y = frame:GetPoint()
-        db.point, db.x, db.y = point, x, y
-    end)
-
     function frame:ApplyPosition()
         local db = getDB()
         self:ClearAllPoints()
@@ -272,69 +250,16 @@ function TW:CreateMover(frame, getDB, label, default)
         db.point, db.x, db.y = default.point, default.x, default.y
         self:ApplyPosition()
     end
-    function frame:ToggleMover()
-        overlay:SetShown(not overlay:IsShown())
-        return overlay:IsShown()
-    end
-    function frame:IsUnlocked() return overlay:IsShown() end
-    function frame:Lock() overlay:Hide() end
-    function frame:SetUnlocked(on) overlay:SetShown(on) end
-end
-
--- Edit mode: unlocks the frames of all active modules at once (see mod:SetEditMode).
-local editBar
-
-local function BuildEditBar()
-    editBar = CreateFrame("Frame", "TinkerwiseEditBar", UIParent, "BackdropTemplate")
-    editBar:SetSize(380, 44)
-    editBar:SetPoint("TOP", 0, -60)
-    editBar:SetFrameStrata("DIALOG")
-    editBar:SetBackdrop({
-        bgFile = "Interface\\Tooltips\\UI-Tooltip-Background",
-        edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
-        tile = true, tileSize = 16, edgeSize = 16,
-        insets = { left = 4, right = 4, top = 4, bottom = 4 },
-    })
-    editBar:SetBackdropColor(0.06, 0.04, 0.02, 0.95)
-    editBar:SetBackdropBorderColor(1, 0.82, 0, 1)
-    local text = editBar:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    text:SetPoint("LEFT", 14, 0)
-    text:SetText(L["Move windows: drag them"])
-    local done = CreateFrame("Button", nil, editBar, "UIPanelButtonTemplate")
-    done:SetSize(90, 22)
-    done:SetPoint("RIGHT", -10, 0)
-    done:SetText(L["Finish"])
-    done:SetScript("OnClick", function() TW:SetEditMode(false) end)
-end
-
-function TW:SetEditMode(on)
-    if on and InCombatLockdown() then
-        return self:Print(L["cannot move windows in combat."])
-    end
-    self.editMode = on and true or false
-    for _, mod in ipairs(self.order) do
-        if mod.active and mod.SetEditMode then mod:SetEditMode(self.editMode) end
-    end
-    if not editBar then BuildEditBar() end
-    editBar:SetShown(self.editMode)
-    if self.editMode and TinkerwiseConfigFrame then
-        self.enteringEditMode = true -- closing the configuration locks the windows otherwise
-        TinkerwiseConfigFrame:Hide()
-        self.enteringEditMode = nil
-    end
+    local unlocked = false
+    function frame:SetUnlocked(on) unlocked = on end
+    function frame:IsUnlocked() return unlocked end
 end
 
 local loader = CreateFrame("Frame")
 loader:RegisterEvent("ADDON_LOADED")
 loader:RegisterEvent("PLAYER_LOGIN")
-loader:RegisterEvent("PLAYER_REGEN_DISABLED")
 loader:SetScript("OnEvent", function(_, event, arg1)
-    if event == "PLAYER_REGEN_DISABLED" then
-        if TW.editMode then
-            TW:SetEditMode(false)
-            TW:Print(L["window moving ended: you entered combat."])
-        end
-    elseif event == "ADDON_LOADED" and arg1 == ADDON then
+    if event == "ADDON_LOADED" and arg1 == ADDON then
         TinkerwiseDB = TinkerwiseDB or {}
         TinkerwiseDB.modules = TinkerwiseDB.modules or {}
         TinkerwiseCharDB = TinkerwiseCharDB or {}
@@ -422,9 +347,7 @@ SLASH_TINKERWISE2 = "/tw"
 SlashCmdList.TINKERWISE = function(input)
     local cmd, arguments = strtrim(input or ""):match("^(%S*)%s*(.-)$")
     cmd = cmd:lower()
-    if cmd == "move" then
-        TW:SetEditMode(not TW.editMode)
-    elseif TW.commands[cmd] then
+    if TW.commands[cmd] then
         TW.commands[cmd](arguments)
     else
         TW:ToggleConfig()
@@ -437,7 +360,7 @@ SlashCmdList.TINKERWISERELOAD = function()
     ReloadUI()
 end
 
--- Opens Blizzard's Edit Mode (not to be confused with /tw move, for the addon's own windows).
+-- Opens Blizzard's Edit Mode, which moves the addon's windows too.
 SLASH_TINKERWISEEDIT1 = "/edit"
 SlashCmdList.TINKERWISEEDIT = function()
     if not EditModeManagerFrame then

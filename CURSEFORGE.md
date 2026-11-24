@@ -13,7 +13,7 @@ A toolbox for WoW Forever: independent modules you can turn on or off from a sin
 **Character**
 - **My Characters:** gold, level, rested XP, bags, bank and mail across your characters in one window, with search. Characters are sorted by game mode (PvE, PvP, Hardcore, RP, RP-PvP, detected automatically) and by groups you create, for instance to keep a guild's characters apart. Can be turned on for each character
 - **Stat Changes:** gains and losses when your gear, buffs, form or talents change, plus a summary panel on level up
-- **Class Bar:** your class utility spells on a movable bar (conjured food, portals, demons, stones, pet care, tracking...), with lists to choose from
+- **Class Bar:** your class utility spells on one more action bar (conjured food, portals, demons, stones, pet care, tracking...), with lists to choose from, the look and settings of the game's own bars and a box for each button and spell. It counts the soul shards of warlocks, and their soulstone button uses the stone in the bags or creates one
 
 **Items**
 - **Item Tooltips:** gains and losses compared with your gear, and Ctrl + C over an item, spell, quest or creature gives its Wowhead address to copy
@@ -22,13 +22,13 @@ A toolbox for WoW Forever: independent modules you can turn on or off from a sin
 **Group**
 - **Group Comfort:** accepts invitations from friends and guildmates, resurrections and, optionally, summons, and can turn down duels
 - **Buffs and Thanks:** one button, outside combat, to buff yourself and your group, and to thank (and buff back) whoever buffs you, the thanks also going out by themselves if you like, and to turn herb, mineral or treasure tracking back on
-- **Trade Supplies:** for mages and warlocks, puts conjured water and food or a healthstone in the trade window, for the class and level of the other player
+- **Trade Supplies:** for mages and warlocks, puts conjured water and food or a healthstone in the trade window, for the class and level of the other player. You always accept the trade yourself
 
 **Chat**
 - **Chat:** a new tab for each whisper conversation with a close button, group and guild tabs, class-colored names, timestamps, clickable links, a whisper alert, copying and resizable windows with a custom background
 
 **Interface**
-- **Dark Theme:** darkens unit frames, action bars, minimap, windows and tooltips with a tint of your choice or your class color, without moving anything
+- **Dark Theme:** darkens unit frames, action bars, minimap, windows and tooltips with a tint of your choice or your class color, without moving anything; elite dragons stay gold
 - **Appearance:** the Tinkerwise windows (configuration, check-up) in gold or in your class color
 - **Unit Frames:** dresses the game's unit frames without rebuilding them: health in class or reaction colors, bar texture, class colored names, class icon instead of the portrait
 - **Nameplates:** target and other plate sizes, class colors, health texture, arrows around your target and health percentage on the game's own nameplates
@@ -43,6 +43,10 @@ A toolbox for WoW Forever: independent modules you can turn on or off from a sin
 - **Default Settings:** keeps auto loot on, loots faster and sets up new characters
 - **Minimap Button:** quick access and customizable clicks
 
+## Moving windows
+
+The addon's windows are moved in the game's Edit Mode (`/edit`): Class Bar, Buffs and Thanks, Potion Reminder, Stat Changes, the loot of Immersion Mode, the check-up and its chat button. They snap to the grid and to the other frames, and a click opens their settings. Changes are saved at once, apart from the Edit Mode layouts.
+
 ## Optional addons
 
 Install **What's Training?** to see the spells to learn from your class trainer, and their total cost, in the level-up panel. Without it, the panel only shows your stats.
@@ -51,10 +55,9 @@ Install **What's Training?** to see the spells to learn from your class trainer,
 
 | Command | Effect |
 |---|---|
-| `/tw` | Opens the configuration |
-| `/tw move` | Moves the addon's windows |
+| `/tw` or `/tinkerwise` | Opens the configuration |
 | `/rl` | Reloads the interface |
-| `/edit` | Opens Blizzard's Edit Mode |
+| `/edit` | Opens Blizzard's Edit Mode, where the addon's windows can be moved too |
 | `/kb` | Opens Blizzard's Quick Keybind Mode |
 | `/cc` | Opens or closes the Click Casting window |
 | `/tw checkup` | Runs the check-up |

@@ -12,6 +12,7 @@ local Spells = ns.Spells -- set by Courtesy.lua
 local DEFAULTS = {
     orientation = "horizontal", rows = 1, icons = 12, -- as an action bar in the game's Edit Mode
     iconSize = 100, padding = 2,
+    grow = "both", -- "start": to the right or down, "end": to the left or up
     visible = "always", alwaysShow = false,
     hover = false,
     point = "BOTTOM", x = 0, y = 230,
@@ -86,7 +87,7 @@ local slots = {} -- one per group, in the same order
 local container = CreateFrame("Frame", "TinkerwiseClassBar", UIParent)
 container:SetSize(45, 45)
 container:Hide()
-TW:CreateMover(container, function() return db end, L["Class Bar"], DEFAULTS)
+TW:CreateMover(container, function() return db end, DEFAULTS)
 
 local function ShowTooltip(self)
     if self.itemID then
@@ -424,6 +425,34 @@ local function LayoutList(slot, count, vertical)
     end
 end
 
+-- The corner or side that stays in place when the bar gets longer or shorter.
+local ANCHORS = {
+    horizontal = { start = "BOTTOMLEFT", ["end"] = "BOTTOMRIGHT", both = "BOTTOM" },
+    vertical = { start = "TOPLEFT", ["end"] = "BOTTOMLEFT", both = "LEFT" },
+}
+
+-- Saves the position from that point, without moving the bar, when it was saved from another one
+-- (the bar was dragged, or the options changed).
+local function AnchorPosition()
+    local point = ANCHORS[db.orientation][db.grow]
+    if not point or db.point == point then return end
+    local left, bottom, width, height = container:GetRect()
+    if not left then return end
+    local x, y = left + width / 2 - UIParent:GetWidth() / 2, bottom + height / 2 - UIParent:GetHeight() / 2
+    if point:find("LEFT") then
+        x = left
+    elseif point:find("RIGHT") then
+        x = left + width - UIParent:GetWidth()
+    end
+    if point:find("BOTTOM") then
+        y = bottom
+    elseif point:find("TOP") then
+        y = bottom + height - UIParent:GetHeight()
+    end
+    db.point, db.x, db.y = point, x, y
+    container:ApplyPosition()
+end
+
 local empties = {}
 
 local function Layout()
@@ -468,8 +497,10 @@ local function Layout()
     local long, short = perLine * step - db.padding, lines * step - db.padding
     container:SetSize(vertical and short or long, vertical and long or short)
     container:ApplyPosition()
+    if total > 0 then AnchorPosition() end
     local function Place(frame, i)
         local line, rank = math.floor((i - 1) / perLine), (i - 1) % perLine
+        if db.grow == "end" then rank = perLine - 1 - rank end
         local column, row = rank, lines - 1 - line
         if vertical then column, row = line, rank end
         frame:SetScale(zoom)
@@ -487,6 +518,7 @@ local function Layout()
     return #shown > 0
 end
 
+local editMode -- the bar in the game's Edit Mode
 local pending = false -- something to apply once the fight is over
 
 local function Apply()
@@ -497,7 +529,6 @@ local function Apply()
     pending = false
     UnregisterStateDriver(container, "visibility")
     if not mod.active then
-        container:Lock()
         container:Hide()
         return
     end
@@ -525,7 +556,10 @@ local function Schedule()
     scheduled = true
     C_Timer.After(0.5, function()
         scheduled = false
-        if mod.active then Apply() end
+        if mod.active then
+            Apply()
+            editMode:Update() -- the first spell may just have been learned
+        end
     end)
 end
 
@@ -566,10 +600,6 @@ events:SetScript("OnEvent", function(_, event)
         UpdateCounts()
         UpdateStones()
     elseif event == "PLAYER_REGEN_DISABLED" then
-        if container:IsUnlocked() then
-            container:Lock()
-            Apply() -- back to when it must show
-        end
         UpdateStones(true) -- the last moment the macro may still change
     else
         Schedule()
@@ -600,6 +630,11 @@ mod = TW:NewModule("ClassBar", {
         { type = "select", key = "orientation", label = GameText("ORIENTATION", L["Orientation"]),
           values = { { "horizontal", GameText("ORIENTATION_HORIZONTAL", L["Horizontal"]) },
                      { "vertical", GameText("ORIENTATION_VERTICAL", L["Vertical"]) } } },
+        { type = "select", key = "grow", label = L["Extends"], values = {
+            { "both", L["On both sides"] },
+            { "start", L["To the right (down if vertical)"] },
+            { "end", L["To the left (up if vertical)"] },
+        } },
         { type = "slider", key = "rows", min = 1, max = 4, step = 1,
           label = GameText("NUM_ROWS", L["Rows"]) .. " / " .. GameText("NUM_COLUMNS", L["Columns"]) },
         { type = "slider", key = "icons", label = GameText("NUM_ICONS", L["Number of icons"]), min = 1, max = 12, step = 1 },
@@ -613,17 +648,27 @@ mod = TW:NewModule("ClassBar", {
         } },
         { type = "toggle", key = "alwaysShow", label = GameText("ALWAYS_SHOW_BUTTONS", L["Always show buttons"]) },
         { type = "toggle", key = "hover", label = L["Only on mouseover"] },
-        { type = "execute", label = L["Move / Lock"], func = function()
-            if InCombatLockdown() then return end
-            container:ToggleMover()
-            Relayout()
-        end },
-        { type = "execute", label = L["Reset position"], func = function()
+        { type = "execute", label = L["Reset position"], editMode = "only", func = function()
             if InCombatLockdown() then return end
             container:ResetPosition()
             Relayout()
         end },
     },
+})
+
+editMode = ns.AddToEditMode({
+    frame = container, mod = mod, label = L["Class Bar"],
+    IsAvailable = function()
+        for _, slot in ipairs(slots) do
+            if slot.main:IsShown() then return true end
+        end
+        return false -- nothing to show
+    end,
+    OnEditing = function()
+        Apply()
+        UpdateAlpha()
+    end,
+    OnMoved = Apply, -- the lists may open on another side
 })
 
 -- One box per group of your class: an unticked one is not shown.
@@ -668,10 +713,4 @@ end
 function mod:OnOptionChanged()
     Apply()
     ApplyHover()
-end
-
-function mod:SetEditMode(on)
-    if #groups == 0 or InCombatLockdown() then return end
-    container:SetUnlocked(on)
-    Relayout() -- shown while it moves; the lists may open on another side afterwards
 end

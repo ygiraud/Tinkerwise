@@ -13,6 +13,7 @@
 Locale.lua
 Locales\frFR.lua
 Core.lua
+EditMode.lua
 Modules\Checkup.lua
 Modules\PotionReminder.lua
 Modules\Bags.lua

@@ -138,7 +138,7 @@ local log = CreateFrame("Frame", "TinkerwiseLootLog")
 log:SetSize(280, MAX_LOOT * ROW_H)
 log:SetFrameStrata("HIGH")
 log:Hide()
-TW:CreateMover(log, function() return db end, L["Loot (immersion mode)"], DEFAULTS)
+TW:CreateMover(log, function() return db end, DEFAULTS)
 
 local tip = CreateFrame("GameTooltip", "TinkerwiseLootLogTip", nil, "GameTooltipTemplate")
 tip:SetFrameStrata("TOOLTIP")
@@ -423,13 +423,16 @@ local mod = TW:NewModule("Immersion", {
         { type = "header", label = L["Loot"] },
         { type = "toggle", key = "lootLog", label = L["Show what I pick up"] },
         { type = "slider", key = "lootHold", label = L["Display duration (s)"], min = 2, max = 20, step = 1 },
-        { type = "execute", label = L["Move / Lock"], func = function()
-            log:SetScale(UIParent:GetEffectiveScale())
-            log:ToggleMover()
-            RenderLog()
-        end },
-        { type = "execute", label = L["Reset position"], func = function() log:ResetPosition() end },
+        { type = "execute", label = L["Reset position"], editMode = "only", func = function() log:ResetPosition() end },
     },
+})
+
+ns.AddToEditMode({
+    frame = log, mod = mod, label = L["Loot (immersion mode)"], card = L["Loot"],
+    OnEditing = function()
+        log:SetScale(UIParent:GetEffectiveScale())
+        RenderLog()
+    end,
 })
 
 function mod:OnEnable()
@@ -453,17 +456,10 @@ function mod:OnDisable()
     events:UnregisterAllEvents()
     CancelFade()
     letterbox:Hide()
-    log:Lock()
     ClearLog()
     if InCombatLockdown() then
         events:RegisterEvent("PLAYER_REGEN_ENABLED")
     else
         Attach()
     end
-end
-
-function mod:SetEditMode(on)
-    log:SetScale(UIParent:GetEffectiveScale())
-    log:SetUnlocked(on)
-    RenderLog()
 end

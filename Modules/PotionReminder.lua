@@ -66,7 +66,7 @@ end
 local container = CreateFrame("Frame", "TinkerwisePotionFrame", UIParent)
 container:SetSize(88, 40)
 container:Hide()
-TW:CreateMover(container, function() return db end, L["Potion Reminder"], DEFAULTS)
+TW:CreateMover(container, function() return db end, DEFAULTS)
 
 local hint = container:CreateFontString(nil, "OVERLAY", "GameFontNormal")
 hint:SetPoint("TOP", container, "BOTTOM", 0, -6)
@@ -201,13 +201,11 @@ local mod = TW:NewModule("PotionReminder", {
             Refresh()
             C_Timer.After(5.1, RefreshIfActive)
         end },
-        { type = "execute", label = L["Move / Lock"], func = function()
-            container:ToggleMover()
-            Refresh()
-        end },
-        { type = "execute", label = L["Reset position"], func = function() container:ResetPosition() end },
+        { type = "execute", label = L["Reset position"], editMode = "only", func = function() container:ResetPosition() end },
     },
 })
+
+ns.AddToEditMode({ frame = container, mod = mod, label = L["Potion Reminder"], OnEditing = Refresh })
 
 function mod:OnEnable()
     db = self.db
@@ -221,15 +219,9 @@ end
 
 function mod:OnDisable()
     events:UnregisterAllEvents()
-    container:Lock()
     container:Hide()
 end
 
 function mod:OnOptionChanged()
-    Refresh()
-end
-
-function mod:SetEditMode(on)
-    container:SetUnlocked(on)
     Refresh()
 end

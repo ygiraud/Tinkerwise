@@ -175,7 +175,7 @@ local db
 local frame = CreateFrame("Frame", "TinkerwiseStatDeltaFrame", UIParent)
 frame:Hide()
 frame:SetSize(220, 20)
-TW:CreateMover(frame, function() return db end, L["Stat Changes - drag me"], DEFAULTS)
+TW:CreateMover(frame, function() return db end, DEFAULTS)
 
 -- Gold "STATISTICS" header with a fading underline, shown while lines are visible.
 local header = frame:CreateFontString(nil, "OVERLAY")
@@ -610,10 +610,11 @@ local mod = TW:NewModule("StatDelta", {
                 { { key = "SCRIT", pct = true }, 0.04 },
             })
         end },
-        { type = "execute", label = L["Move / Lock"], func = function() frame:ToggleMover() end },
-        { type = "execute", label = L["Reset position"], func = function() frame:ResetPosition() end },
+        { type = "execute", label = L["Reset position"], editMode = "only", func = function() frame:ResetPosition() end },
     },
 })
+
+ns.AddToEditMode({ frame = frame, mod = mod, label = L["Stat Changes"] })
 
 function mod:OnEnable()
     db = self.db
@@ -631,13 +632,8 @@ function mod:OnDisable()
     ready = false
     levelPending = nil
     panel:Hide()
-    frame:Lock()
     ClearLines()
     frame:Hide()
-end
-
-function mod:SetEditMode(on)
-    frame:SetUnlocked(on)
 end
 
 function mod:OnOptionChanged()

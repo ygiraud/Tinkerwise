@@ -12,6 +12,8 @@
 --   { type = "execute", label, func }   consecutive buttons share a line
 --   { type = "header",  label }         starts a new card
 --   { type = "checklist", key, items }  items() returns names; db[key] holds the unticked ones
+-- With editMode = "only", an option shows in the window of the game's Edit Mode (EditMode.lua) and not
+-- here; with editMode = "never", the other way round.
 
 local _, ns = ...
 local L = ns.L
@@ -272,6 +274,36 @@ local function CreateSelect(parent, opt, mod)
     return w
 end
 
+-- The widget of an option, its height, its horizontal offset in a card and whether it is a button.
+-- Nothing for the headers and the checklists, which hold several.
+local function CreateOption(parent, opt, mod)
+    if opt.type == "toggle" then
+        local w = CreateCheck(parent, opt.label)
+        w:SetScript("OnClick", function(self)
+            PlaySound(self:GetChecked() and SOUNDKIT.IG_MAINMENU_OPTION_CHECKBOX_ON or SOUNDKIT.IG_MAINMENU_OPTION_CHECKBOX_OFF)
+            TW:SetOption(mod, opt.key, self:GetChecked() and true or false)
+        end)
+        function w:Refresh() self:SetChecked(mod.db[opt.key]) end
+        return w, 28, -4
+    elseif opt.type == "slider" then
+        return CreateSlider(parent, opt), 54
+    elseif opt.type == "color" then
+        return CreateColorOption(parent, opt, mod), 30
+    elseif opt.type == "input" then
+        return CreateInput(parent, opt, mod), 50
+    elseif opt.type == "select" then
+        return CreateSelect(parent, opt, mod), 56
+    elseif opt.type == "execute" then
+        local w = CreateFrame("Button", nil, parent, "UIPanelButtonTemplate")
+        w:SetText(opt.label)
+        w:SetSize(w:GetFontString():GetStringWidth() + 30, 22)
+        w:SetScript("OnClick", function() opt.func(mod) end)
+        function w:Refresh() self:SetEnabled(mod.active and true or false) end -- actions need an active module
+        return w, 28, 0, true
+    end
+end
+ns.CreateOption = CreateOption -- also for the windows of EditMode.lua
+
 -- Pill-shaped on/off button: "ACTIVÉ" in green or "DÉSACTIVÉ" in grey.
 local function CreateSwitch(parent, onClick)
     local b = CreateFrame("Button", nil, parent, "BackdropTemplate")
@@ -454,36 +486,11 @@ local function BuildPanel(mod)
     for _, opt in ipairs(mod.options or {}) do
         if opt.type == "header" then
             OpenCard(opt.label)
-        else
+        elseif opt.editMode ~= "only" then
             if not card then OpenCard(L["Settings"]) end
-            local w
-            if opt.type == "toggle" then
-                w = CreateCheck(card, opt.label)
-                w:SetScript("OnClick", function(self)
-                    PlaySound(self:GetChecked() and SOUNDKIT.IG_MAINMENU_OPTION_CHECKBOX_ON or SOUNDKIT.IG_MAINMENU_OPTION_CHECKBOX_OFF)
-                    TW:SetOption(mod, opt.key, self:GetChecked() and true or false)
-                end)
-                function w:Refresh() self:SetChecked(mod.db[opt.key]) end
-                AddItem(w, 28, -4)
-            elseif opt.type == "slider" then
-                w = CreateSlider(card, opt)
-                AddItem(w, 54)
-            elseif opt.type == "color" then
-                w = CreateColorOption(card, opt, mod)
-                AddItem(w, 30)
-            elseif opt.type == "input" then
-                w = CreateInput(card, opt, mod)
-                AddItem(w, 50)
-            elseif opt.type == "select" then
-                w = CreateSelect(card, opt, mod)
-                AddItem(w, 56)
-            elseif opt.type == "execute" then
-                w = CreateFrame("Button", nil, card, "UIPanelButtonTemplate")
-                w:SetText(opt.label)
-                w:SetSize(w:GetFontString():GetStringWidth() + 30, 22)
-                w:SetScript("OnClick", function() opt.func(mod) end)
-                function w:Refresh() self:SetEnabled(mod.active and true or false) end -- actions need an active module
-                AddItem(w, 28, 0, true)
+            local w, height, offset, isButton = CreateOption(card, opt, mod)
+            if w then
+                AddItem(w, height, offset, isButton)
             elseif opt.type == "checklist" then
                 -- one box per item; db[key] holds the unticked names, so new items start ticked
                 for _, name in ipairs(opt.items()) do
@@ -836,9 +843,6 @@ local function BuildWindow()
     window:SetScript("OnHide", function(self)
         if not self.ready then return end
         PlaySound(SOUNDKIT.IG_CHARACTER_INFO_CLOSE)
-        -- Closing the window locks what was unlocked from it, unless "Move windows" closed it or the
-        -- whole interface is hidden (still shown then, but under a hidden parent).
-        if not TW.enteringEditMode and not self:IsShown() then TW:SetEditMode(false) end
     end)
 
     -- Header: round emblem, title, tagline
@@ -906,11 +910,6 @@ local function BuildWindow()
     close:SetPoint("BOTTOMRIGHT", -22, 16)
     close:SetText(L["Close"])
     close:SetScript("OnClick", function() window:Hide() end)
-    local edit = CreateFrame("Button", nil, window, "UIPanelButtonTemplate")
-    edit:SetSize(160, 22)
-    edit:SetPoint("RIGHT", close, "LEFT", -6, 0)
-    edit:SetText(L["Move windows"])
-    edit:SetScript("OnClick", function() TW:SetEditMode(true) end)
 
     -- Resize grip, bottom right. The size is saved per character.
     local saved = TinkerwiseCharDB.configSize
