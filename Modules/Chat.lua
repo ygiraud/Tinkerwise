@@ -106,7 +106,8 @@ local function CopyFrame(frame)
     local lines = {}
     for i = 1, frame:GetNumMessages() do
         local text = frame:GetMessageInfo(i)
-        if text then lines[#lines + 1] = PlainText(text) end
+        -- A secret line (combat, instance) cannot be read: it is left out.
+        if not (issecretvalue and issecretvalue(text)) and text then lines[#lines + 1] = PlainText(text) end
     end
     ShowCopyWindow(table.concat(lines, "\n"))
 end
@@ -267,7 +268,8 @@ local function InstallLinkHandler()
     linkHandlerInstalled = true
     local original = SetItemRef
     SetItemRef = function(link, ...)
-        if link:sub(1, #URL_PREFIX) == URL_PREFIX then
+        local readable = not (issecretvalue and issecretvalue(link)) and type(link) == "string"
+        if readable and link:sub(1, #URL_PREFIX) == URL_PREFIX then
             return ShowCopyWindow(link:sub(#URL_PREFIX + 1))
         end
         return original(link, ...)

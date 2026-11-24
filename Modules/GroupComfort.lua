@@ -40,19 +40,28 @@ local function HidePopups(...)
     for i = 1, select("#", ...) do StaticPopup_Hide((select(i, ...))) end
 end
 
+-- When the game hides the answer, the resurrection is not accepted on its own.
+local function MaybeInCombat(name)
+    name = Plain(name)
+    if not name then return true end
+    local fighting = UnitAffectingCombat(name)
+    if issecretvalue and issecretvalue(fighting) then return true end
+    return fighting
+end
+
 local events = CreateFrame("Frame")
 events:SetScript("OnEvent", function(_, event, name)
     if event == "PARTY_INVITE_REQUEST" then
         if db.invites and (IsFriend(name) or IsGuildmate(name)) then
             AcceptGroup()
             HidePopups("PARTY_INVITE")
-            TW:Print(format(L["invitation from %s accepted."], name))
+            TW:Print(format(L["invitation from %s accepted."], Plain(name) or "?"))
         end
     elseif event == "RESURRECT_REQUEST" then
-        if db.resurrect and not (db.resurrectSafe and UnitAffectingCombat(name)) then
+        if db.resurrect and not (db.resurrectSafe and MaybeInCombat(name)) then
             AcceptResurrect()
             HidePopups("RESURRECT", "RESURRECT_NO_SICKNESS", "RESURRECT_NO_TIMER")
-            TW:Print(format(L["resurrection from %s accepted."], name))
+            TW:Print(format(L["resurrection from %s accepted."], Plain(name) or "?"))
         end
     elseif event == "CONFIRM_SUMMON" then
         if db.summon then
