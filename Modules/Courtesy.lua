@@ -174,6 +174,8 @@ local function SpellKnown(id)
     return false
 end
 
+ns.Spells = { Name = SpellName, Icon = SpellIcon, Known = SpellKnown, Plain = Plain } -- also for the class bar
+
 local function Knows(key)
     for _, id in ipairs(BUFFS[key].ranks) do
         if SpellKnown(id) then return true end
@@ -412,6 +414,16 @@ local function AutoThank(name)
     end)
 end
 
+-- A stranger the game does not name: a /thank without a target ("you thank someone near you"),
+-- through the "none" unit so that the current target is not the one thanked. At most once a minute.
+local STRANGER_SECONDS = 60
+local strangerThankedAt = -STRANGER_SECONDS
+local function AutoThankStranger()
+    if not (db and db.thanks and db.autoThanks) or GetTime() - strangerThankedAt < STRANGER_SECONDS then return end
+    strangerThankedAt = GetTime()
+    C_Timer.After(1, function() pcall(DoEmote, "THANK", "none") end)
+end
+
 local function NoteFavours(info)
     -- The game may hide the whole update (secret values): nothing to read then.
     if not info or Plain(info.isFullUpdate) ~= false then return end
@@ -426,7 +438,12 @@ local function NoteFavours(info)
             if name and not (last and GetTime() - last < THANKED_SECONDS) then
                 favour = { name = name, unit = source, class = select(2, UnitClass(source)), time = GetTime() }
                 if db and db.thanks and db.autoThanks then AutoThank(name) end
+            elseif not name then
+                AutoThankStranger()
             end
+        elseif id and FAVOUR_IDS[id] and not source and Plain(aura.isHelpful) ~= false
+            and Plain(aura.isFromPlayerOrPlayerPet) == false then
+            AutoThankStranger() -- cast by somebody else, whom the game does not name
         end
     end
 end
