@@ -32,7 +32,7 @@ A toolbox for WoW Forever: independent modules you can turn on or off from a sin
 - **Appearance:** the Tinkerwise windows (configuration, check-up) in gold or in your class color
 - **Unit Frames:** dresses the game's unit frames without rebuilding them: health in class or reaction colors, bar texture, class colored names, class icon instead of the portrait
 - **Nameplates:** target and other plate sizes, class colors, health texture, arrows around your target and health percentage on the game's own nameplates
-- **Minimap:** a square minimap with a bronze border (thickness and color of your choice), its icons in a column on the left or right, mouse wheel zoom and no zoom buttons
+- **Minimap:** a square minimap with a bronze border (thickness and color of your choice), its icons in a column on the left or right with a drawer for the ones that don't fit, mouse wheel zoom and no zoom buttons
 - **Interface Elements:** shows the micro menu, the bags bar and the quest tracker always, never or on mouseover (the quest tracker once folded), and hides the red error messages and their voice, always or in combat only
 
 **Immersion**

@@ -43,8 +43,9 @@ local function ShowParts(names, shown)
 end
 
 -- The buttons beside the map stand in one column, left or right: ours, LibDBIcon's (BugSack,
--- RXPGuides...) and ForeverCore's (SkillUp...). Both libraries place their buttons again when they
--- create, show, refresh or drag them: each time they go back in the column, where dragging is off.
+-- RXPGuides...), ForeverCore's (SkillUp...) and those other addons build on their own (Queston...).
+-- They place their buttons again when they like: each time they go back in the column, where dragging
+-- is off. The ones that don't fit, or that the player sends there, go in a drawer.
 local SPACING = 32 -- a 31 pixel button and a small gap
 
 local function LibDBIcon()
@@ -57,57 +58,261 @@ local function ForeverButtons()
     return type(lib) == "table" and type(lib.Buttons) == "function" and lib or nil
 end
 
+-- The name of a button an addon built by itself on the map, nil for anything else (the game's own
+-- buttons, map pins, protected buttons, which can't be moved in combat).
+local function StandaloneName(button)
+    if button.IsForbidden and button:IsForbidden() then return end
+    if not button:IsObjectType("Button") or button:IsProtected() then return end
+    local name = button:GetName()
+    if type(name) ~= "string" or issecurevariable(_G, name) then return end
+    local lower = name:lower()
+    if lower:find("pin", 1, true) then return end
+    local short = name:match("^LibDBIcon10_(.+)")
+    if not short then
+        if not lower:find("minimap", 1, true) or not (lower:find("button", 1, true) or lower:find("icon", 1, true)) then return end
+        local width = button:GetWidth()
+        if width < 20 or width > 45 then return end
+        short = name:gsub("_?[Mm]ini[Mm]ap_?[Bb]utton.*$", ""):gsub("_?[Mm]ini[Mm]ap_?[Ii]con.*$", "")
+    end
+    return short ~= "" and short or name
+end
+
+local names = {} -- button of another addon -> name shown in the options
+local HookButton
+local drawer, drawerButton
+
+local function Collect()
+    local own = _G.TinkerwiseMinimapButton
+    local function Add(button, name)
+        if button and button ~= own and button ~= drawerButton and not names[button] then
+            names[button] = tostring(name)
+            HookButton(button)
+        end
+    end
+    local lib = LibDBIcon()
+    for name, button in pairs(lib and lib.objects or {}) do Add(button, name) end
+    local fc = ForeverButtons()
+    for _, button in ipairs(fc and fc.Buttons() or {}) do
+        local spec = button.minimapButtonSpec
+        Add(button, spec and spec.title or button:GetName() or "?")
+    end
+    for _, child in ipairs({ Minimap:GetChildren() }) do
+        if not names[child] then
+            local name = StandaloneName(child)
+            if name then Add(child, name) end
+        end
+    end
+    return own
+end
+
 -- Ours first, then the others by name, so the order stays the same from one session to the next.
 local function ColumnButtons()
-    local own = _G.TinkerwiseMinimapButton
+    local own = Collect()
     local others = {}
-    local lib = LibDBIcon()
-    if lib and lib.objects then
-        for name, button in pairs(lib.objects) do
-            if not (button.db and button.db.hide) then others[#others + 1] = { name = name, button = button } end
-        end
+    for button in pairs(names) do
+        if button:IsShown() then others[#others + 1] = button end
     end
-    local fc = ForeverButtons()
-    if fc then
-        for _, button in ipairs(fc.Buttons()) do
-            if button:IsShown() then
-                local spec = button.minimapButtonSpec
-                others[#others + 1] = { name = spec and spec.title or button:GetName() or "", button = button }
-            end
-        end
-    end
-    table.sort(others, function(a, b) return tostring(a.name):lower() < tostring(b.name):lower() end)
-    local list = {}
-    if own and own:IsShown() then list[1] = own end
-    for _, entry in ipairs(others) do list[#list + 1] = entry.button end
-    return list, own
+    table.sort(others, function(a, b)
+        local na, nb = names[a]:lower(), names[b]:lower()
+        if na ~= nb then return na < nb end
+        return (a:GetName() or "") < (b:GetName() or "")
+    end)
+    return others, own and own:IsShown() and own or nil
+end
+
+local original = {} -- button of another addon -> how it was before the column
+local arranging = false
+
+local function Remember(button)
+    if original[button] then return end
+    local point, relative, relativePoint, x, y = button:GetPoint()
+    original[button] = {
+        point = point and { point, relative, relativePoint, x, y },
+        fixedStrata = button.HasFixedFrameStrata and button:HasFixedFrameStrata(),
+        fixedLevel = button.HasFixedFrameLevel and button:HasFixedFrameLevel(),
+        parent = button:GetParent(), strata = button:GetFrameStrata(), level = button:GetFrameLevel(),
+    }
 end
 
 -- Drag scripts of the other addons' buttons, kept to give them back when the column goes.
 local savedDrag = {}
 
-local function Layout()
-    if not (mod and mod.active) then return end
+local function StopDragging(button)
+    local start, stop = button:GetScript("OnDragStart"), button:GetScript("OnDragStop")
+    if start or stop then savedDrag[button] = { start, stop } end
+    button:SetScript("OnDragStart", nil)
+    button:SetScript("OnDragStop", nil)
+end
+
+-- Puts the button in a frame, at its strata and level. LibDBIcon fixes both on its buttons: they then
+-- ignore any change, and stayed under the drawer.
+local function MoveTo(button, parent, strata, level, fixedStrata, fixedLevel)
+    if button.SetFixedFrameStrata then button:SetFixedFrameStrata(false) end
+    if button.SetFixedFrameLevel then button:SetFixedFrameLevel(false) end
+    if button:GetParent() ~= parent then button:SetParent(parent) end
+    button:SetFrameStrata(strata)
+    button:SetFrameLevel(level)
+    if fixedStrata then button:SetFixedFrameStrata(true) end
+    if fixedLevel then button:SetFixedFrameLevel(true) end
+end
+
+local function BuildDrawer()
+    drawerButton = TW:CreateRoundButton("TinkerwiseMinimapDrawerButton", Minimap, "Interface\\Icons\\INV_Misc_Bag_08")
+    drawerButton:SetScript("OnClick", function()
+        GameTooltip:Hide()
+        drawer:SetShown(not drawer:IsShown())
+    end)
+    drawerButton:SetScript("OnEnter", function(self)
+        if drawer:IsShown() then return end
+        GameTooltip:SetOwner(self, "ANCHOR_LEFT")
+        GameTooltip:AddLine(L["Icon drawer"])
+        GameTooltip:AddLine(format(L["%d icons"], self.icons or 0), 1, 1, 1)
+        GameTooltip:Show()
+    end)
+    drawerButton:SetScript("OnLeave", GameTooltip_Hide)
+
+    drawer = CreateFrame("Frame", nil, Minimap, "BackdropTemplate")
+    drawer:SetFrameStrata("HIGH")
+    drawer:SetClampedToScreen(true)
+    drawer:EnableMouse(true)
+    drawer:SetBackdrop({
+        bgFile = "Interface\\Tooltips\\UI-Tooltip-Background",
+        edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+        tile = true, tileSize = 16, edgeSize = 14,
+        insets = { left = 4, right = 4, top = 4, bottom = 4 },
+    })
+    drawer:SetBackdropColor(0.06, 0.04, 0.02, 0.95)
+    drawer:SetBackdropBorderColor(0.6, 0.5, 0.35, 1)
+    drawer:Hide()
+    -- A click elsewhere closes it.
+    drawer:SetScript("OnShow", function(self) self:RegisterEvent("GLOBAL_MOUSE_DOWN") end)
+    drawer:SetScript("OnHide", function(self) self:UnregisterEvent("GLOBAL_MOUSE_DOWN") end)
+    drawer:SetScript("OnEvent", function(self)
+        if not self:IsMouseOver() and not drawerButton:IsMouseOver() then self:Hide() end
+    end)
+end
+
+-- Which buttons stay beside the map, and which go in the drawer.
+local function Split(others, own, perColumn)
+    local beside, inside = {}, {}
+    local skip = mod.db.drawerIcons
+    for _, button in ipairs(others) do
+        local list = skip and skip[names[button]] and inside or beside
+        list[#list + 1] = button
+    end
+    if mod.db.overflow == "drawer" then
+        local ours = own and 1 or 0
+        local room = mod.db.maxIcons
+        if room == 0 then -- one full column, the button of the drawer included
+            room = perColumn
+            if ours + #beside + (#inside > 0 and 1 or 0) > room then room = room - 1 end
+        end
+        room = math.max(room - ours, 0)
+        local extra = {}
+        while #beside > room do table.insert(extra, 1, table.remove(beside)) end
+        for _, button in ipairs(extra) do inside[#inside + 1] = button end
+    end
+    if own then table.insert(beside, 1, own) end
+    return beside, inside
+end
+
+local DRAWER_PAD = 8
+
+local function FillDrawer(inside, right)
+    if #inside == 0 then
+        if drawer then
+            drawer:Hide()
+            drawerButton:Hide()
+        end
+        return
+    end
+    if not drawer then BuildDrawer() end
+    drawerButton.icons = #inside
+    drawerButton:Show()
+    local columns = math.min(math.ceil(math.sqrt(#inside)), 5)
+    drawer:SetSize(2 * DRAWER_PAD + columns * SPACING, 2 * DRAWER_PAD + math.ceil(#inside / columns) * SPACING)
+    drawer:ClearAllPoints()
+    if right then
+        drawer:SetPoint("TOPLEFT", drawerButton, "TOPRIGHT", 4, 0)
+    else
+        drawer:SetPoint("TOPRIGHT", drawerButton, "TOPLEFT", -4, 0)
+    end
+    for i, button in ipairs(inside) do
+        MoveTo(button, drawer, drawer:GetFrameStrata(), drawer:GetFrameLevel() + 5)
+        button:ClearAllPoints()
+        button:SetPoint("TOPLEFT", drawer, "TOPLEFT",
+            DRAWER_PAD + ((i - 1) % columns) * SPACING, -DRAWER_PAD - math.floor((i - 1) / columns) * SPACING)
+    end
+end
+
+local function TakeOutOfDrawer(button)
+    local o = original[button]
+    if o and drawer and button:GetParent() == drawer then
+        MoveTo(button, o.parent or Minimap, o.strata, o.level, o.fixedStrata, o.fixedLevel)
+    end
+end
+
+local function Arrange()
     local right = mod.db.iconSide == "right"
     local gap = (mod.db.border and (mod.db.borderSize or 3) or 0) + 3
     local perColumn = math.max(1, math.floor((Minimap:GetHeight() + gap) / SPACING))
-    local buttons, own = ColumnButtons()
-    for i, button in ipairs(buttons) do
+    local others, own = ColumnButtons()
+    for _, button in ipairs(others) do
+        Remember(button)
+        StopDragging(button)
+    end
+    local beside, inside = Split(others, own, perColumn)
+    FillDrawer(inside, right)
+    if #inside > 0 then beside[#beside + 1] = drawerButton end
+    for i, button in ipairs(beside) do
         local column, row = math.floor((i - 1) / perColumn), (i - 1) % perColumn
         local x, y = gap + column * SPACING, -row * SPACING
+        TakeOutOfDrawer(button)
         button:ClearAllPoints()
         if right then
             button:SetPoint("TOPLEFT", Minimap, "TOPRIGHT", x, y)
         else
             button:SetPoint("TOPRIGHT", Minimap, "TOPLEFT", -x, y)
         end
-        if button ~= own then
-            local start, stop = button:GetScript("OnDragStart"), button:GetScript("OnDragStop")
-            if start or stop then savedDrag[button] = { start, stop } end
-            button:SetScript("OnDragStart", nil)
-            button:SetScript("OnDragStop", nil)
-        end
     end
+end
+
+local function Layout()
+    if not (mod and mod.active) or arranging then return end
+    arranging = true
+    local ok, err = pcall(Arrange) -- whatever happens, the next one must not be held back
+    arranging = false
+    if not ok then geterrorhandler()(err) end
+end
+
+local scheduled = false
+local function ScheduleLayout()
+    if scheduled or arranging or not (mod and mod.active) then return end
+    scheduled = true
+    C_Timer.After(0, function()
+        scheduled = false
+        Layout()
+    end)
+end
+
+-- The addon of the button moves, shows or hides it: the column is done again. Opening the drawer also
+-- runs these scripts, but doesn't change what the button itself says.
+HookButton = function(button)
+    local shown = button:IsShown()
+    local function OnVisibility()
+        if button:IsShown() == shown then return end
+        shown = button:IsShown()
+        ScheduleLayout()
+    end
+    hooksecurefunc(button, "SetPoint", function(_, point, relative, relativePoint, x, y)
+        if arranging or not mod.active then return end
+        local o = original[button]
+        if o then o.point = { point, relative, relativePoint, x, y } end
+        ScheduleLayout()
+    end)
+    hooksecurefunc(button, "Show", OnVisibility)
+    hooksecurefunc(button, "Hide", OnVisibility)
+    hooksecurefunc(button, "SetShown", OnVisibility)
 end
 
 -- True while the icons stand in the column: our button then neither moves around nor drags.
@@ -139,6 +344,18 @@ local function RestoreIcons()
         button:SetScript("OnDragStop", scripts[2])
     end
     wipe(savedDrag)
+    if drawer then
+        drawer:Hide()
+        drawerButton:Hide()
+    end
+    for button, o in pairs(original) do
+        TakeOutOfDrawer(button)
+        if o.point then
+            button:ClearAllPoints()
+            button:SetPoint(unpack(o.point, 1, 5))
+        end
+    end
+    wipe(original)
     local lib = LibDBIcon()
     if lib and lib.objects then
         for name in pairs(lib.objects) do lib:Refresh(name) end
@@ -246,8 +463,9 @@ mod = TW:NewModule("SquareMinimap", {
     title = "Minimap", -- same name in every language; L["Minimap"] is Immersion's "Minicarte"
     icon = "Interface\\Icons\\INV_Misc_Map_01",
     section = L["Interface"],
-    desc = L["Makes the minimap square, with a bronze border instead of the round frame, and lines its icons up in a column on the left or right. Can also zoom with the mouse wheel and hide the zoom buttons."],
-    defaults = { border = true, borderColor = { r = 0.6, g = 0.5, b = 0.35 }, borderSize = 3, wheelZoom = true, hideZoomButtons = true, iconSide = "left" },
+    desc = L["Makes the minimap square, with a bronze border instead of the round frame, and lines its icons up in a column on the left or right, the ones that don't fit in a drawer. Can also zoom with the mouse wheel and hide the zoom buttons."],
+    defaults = { border = true, borderColor = { r = 0.6, g = 0.5, b = 0.35 }, borderSize = 3, wheelZoom = true, hideZoomButtons = true, iconSide = "left",
+        overflow = "drawer", maxIcons = 0 },
     options = {
         { type = "toggle", key = "border", label = L["Border"] },
         { type = "slider", key = "borderSize", label = L["Border thickness"], min = 1, max = 6, step = 1 },
@@ -258,6 +476,24 @@ mod = TW:NewModule("SquareMinimap", {
             { "left", L["On the left"] },
             { "right", L["On the right"] },
         } },
+        { type = "header", label = L["Icon drawer"] },
+        { type = "select", key = "overflow", label = L["Too many icons"], values = {
+            { "drawer", L["Put the rest in a drawer"] },
+            { "columns", L["Add columns"] },
+        } },
+        { type = "slider", key = "maxIcons", label = L["Icons outside the drawer (0 = one full column)"], min = 0, max = 15, step = 1 },
+        { type = "header", label = L["Icons beside the map (unticked: in the drawer)"] },
+        { type = "checklist", key = "drawerIcons", items = function()
+            local list, seen = {}, {}
+            for button, name in pairs(names) do
+                if button:IsShown() and not seen[name] then
+                    seen[name] = true
+                    list[#list + 1] = name
+                end
+            end
+            table.sort(list, function(a, b) return a:lower() < b:lower() end)
+            return list
+        end },
     },
 })
 
@@ -277,7 +513,9 @@ local function Replace()
 end
 
 local watcher = CreateFrame("Frame")
-watcher:SetScript("OnEvent", function() C_Timer.After(0.5, Replace) end)
+watcher:SetScript("OnEvent", function()
+    for _, delay in ipairs({ 0.5, 3, 10 }) do C_Timer.After(delay, Replace) end -- some addons build theirs late
+end)
 local sizeHooked = false
 
 function mod:OnEnable()

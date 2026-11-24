@@ -43,6 +43,8 @@ Barre de classe montre les sorts utilitaires de votre classe sous forme de barre
 
 Provisions en échange (mages et démonistes) remplit la fenêtre d'échange, sans jamais l'accepter. Par défaut, seulement pour votre groupe.
 
+Minimap range les icônes des addons en colonne à côté de la carte. Celles qui ne tiennent pas, ou que vous choisissez, vont dans un tiroir.
+
 Changements de stats affiche aussi un résumé à chaque niveau gagné. Pour y voir les sorts à apprendre au maître de classe, installez l'addon [What's Training?](https://www.curseforge.com/wow/addons/whats-training). Sans lui, le résumé n'affiche que les stats.
 
 Mes personnages classe vos personnages par mode de jeu (PvE, PvP, Hardcore, RP, RP-PvP, détecté automatiquement) et par groupes que vous créez, par exemple « PvE - Groupe par défaut » et « PvE - Guilde ». Les infobulles ne comptent que le groupe courant, et les fenêtres l'affichent par défaut, avec un menu pour consulter les autres. Le module s'active par personnage.
