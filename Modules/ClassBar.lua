@@ -212,7 +212,7 @@ local TOGGLE = [[
     return false
 ]]
 
--- On a button of the list: closes it once the click is over (the spell may be cast on the way down).
+-- On a button of the list: closes it once the click is over.
 local CLOSE_PRE = [[ if not down then return nil, "close" end ]]
 local CLOSE_POST = [[ owner:Hide() ]]
 
@@ -241,6 +241,7 @@ local function BuildSlots()
             SecureHandlerWrapScript(slot.main, "OnClick", slot.list, TOGGLE)
             for j = 1, #group.spells do
                 local b = NewButton("TinkerwiseClassBarList" .. i .. "Button" .. j, slot.list)
+                b:SetAttribute("useOnKeyDown", false) -- on the way up, just before the list closes
                 SecureHandlerWrapScript(b, "OnClick", slot.list, CLOSE_PRE, CLOSE_POST)
                 slot.buttons[j] = b
             end
@@ -325,6 +326,16 @@ local function SetSpell(b, id)
     b:SetAttribute("haslist", nil)
     b:SetAttribute("type", "spell")
     b:SetAttribute("spell", id) -- by id: "Create Healthstone (Minor)" would be read as a name and a rank
+end
+
+-- In a list: by name, as the demons are not summoned by id on WoW Forever. The empty brackets keep
+-- "(Minor)" from being read as a rank.
+local function SetListSpell(b, id)
+    SetSpell(b, id)
+    local name = Spells.Name(id)
+    if not name then return end
+    b:SetAttribute("type", "macro")
+    b:SetAttribute("macrotext", "/cast " .. name .. (name:find("(", 1, true) and "()" or ""))
 end
 
 -- A stone: the macro uses the one in the bags, on a friendly target or yourself, or creates one. In
@@ -512,7 +523,7 @@ local function Layout()
     for i, entry in ipairs(shown) do
         local slot, known = entry.slot, entry.known
         Place(slot.main, i)
-        for j, id in ipairs(known) do SetSpell(slot.buttons[j], id) end
+        for j, id in ipairs(known) do SetListSpell(slot.buttons[j], id) end
         LayoutList(slot, #known > 1 and #known or 0, vertical)
     end
     return #shown > 0

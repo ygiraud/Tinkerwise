@@ -23,6 +23,7 @@ local DEFAULTS = {
     quick = false,      -- faster reveal animation
     chatButton = true,
     autoRest = true,    -- warn when leaving a rested area
+    sleepAlert = true,  -- warn when the buff of the sleeping bag is about to end
     autoInstance = true,-- open the check-up when entering a dungeon / raid
     restock = true,     -- button that buys what is missing at a merchant
     merchant = true,    -- list what a merchant sells that you need
@@ -35,6 +36,7 @@ local DEFAULTS = {
     checkShards = true, -- warlocks
     checkReagents = true,
     checkElixirs = true,
+    checkSleep = true, -- the buff of the sleeping bag
     checkBags = true,
     checkTalents = true,
 }
@@ -83,6 +85,8 @@ for _, list in pairs(REAGENTS) do
 end
 
 local SOUL_SHARD = 6265
+local SLEEPING_BAG, WELL_RESTED, WELL_RESTED_STACKS = 211527, 429959, 3
+local WELL_RESTED_SOON = 30 * 60 -- seconds left under which to sleep again
 
 local DURA_SLOTS = { 1, 3, 5, 6, 7, 8, 9, 10, 16, 17, 18 }
 
@@ -97,6 +101,7 @@ local ICONS = {
     reagents = "Interface\\Icons\\INV_Misc_Dust_02",
     elixirs = "Interface\\Icons\\INV_Potion_61",
     talents = "Interface\\Icons\\Ability_Marksmanship",
+    sleep = "Interface\\Icons\\INV_Misc_Bag_BigBagOfEnchantments",
     bags = "Interface\\Icons\\INV_Misc_Bag_08",
 }
 local STATUS_ICON = {
@@ -454,6 +459,57 @@ local function CheckElixirs(inv)
     return cat
 end
 
+-- The experience buff of the sleeping bag, for those who carry the bag and can still gain levels.
+local function CheckSleep()
+    if not (C_UnitAuras and C_UnitAuras.GetPlayerAuraBySpellID) then return end
+    local maxLevel = math.min(GetMaxPlayerLevel and GetMaxPlayerLevel() or 60, 60)
+    if UnitLevel("player") >= maxLevel or GetItemCount(SLEEPING_BAG) == 0 then return end
+    local Plain = ns.Spells.Plain
+    local ok, answer = pcall(C_UnitAuras.GetPlayerAuraBySpellID, WELL_RESTED)
+    local aura = ok and Plain(answer)
+    if not ok or (issecretvalue and issecretvalue(answer)) then return end -- kept secret by the game
+
+    local cat = NewCategory("sleep", L["Sleeping bag"])
+    cat.item = SLEEPING_BAG
+    cat.icon = API.GetItemIcon(SLEEPING_BAG) or cat.icon
+    local stacks, expires = 0, nil
+    if aura then
+        stacks = Plain(aura.applications)
+        if not stacks then return end
+        stacks = math.max(stacks, 1) -- 0 when the game does not count a single one
+        expires = Plain(aura.expirationTime)
+    end
+    cat.value = format("%d / %d", stacks, WELL_RESTED_STACKS)
+    cat.pct = math.min(stacks / WELL_RESTED_STACKS, 1) * 100
+    cat.lines[1] = format(L["Experience bonus: %d of %d"], stacks, WELL_RESTED_STACKS)
+    if expires and expires > GetTime() then
+        cat.lines[2] = format(L["Ends in %s"], SecondsToTime(expires - GetTime()))
+    end
+    local left = expires and expires > 0 and expires - GetTime()
+    local soon = left and left < WELL_RESTED_SOON
+    cat.soon = soon
+    if stacks >= WELL_RESTED_STACKS and not soon then
+        cat.status = OK
+        return cat
+    end
+
+    local start, duration
+    if C_Container.GetItemCooldown then start, duration = C_Container.GetItemCooldown(SLEEPING_BAG) end
+    start, duration = Plain(start) or 0, Plain(duration) or 0
+    local wait = start + duration - GetTime()
+    if duration > 2 and wait > 0 then
+        cat.lines[#cat.lines + 1] = format(L["Sleeping bag ready in %s"], SecondsToTime(wait)) -- shown, not counted
+    else
+        cat.status = WARN
+        if stacks >= WELL_RESTED_STACKS then
+            Tip(cat, 22, format(L["Sleep in your sleeping bag: the experience bonus ends in %s."], SecondsToTime(math.max(left, 1))))
+        else
+            Tip(cat, 22, format(L["Sleep in your sleeping bag: 1 minute per stack of experience bonus (%d / %d)."], stacks, WELL_RESTED_STACKS))
+        end
+    end
+    return cat
+end
+
 local function ReadTalentPoints()
     local configID = C_ClassTalents.GetActiveConfigID()
     local total = 0
@@ -520,6 +576,7 @@ local function RunScan()
     if db.checkShards then add(CheckShards()) end
     if db.checkReagents then CheckReagents(want, add) end
     if db.checkElixirs then add(CheckElixirs(inv)) end
+    if db.checkSleep then add(CheckSleep()) end
     if db.checkBags then add(CheckBags(inv)) end
 
     local sum, n, tips = 0, 0, {}
@@ -1253,11 +1310,18 @@ chatButton:SetScript("OnLeave", GameTooltip_Hide)
 
 local wasResting, lastInstance
 
+local sleepWarned = false -- once for each time the buff is about to end
+
 local function WarnLeavingTown()
     local result = RunScan()
     local bad = {}
+    local sleep -- the sleeping bag shows on the screen too, whatever else is wrong
     for _, c in ipairs(result.cats) do
-        if c.status == BAD then
+        if c.status == BAD or (c.key == "sleep" and c.status == WARN) then
+            if c.key == "sleep" then
+                sleep = c.tips[1]
+                sleepWarned = sleepWarned or c.soon or false
+            end
             for _, t in ipairs(c.tips) do bad[#bad + 1] = t end
         end
     end
@@ -1265,8 +1329,29 @@ local function WarnLeavingTown()
     if #bad == 0 then return end
     table.sort(bad, function(a, b) return a.prio > b.prio end)
     RaidNotice_AddMessage(RaidWarningFrame, L["Tinkerwise: "] .. bad[1].text, ChatTypeInfo["RAID_WARNING"])
+    if sleep and sleep ~= bad[1] then
+        RaidNotice_AddMessage(RaidWarningFrame, L["Tinkerwise: "] .. sleep.text, ChatTypeInfo["RAID_WARNING"])
+    end
     if db.sound then PlaySound(SOUNDKIT.RAID_WARNING, "Master") end
     for _, t in ipairs(bad) do TW:Print(RED .. t.text .. "|r") end
+end
+
+local SLEEP_CHECK_EVERY = 20
+local sleepTicker
+
+-- Wherever the player is; during a fight or a flight, or while the bag is not ready, it waits.
+local function WarnSleep()
+    if not (db.checkSleep and db.sleepAlert) or InCombatLockdown() or UnitOnTaxi("player") or UnitIsDeadOrGhost("player") then return end
+    local cat = CheckSleep()
+    if not (cat and cat.soon) then
+        sleepWarned = false
+    elseif cat.status == WARN and not sleepWarned then
+        sleepWarned = true
+        local text = cat.tips[1].text
+        RaidNotice_AddMessage(RaidWarningFrame, L["Tinkerwise: "] .. text, ChatTypeInfo["RAID_WARNING"])
+        if db.sound then PlaySound(SOUNDKIT.RAID_WARNING, "Master") end
+        TW:Print(ORANGE .. text .. "|r")
+    end
 end
 
 -- Which need an item of a merchant fills, and how many are missing; nil for none.
@@ -1394,6 +1479,7 @@ local mod = TW:NewModule("Checkup", {
         { type = "toggle", key = "checkShards", label = L["Soul Shards"], class = "WARLOCK" },
         { type = "toggle", key = "checkReagents", label = L["Reagents"] },
         { type = "toggle", key = "checkElixirs", label = L["Elixirs"] },
+        { type = "toggle", key = "checkSleep", label = L["Sleeping bag"] },
         { type = "toggle", key = "checkBags", label = L["Bags"] },
         { type = "toggle", key = "checkTalents", label = L["Unspent talent points"] },
         { type = "header", label = L["Thresholds"] },
@@ -1404,6 +1490,7 @@ local mod = TW:NewModule("Checkup", {
         { type = "slider", key = "slots", label = L["Minimum free slots"], min = 0, max = 20, step = 1 },
         { type = "header", label = L["Automatic"] },
         { type = "toggle", key = "autoRest", label = L["Alert when leaving a city / inn"] },
+        { type = "toggle", key = "sleepAlert", label = L["Alert when the sleeping bag bonus ends in less than 30 minutes"] },
         { type = "toggle", key = "autoInstance", label = L["Check-up when entering a dungeon / raid"] },
         { type = "toggle", key = "merchant", label = L["At a merchant, report what you need"] },
         { type = "toggle", key = "restock", label = L["At a merchant, button that buys what is missing"] },
@@ -1479,6 +1566,8 @@ function mod:OnEnable()
     events:RegisterEvent("PLAYER_ENTERING_WORLD")
     events:RegisterEvent("MERCHANT_SHOW")
     wasResting = IsResting()
+    sleepWarned = false
+    if not sleepTicker then sleepTicker = C_Timer.NewTicker(SLEEP_CHECK_EVERY, WarnSleep) end
     ns.EnableRestock(db.restock)
     PlaceChatButton()
     chatButton:SetShown(db.chatButton and chatButtonReady)
@@ -1492,6 +1581,10 @@ end
 
 function mod:OnDisable()
     events:UnregisterAllEvents()
+    if sleepTicker then
+        sleepTicker:Cancel()
+        sleepTicker = nil
+    end
     ns.EnableRestock(false)
     chatButton:Hide()
     win:Hide()
