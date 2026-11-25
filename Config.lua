@@ -210,6 +210,11 @@ local function CreateInput(parent, opt, mod)
         TW:SetOption(mod, opt.key, self:GetText())
         self:ClearFocus()
     end)
+    if opt.live then -- a button reads it while it is still being typed
+        box:SetScript("OnTextChanged", function(self, byUser)
+            if byUser then mod.db[opt.key] = self:GetText() end
+        end)
+    end
     box:SetScript("OnEditFocusLost", function(self) TW:SetOption(mod, opt.key, self:GetText()) end)
     box:SetScript("OnEscapePressed", function(self) w:Refresh(); self:ClearFocus() end)
     function w:Refresh() box:SetText(mod.db[opt.key] or "") end
@@ -297,7 +302,33 @@ local function CreateOption(parent, opt, mod)
         local w = CreateFrame("Button", nil, parent, "UIPanelButtonTemplate")
         w:SetText(opt.label)
         w:SetSize(w:GetFontString():GetStringWidth() + 30, 22)
-        w:SetScript("OnClick", function() opt.func(mod) end)
+        if opt.confirm then -- two clicks: the first one asks
+            local asked
+            local width = w:GetWidth()
+            w:SetText(L["Click again to confirm"])
+            w:SetWidth(math.max(width, w:GetFontString():GetStringWidth() + 30))
+            w:SetText(opt.label)
+            local function Forget()
+                asked = nil
+                w:SetText(opt.label)
+            end
+            w:SetScript("OnClick", function()
+                if asked then
+                    Forget()
+                    opt.func(mod)
+                    return
+                end
+                local this = {}
+                asked = this
+                w:SetText(L["Click again to confirm"])
+                C_Timer.After(4, function()
+                    if asked == this then Forget() end
+                end)
+            end)
+            w:SetScript("OnHide", Forget)
+        else
+            w:SetScript("OnClick", function() opt.func(mod) end)
+        end
         function w:Refresh() self:SetEnabled(mod.active and true or false) end -- actions need an active module
         return w, 28, 0, true
     end

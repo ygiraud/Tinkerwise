@@ -26,12 +26,12 @@ Par section de la fenêtre `/tw` :
 
 - **Préparation :** Check-up, Rappel potion
 - **Personnage :** Mes personnages, Changements de stats, Barre de classe
-- **Objets :** Infobulles d'objets (comparaison et liens Wowhead), Vendeur automatique
+- **Objets :** Infobulles d'objets (comparaison et liens Wowhead), Vendeur automatique, Fragments d'âme (démonistes)
 - **Groupe :** Confort de groupe, Buffs et remerciements, Provisions en échange
 - **Tchat :** Tchat
 - **Interface :** Thème sombre, Apparence (fenêtres de Tinkerwise en or ou aux couleurs de la classe), Cadres de joueurs, Barres d'info, Minimap, Éléments d'interface (minimenu, sacs, suivi des quêtes et messages d'erreur)
 - **Immersion :** Mode immersion (avec la scène de quête), Modes AFK et vol
-- **Configuration :** Réglages par défaut, Bouton de la minicarte
+- **Configuration :** Réglages par défaut, Profils, Bouton de la minicarte
 
 ## Déplacer les fenêtres
 
@@ -40,6 +40,8 @@ Les fenêtres de l'addon se déplacent dans le mode Édition du jeu (`/edit`) : 
 ## Détails
 
 Barre de classe montre les sorts utilitaires de votre classe sous forme de barre d'action, avec les réglages d'une barre du jeu (orientation, lignes, taille, visibilité...), un sens d'extension et une case par bouton et par sort. En démoniste, elle compte les fragments d'âme, et le bouton de pierre d'âme utilise la pierre des sacs ou en crée une. Les guerriers n'ont rien à y afficher.
+
+Buffs et remerciements propose aussi aux démonistes de créer une pierre de soins quand ils n'en ont pas et qu'il leur reste un fragment d'âme.
 
 Provisions en échange (mages et démonistes) remplit la fenêtre d'échange, sans jamais l'accepter. Par défaut, seulement pour votre groupe.
 
@@ -51,7 +53,9 @@ Mes personnages classe vos personnages par mode de jeu (PvE, PvP, Hardcore, RP, 
 
 ## Réglages
 
-Les réglages sont enregistrés par personnage, sauf ceux d'Apparence, de Réglages par défaut et de Mes personnages, communs au compte, comme les durées de vol apprises. Tous les modules sont activés par défaut : désactivez ceux dont vous ne voulez pas dans `/tw`. Sa fenêtre affiche une page par section, un onglet par module et une recherche qui retrouve n'importe quel réglage. Apparence, Réglages par défaut et Bouton de la minicarte restent toujours actifs.
+Les réglages sont enregistrés par personnage, sauf ceux d'Apparence, de Réglages par défaut et de Mes personnages, communs au compte, comme les durées de vol apprises. Tous les modules sont activés par défaut : désactivez ceux dont vous ne voulez pas dans `/tw`. Sa fenêtre affiche une page par section, un onglet par module et une recherche qui retrouve n'importe quel réglage. Apparence, Réglages par défaut, Profils et Bouton de la minicarte restent toujours actifs.
+
+Profils enregistre sous un nom les options d'un personnage, ses modules activés et la position des fenêtres, pour les recharger plus tard ou sur un autre personnage. Un profil est une copie : il ne change que quand vous le mettez à jour. Le charger recharge l'interface.
 
 ## Licence
 

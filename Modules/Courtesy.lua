@@ -18,6 +18,7 @@ local DEFAULTS = {
     autoThanks = true, -- the /thank emote goes out by itself; the card only offers to buff back
     buffBack = true,
     track = true,
+    healthstone = true, -- warlocks
     size = 40,
     point = "TOP", x = 0, y = -140,
 }
@@ -369,6 +370,23 @@ local function MissingTracking()
     end
 end
 
+-- A warlock without any healthstone and with a soul shard: the best rank they know, or nil.
+local CREATE_HEALTHSTONE = { 11730, 11729, 5699, 6202, 6201 }
+local SOUL_SHARD = 6265
+
+local function MissingHealthstone()
+    if select(2, UnitClass("player")) ~= "WARLOCK" then return end
+    local shards = Plain(ns.API.GetItemCount(SOUL_SHARD))
+    if not shards or shards == 0 then return end
+    for _, stone in ipairs(ns.Healthstones or {}) do -- set by TradeSupplies.lua
+        local count = Plain(ns.API.GetItemCount(stone[1]))
+        if not count or count > 0 then return end
+    end
+    for _, id in ipairs(CREATE_HEALTHSTONE) do
+        if SpellKnown(id) then return id end
+    end
+end
+
 local function CanReach(unit, key)
     if not UnitExists(unit) or UnitIsDeadOrGhost(unit) or not UnitIsConnected(unit) then return false end
     if UnitIsVisible and not UnitIsVisible(unit) then return false end
@@ -637,6 +655,17 @@ local function NextAction()
         end
     end
 
+    if db.healthstone then
+        local id = MissingHealthstone()
+        local spell = id and SpellName(id)
+        if spell then
+            return { icon = SpellIcon(id), title = L["Create a healthstone"], detail = spell,
+                     text = format(L["Create a healthstone: %s"], spell),
+                     -- Without the empty brackets, "Minor" in the name would be read as a rank.
+                     macro = "/cast " .. spell .. (spell:find("(", 1, true) and "()" or "") }
+        end
+    end
+
     if db.group and IsInGroup() then
         local prefix, count = IsInRaid() and "raid" or "party", IsInRaid() and 40 or 4
         for i = 1, count do
@@ -774,7 +803,7 @@ local mod = TW:NewModule("Courtesy", {
     title = L["Buffs and Thanks"],
     icon = "Interface\\Icons\\Spell_Holy_WordFortitude",
     section = L["Group"],
-    desc = L["Shows a button, outside combat, to buff yourself, to buff the members of your group who lack your buff, to thank whoever buffs you (buffing them back when you can) and to turn tracking back on. The thanks can also go out by themselves: the button then only offers to buff back."],
+    desc = L["Shows a button, outside combat, to buff yourself, to buff the members of your group who lack your buff, to thank whoever buffs you (buffing them back when you can) and to turn tracking back on. Warlocks are also offered a healthstone when they have none. The thanks can also go out by themselves: the button then only offers to buff back."],
     defaults = DEFAULTS,
     options = {
         { type = "toggle", key = "self", label = L["Buff myself"] },
@@ -789,6 +818,10 @@ local mod = TW:NewModule("Courtesy", {
         end },
     },
 })
+
+if select(2, UnitClass("player")) == "WARLOCK" then
+    table.insert(mod.options, 7, { type = "toggle", key = "healthstone", label = L["Create a healthstone when I have none"] })
+end
 
 -- One box per buff of your class (none for a class without any): an unticked one is never
 -- offered, to you or to your group.
@@ -812,7 +845,7 @@ function mod:OnEnable()
     if not InCombatLockdown() then container:ApplyPosition() end
     for _, e in ipairs({ "UNIT_AURA", "GROUP_ROSTER_UPDATE", "PLAYER_REGEN_ENABLED", "PLAYER_REGEN_DISABLED",
                          "SPELLS_CHANGED", "PLAYER_ENTERING_WORLD", "PLAYER_LEVEL_UP", "PLAYER_TARGET_CHANGED",
-                         "MINIMAP_UPDATE_TRACKING", "PLAYER_CONTROL_LOST", "PLAYER_CONTROL_GAINED",
+                         "MINIMAP_UPDATE_TRACKING", "BAG_UPDATE_DELAYED", "PLAYER_CONTROL_LOST", "PLAYER_CONTROL_GAINED",
                          "ENCOUNTER_START", "ENCOUNTER_END" }) do
         pcall(events.RegisterEvent, events, e)
     end

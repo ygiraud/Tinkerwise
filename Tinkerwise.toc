@@ -3,7 +3,7 @@
 ## Notes: Personal collection of small tools. /tw to configure.
 ## Notes-frFR: Collection d'outils personnels. /tw pour configurer.
 ## Author: Yoan
-## Version: 1.14.0
+## Version: 1.15.0
 ## IconTexture: Interface\Icons\INV_Misc_Wrench_01
 ## X-Curse-Project-ID: 1783286
 ## OptionalDeps: WhatsTraining
@@ -27,6 +27,7 @@ Modules\GroupComfort.lua
 Modules\Courtesy.lua
 Modules\ClassBar.lua
 Modules\TradeSupplies.lua
+Modules\SoulShards.lua
 Modules\Chat.lua
 Modules\DarkTheme.lua
 Modules\Appearance.lua
@@ -42,5 +43,6 @@ Modules\AfkMode.lua
 Modules\FlightMode.lua
 Modules\AwayModes.lua
 Modules\CharDefaults.lua
+Modules\Profiles.lua
 Config.lua
 Minimap.lua

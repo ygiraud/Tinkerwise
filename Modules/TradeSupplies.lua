@@ -22,6 +22,7 @@ local HEALTHSTONES = {
     { 19009, 24 }, { 19008, 24 }, { 5509, 24 }, { 19007, 12 }, { 19006, 12 }, { 5511, 12 },
     { 19005, 1 }, { 19004, 1 }, { 5512, 1 },
 }
+ns.Healthstones = HEALTHSTONES -- also for Courtesy.lua
 local NO_MANA = { WARRIOR = true, ROGUE = true }
 
 local class = select(2, UnitClass("player"))

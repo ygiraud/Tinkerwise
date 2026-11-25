@@ -18,10 +18,11 @@ A toolbox for WoW Forever: independent modules you can turn on or off from a sin
 **Items**
 - **Item Tooltips:** gains and losses compared with your gear, and Ctrl + C over an item, spell, quest or creature gives its Wowhead address to copy
 - **Auto Vendor:** sells gray items and repairs your gear
+- **Soul Shards:** for warlocks, destroys the soul shards above the number you choose to keep (off by default)
 
 **Group**
 - **Group Comfort:** accepts invitations from friends and guildmates, resurrections and, optionally, summons, and can turn down duels
-- **Buffs and Thanks:** one button, outside combat, to buff yourself and your group, and to thank (and buff back) whoever buffs you, the thanks also going out by themselves if you like, and to turn herb, mineral or treasure tracking back on
+- **Buffs and Thanks:** one button, outside combat, to buff yourself and your group, and to thank (and buff back) whoever buffs you, the thanks also going out by themselves if you like, to turn herb, mineral or treasure tracking back on and, for warlocks, to create a healthstone when they have none
 - **Trade Supplies:** for mages and warlocks, puts conjured water and food or a healthstone in the trade window, for the class and level of the other player. You always accept the trade yourself
 
 **Chat**
@@ -41,6 +42,7 @@ A toolbox for WoW Forever: independent modules you can turn on or off from a sin
 
 **Configuration**
 - **Default Settings:** keeps auto loot on, loots faster and sets up new characters
+- **Profiles:** saves a character's options, active modules and window positions under a name, to load them again later or on another character
 - **Minimap Button:** quick access and customizable clicks
 
 ## Moving windows
