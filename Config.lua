@@ -6,6 +6,7 @@
 -- Option entries declared by modules:
 --   { type = "toggle",  key, label }
 --   { type = "slider",  key, label, min, max, step }
+--     (locked(): true while the slider cannot be moved)
 --   { type = "color",   key, label }    db[key] holds { r, g, b }; opens the game's color wheel
 --   { type = "input",   key, label }
 --   { type = "select",  key, label, values = { { value, label }, ... } }
@@ -139,6 +140,11 @@ local function CreateSlider(parent, opt)
         s:SetValue(self.mod.db[opt.key])
         value:SetText(self.mod.db[opt.key])
         self.refreshing = false
+        if opt.locked then -- set by another option
+            local locked = opt.locked() and true or false
+            s:SetEnabled(not locked)
+            self:SetAlpha(locked and 0.45 or 1)
+        end
     end
     function holder:MinWidth() return math.max(label:GetStringWidth(), 186) end
     function holder:SetLayoutWidth(width)

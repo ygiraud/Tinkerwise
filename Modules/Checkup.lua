@@ -15,13 +15,16 @@ local DEFAULTS = {
     food = 10,          -- minimum food count
     drink = 10,         -- minimum drink count (mana users)
     ammo = 800,         -- minimum ammo count (hunters)
+    ammoOther = 200,    -- the same for the other classes with a bow, a crossbow or a gun
+    petFood = 10,       -- minimum pet food (hunters with their pet out)
+    elixirs = 0,        -- minimum elixirs (0: shown, but not counted)
     slots = 4,          -- minimum free bag slots
     sound = true,
     quick = false,      -- faster reveal animation
-    centerIcon = "class", -- image in the ring: "class" emblem or player "portrait"
     chatButton = true,
     autoRest = true,    -- warn when leaving a rested area
     autoInstance = true,-- open the check-up when entering a dungeon / raid
+    restock = true,     -- button that buys what is missing at a merchant
     merchant = true,    -- list what a merchant sells that you need
     -- the checks to run
     checkArmor = true,
@@ -29,6 +32,7 @@ local DEFAULTS = {
     checkDrink = true,
     checkPotions = true,
     checkAmmo = true,
+    checkShards = true, -- warlocks
     checkReagents = true,
     checkElixirs = true,
     checkBags = true,
@@ -62,17 +66,23 @@ for _, id in ipairs({ 2454, 2457, 2458, 3383, 3389, 3390, 3391, 3825, 5997, 6373
     ELIXIRS[id] = true
 end
 
--- Class reagents: { itemID, from level, to level, needed, critical, tip when not sold by vendors }
+-- Class reagents: { itemID, from level, to level, needed by default (0: not checked), critical }
 local REAGENTS = {
     MAGE = { { 17020, 56, 60, 5 }, { 17031, 20, 60, 2 }, { 17032, 40, 60, 1 }, { 17056, 12, 60, 5 } },
     PRIEST = { { 17028, 48, 59, 5 }, { 17029, 60, 60, 5 }, { 17056, 34, 60, 5 } },
     SHAMAN = { { 17030, 30, 60, 1, true } },
-    WARLOCK = { { 6265, 10, 60, 3, true, L["Collect %s by finishing off monsters with Drain Soul (%d / %d)."] } },
-    ROGUE = { { 5140, 22, 60, 5 } },
+    WARLOCK = { { 5565, 50, 60, 0 }, { 16583, 60, 60, 0 } },
+    ROGUE = { { 5140, 22, 60, 5 }, { 5530, 34, 60, 5 } },
     PALADIN = { { 17033, 30, 60, 1 }, { 21177, 52, 60, 10 } },
     DRUID = { { 17034, 20, 29, 1 }, { 17035, 30, 39, 1 }, { 17036, 40, 49, 1 }, { 17037, 50, 59, 1 },
               { 17038, 60, 60, 1 }, { 17021, 50, 59, 5 }, { 17026, 60, 60, 5 } },
 }
+
+for _, list in pairs(REAGENTS) do
+    for _, r in ipairs(list) do DEFAULTS["reagent" .. r[1]] = r[4] end
+end
+
+local SOUL_SHARD = 6265
 
 local DURA_SLOTS = { 1, 3, 5, 6, 7, 8, 9, 10, 16, 17, 18 }
 
@@ -82,6 +92,8 @@ local ICONS = {
     drink = "Interface\\Icons\\INV_Drink_07",
     potions = "Interface\\Icons\\INV_Potion_54",
     ammo = "Interface\\Icons\\INV_Ammo_Arrow_02",
+    petfood = "Interface\\Icons\\Ability_Hunter_BeastTraining",
+    shards = "Interface\\Icons\\INV_Misc_Gem_Amethyst_02",
     reagents = "Interface\\Icons\\INV_Misc_Dust_02",
     elixirs = "Interface\\Icons\\INV_Potion_61",
     talents = "Interface\\Icons\\Ability_Marksmanship",
@@ -191,12 +203,14 @@ end
 local function CheckArmor()
     local cat = NewCategory("armor", L["Armor"])
     local sum, n, lowest, lowestSlot, broken, cost = 0, 0, 101, nil, 0, 0
+    cat.worn = {}
     scanTip:SetOwner(WorldFrame, "ANCHOR_NONE")
     for _, slot in ipairs(DURA_SLOTS) do
         local cur, max = GetInventoryItemDurability(slot)
         if cur and max and max > 0 then
             local pct = cur / max * 100
             sum, n = sum + pct, n + 1
+            if pct < db.dura then cat.worn[#cat.worn + 1] = { slot = slot, pct = pct } end
             if pct < lowest then lowest, lowestSlot = pct, slot end
             if cur == 0 then broken = broken + 1 end
             local _, _, repair = scanTip:SetInventoryItem("player", slot)
@@ -209,6 +223,10 @@ local function CheckArmor()
         cat.lines[1] = L["No item with durability."]
         return cat
     end
+    table.sort(cat.worn, function(a, b)
+        if a.pct ~= b.pct then return a.pct < b.pct end
+        return a.slot < b.slot
+    end)
     local avg = sum / n
     cat.pct = broken > 0 and avg * 0.5 or avg
     cat.lines[1] = format(L["Average durability: %d %%"], avg + 0.5)
@@ -250,6 +268,7 @@ local function CheckFoodOrDrink(inv, kind, want)
     end
     local minimum = kind == "food" and db.food or db.drink
     local tier = Tier(level)
+    cat.value = format("%d / %d", total, minimum)
     cat.lines[1] = format(L["%d %s item(s)"], total, word)
     if bestId then cat.lines[2] = format(L["Best: %s (lvl %d)"], ItemLink(bestId), bestMin) end
 
@@ -271,7 +290,11 @@ local function CheckFoodOrDrink(inv, kind, want)
         cat.pct = minimum > 0 and math.min(total / minimum, 1) * 100 or (total > 0 and 100 or 0)
         if bestId and bestMin < tier - 10 then cat.pct = cat.pct * 0.6 end
     end
-    if cat.status ~= OK then want[kind] = tier end
+    if cat.status ~= OK then
+        want[kind] = tier
+        -- Too weak: a whole new stock.
+        want.amount[kind] = (bestId and bestMin < tier - 10) and minimum or minimum - total
+    end
     return cat
 end
 
@@ -292,6 +315,7 @@ local function CheckPotions(inv)
     cat.lines[2] = format(L["Bandages: %d"], bandages) .. (UsesMana() and format(L["   ·   Mana potions: %d"], mana) or "")
 
     local healing = heal + stones
+    cat.value = format("%d / 2", healing)
     cat.pct = math.min(healing / 2, 1) * 100
     if healing == 0 then
         cat.status = level >= 10 and BAD or WARN
@@ -309,21 +333,24 @@ end
 local function CheckAmmo(inv, want)
     local kind = AmmoType()
     local _, class = UnitClass("player")
-    if class ~= "HUNTER" or not kind then return end
+    local minimum = class == "HUNTER" and db.ammo or db.ammoOther
+    if not kind or minimum <= 0 then return end -- only what the worn weapon shoots is counted
     local cat = NewCategory("ammo", L["Ammo"])
     local level = UnitLevel("player")
-    local total, bestLevel = 0, -1
+    local total, bestLevel, good = 0, -1, 0
+    local best = BestVendorAmmo(kind, level)
     for id, count in pairs(inv.counts) do
         local _, _, _, _, _, classID, subclassID = GetItemInfoInstant(id)
         if classID == 6 and subclassID == (kind == "arrow" and 2 or 3) then
             total = total + count
             bestLevel = math.max(bestLevel, MinLevel(id))
+            if best and MinLevel(id) >= best[2] then good = good + count end
         end
     end
-    local best = BestVendorAmmo(kind, level)
+    cat.value = format("%d / %d", total, minimum)
     cat.lines[1] = format("%d %s", total, kind == "arrow" and L["arrows"] or L["bullets"])
     if best then cat.lines[2] = format(L["Recommended for your level: %s (lvl %d)"], ItemLink(best[1]), best[2]) end
-    if not inv.quiver and level >= 10 then
+    if class == "HUNTER" and not inv.quiver and level >= 10 then
         cat.lines[#cat.lines + 1] = ORANGE .. L["No quiver / ammo pouch equipped|r"]
         Tip(cat, 30, L["A quiver or ammo pouch speeds up your shots and frees up space."])
     end
@@ -332,7 +359,7 @@ local function CheckAmmo(inv, want)
     if total == 0 then
         cat.status = BAD
         Tip(cat, 95, L["You are out of ammo!"])
-    elseif total < db.ammo then
+    elseif total < minimum then
         cat.status = WARN
         Tip(cat, 55, format(L["Only %d ammo left: buy more."], total))
     end
@@ -340,52 +367,88 @@ local function CheckAmmo(inv, want)
         cat.status = math.min(cat.status, WARN)
         Tip(cat, 45, format(L["Switch to %s (lvl %d): more damage per shot."], ItemName(best[1]), best[2]))
     end
-    cat.pct = math.min(total / db.ammo, 1) * 100
+    cat.pct = math.min(total / minimum, 1) * 100
     if best and total > 0 and bestLevel < best[2] then cat.pct = cat.pct * 0.7 end
-    if best and (cat.status ~= OK) then want.ammo = best[1] end
+    if best and (cat.status ~= OK) then
+        want.ammo, want.amount.ammo = best[1], minimum - good
+    end
     return cat
 end
 
-local function CheckReagents(want)
+local function CheckPetFood()
+    if select(2, UnitClass("player")) ~= "HUNTER" or db.petFood <= 0 or not UnitExists("pet") or not ns.PetFoods
+        or not (C_PetInfo and C_PetInfo.CanPetEatItem) then return end
+    local cat = NewCategory("petfood", L["Pet food"])
+    local total = 0
+    for _, count in pairs(ns.PetFoods()) do total = total + count end
+    cat.value = format("%d / %d", total, db.petFood)
+    cat.lines[1] = format(L["%d item(s) your pet can eat"], total)
+    cat.pct = math.min(total / db.petFood, 1) * 100
+    cat.status = total == 0 and BAD or total < db.petFood and WARN or OK
+    if cat.status ~= OK then Tip(cat, 45, format(L["Only %d item(s) left that your pet can eat."], total)) end
+    return cat
+end
+
+local function CheckShards()
+    local _, class = UnitClass("player")
+    local need = class == "WARLOCK" and ns.SoulShardsWanted and ns.SoulShardsWanted() or 0 -- see SoulShards.lua
+    if need <= 0 or UnitLevel("player") < 10 then return end
+    local cat = NewCategory("shards", L["Soul Shards"])
+    local count = GetItemCount(SOUL_SHARD)
+    cat.item = SOUL_SHARD
+    cat.value = format("%d / %d", count, need)
+    cat.lines[1] = format(L["%d in your bags, %d wanted"], count, need)
+    cat.pct = math.min(count / need, 1) * 100
+    cat.status = count >= need and OK or count == 0 and BAD or WARN
+    if cat.status ~= OK then
+        Tip(cat, 75, format(L["Collect %s by finishing off monsters with Drain Soul (%d / %d)."], ItemName(SOUL_SHARD), count, need))
+    end
+    return cat
+end
+
+-- One line per reagent of the class, added to the list one by one.
+local function CheckReagents(want, add)
     local _, class = UnitClass("player")
     local level = UnitLevel("player")
-    local list = REAGENTS[class]
-    if not list then return end
-    local cat = NewCategory("reagents", L["Reagents"])
-    cat.status = OK
-    local fill, n = 0, 0
-    for _, r in ipairs(list) do
-        local id, from, to, need, critical, farmTip = r[1], r[2], r[3], r[4], r[5], r[6]
-        if level >= from and level <= to then
+    for _, r in ipairs(REAGENTS[class] or {}) do
+        local id, from, to, critical = r[1], r[2], r[3], r[5]
+        local need = db["reagent" .. id]
+        if need > 0 and level >= from and level <= to then
+            local cat = NewCategory("reagents", ItemName(id))
+            cat.icon = API.GetItemIcon(id) or cat.icon
             local count = GetItemCount(id)
-            fill, n = fill + math.min(count / need, 1), n + 1
-            local color = count >= need and "" or (count == 0 and RED or ORANGE)
-            cat.lines[#cat.lines + 1] = format("%s%s : %d|r", color, ItemName(id), count)
+            cat.item = id
+            cat.value = format("%d / %d", count, need)
+            cat.lines[1] = format(L["%d in your bags, %d wanted"], count, need)
+            cat.pct = math.min(count / need, 1) * 100
+            cat.status = OK
             if count < need then
-                local status = (count == 0 and critical) and BAD or WARN
-                cat.status = math.min(cat.status, status)
-                Tip(cat, critical and 75 or 25, format(farmTip or L["Buy more %s (%d / %d)."], ItemName(id), count, need))
-                if not farmTip then -- only vendor reagents are suggested at merchants
-                    want.reagents = want.reagents or {}
-                    want.reagents[id] = true
-                end
+                cat.status = (count == 0 and critical) and BAD or WARN
+                Tip(cat, critical and 75 or 25, format(L["Buy more %s (%d / %d)."], ItemName(id), count, need))
+                want.reagents = want.reagents or {}
+                want.reagents[id] = need - count
             end
+            add(cat)
         end
     end
-    if n == 0 then return end
-    cat.pct = fill / n * 100
-    return cat
 end
 
 local function CheckElixirs(inv)
     local level = UnitLevel("player")
-    if level < 20 then return end
+    if level < 20 and db.elixirs == 0 then return end
     local cat = NewCategory("elixirs", L["Elixirs"])
     local total = 0
     for id, count in pairs(inv.counts) do
         if ELIXIRS[id] then total = total + count end
     end
     cat.lines[1] = total > 0 and format(L["%d elixir(s) in your bags"], total) or L["No elixirs"]
+    if db.elixirs > 0 then
+        cat.value = format("%d / %d", total, db.elixirs)
+        cat.pct = math.min(total / db.elixirs, 1) * 100
+        cat.status = total >= db.elixirs and OK or WARN
+        if cat.status ~= OK then Tip(cat, 20, format(L["Only %d elixir(s) in your bags, %d wanted."], total, db.elixirs)) end
+        return cat
+    end
     cat.pct = math.min(total / 2, 1) * 100 -- informative only, not counted in the score
     if total == 0 and level >= 30 then Tip(cat, 10, L["An elixir or two helps in dungeons and against elites."]) end
     return cat
@@ -427,6 +490,7 @@ local function CheckBags(inv)
     local equipped = 0
     for bag = 1, 4 do if (NumSlots(bag) or 0) > 0 then equipped = equipped + 1 end end
     cat.lines[2] = format(L["Bags equipped: %d / 4"], equipped)
+    cat.value = format("%d / %d", inv.free, db.slots)
     cat.pct = (inv.free >= db.slots or db.slots == 0) and 100 or inv.free / db.slots * 100
     if inv.free == 0 then
         cat.status = BAD
@@ -443,7 +507,7 @@ end
 
 local function RunScan()
     local inv = ScanBags()
-    local want = {}
+    local want = { amount = {} }
     local cats = {}
     local function add(c) if c then cats[#cats + 1] = c end end
     -- A check turned off counts nowhere: not in the list, the score, the alerts or at merchants.
@@ -452,7 +516,9 @@ local function RunScan()
     if db.checkDrink and UsesMana() then add(CheckFoodOrDrink(inv, "drink", want)) end
     if db.checkPotions then add(CheckPotions(inv)) end
     if db.checkAmmo then add(CheckAmmo(inv, want)) end
-    if db.checkReagents then add(CheckReagents(want)) end
+    if db.checkAmmo then add(CheckPetFood()) end
+    if db.checkShards then add(CheckShards()) end
+    if db.checkReagents then CheckReagents(want, add) end
     if db.checkElixirs then add(CheckElixirs(inv)) end
     if db.checkBags then add(CheckBags(inv)) end
 
@@ -485,16 +551,24 @@ local function Verdict(score)
 end
 
 ---------------------------------------------------------------------------
--- Window: readiness ring on the left (player level on a die), "Bilan" on the right with the
--- verdict banner, one line per category with its percentage, and the top tips. Everything is
--- revealed step by step; clicking the window skips to the end.
+-- Window: the player in 3D on the left, reacting to the verdict, with the score stamped in wax. On the
+-- right, the verdict banner, one line with its advice per problem, then the checks that passed as a
+-- row of icons. Everything is revealed step by step; clicking the window skips to the end.
 ---------------------------------------------------------------------------
 
-local WIDTH = 500
-local LEFT_W = 190
+local WIDTH, LEFT_W, MIN_HEIGHT = 590, 240, 420
+local SEAL_X, SEAL_Y = 60, 58
+local RIGHT_W = 278
 local TITLE_FONT = "Fonts\\MORPHEUS.TTF"
-local TICKS = 40
+local CIRCLE = "Interface\\CharacterFrame\\TempPortraitAlphaMask"
+local WHITE = "Interface\\Buttons\\WHITE8x8"
 local GOLD = { 1, 0.82, 0 }
+local MAX_WORN = 5
+-- Animations of the character: standing, cheering, asking, refusing.
+local STAND, CHEER, QUESTION, NO = 0, 68, 65, 186
+local STAMP_SECONDS = 0.3
+local STAR_SECONDS = 2
+local PASSED_SIZE, PASSED_GAP = 26, 5
 
 local function Snd(id)
     if db.sound and id then PlaySound(id, "SFX") end
@@ -504,14 +578,15 @@ local function EaseOut(p) return 1 - (1 - p) ^ 3 end
 
 local Spaced = ns.Spaced
 
-local function PctColor(p)
-    if p >= 80 then return 0.3, 1, 0.3 end
-    if p >= 40 then return 1, 0.63, 0.13 end
-    return 1, 0.25, 0.25
+local function StatusColor(status)
+    if status == OK then return 0.3, 0.85, 0.3 end
+    if status == WARN then return 1, 0.63, 0.13 end
+    if status == BAD then return 1, 0.25, 0.25 end
+    return 0.5, 0.5, 0.5 -- informative only
 end
 
 local win = CreateFrame("Frame", "TinkerwiseCheckupFrame", UIParent, "BackdropTemplate")
-win:SetSize(WIDTH, 320)
+win:SetSize(WIDTH, MIN_HEIGHT)
 win:SetPoint("CENTER", 0, 40)
 win:SetFrameStrata("DIALOG")
 win:SetMovable(true)
@@ -519,123 +594,154 @@ win:SetClampedToScreen(true)
 win:EnableMouse(true)
 win:Hide()
 tinsert(UISpecialFrames, "TinkerwiseCheckupFrame")
-win:SetBackdrop({
-    bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
-    edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border",
-    tile = true, tileSize = 32, edgeSize = 32,
-    insets = { left = 11, right = 12, top = 12, bottom = 11 },
-})
 local winSolid = TW:AddSolidBackground(win, 0.14, 0.1, 0.06) -- colors: see TW:OnTheme below
 win:SetToplevel(true) -- comes in front as a whole when shown or clicked
 CreateFrame("Button", nil, win, "UIPanelCloseButton"):SetPoint("TOPRIGHT", -6, -6)
 
-local sep = win:CreateTexture(nil, "ARTWORK")
-sep:SetColorTexture(GOLD[1], GOLD[2], GOLD[3], 0.3)
-sep:SetWidth(1)
-sep:SetPoint("TOPLEFT", LEFT_W, -26)
-sep:SetPoint("BOTTOMLEFT", LEFT_W, 22)
+-- Left: the character ------------------------------------------------------------
 
--- Left: readiness ring ---------------------------------------------------------
+local stage = CreateFrame("Frame", nil, win)
+local stageBg = stage:CreateTexture(nil, "BACKGROUND")
+stageBg:SetAllPoints()
+stageBg:SetTexture(WHITE)
+local stageFloor = stage:CreateTexture(nil, "BORDER") -- a soft light at the feet
+stageFloor:SetTexture(CIRCLE)
+stageFloor:SetBlendMode("ADD")
+stageFloor:SetSize(170, 44)
+stageFloor:SetPoint("BOTTOM", 0, 4)
 
-local ring = CreateFrame("Frame", nil, win)
-ring:SetSize(140, 140)
-ring:SetPoint("TOP", win, "TOPLEFT", LEFT_W / 2 + 4, -34)
+local model
+do
+    local ok, frame = pcall(CreateFrame, "PlayerModel", nil, stage)
+    if ok and frame then
+        model = frame
+        model:SetAllPoints()
+        model:EnableMouse(false)
+        model:SetScript("OnAnimFinished", function(self) pcall(self.SetAnimation, self, STAND) end)
+    end
+end
 
-local function Disk(size, r, g, b, a, sub)
-    local t = ring:CreateTexture(nil, "BACKGROUND", nil, sub)
-    t:SetTexture("Interface\\CharacterFrame\\TempPortraitAlphaMask")
+local function ShowCharacter()
+    if not model then return end
+    pcall(function()
+        model:SetUnit("player")
+        model:SetPortraitZoom(0)
+        model:SetCamDistanceScale(1.1)
+        model:SetRotation(0.2)
+        model:SetAnimation(STAND)
+    end)
+end
+
+local function React(score)
+    if not model then return end
+    local anim = score >= 85 and CHEER or score >= 55 and QUESTION or NO
+    pcall(function()
+        if model:HasAnimation(anim) then model:SetAnimation(anim) end
+    end)
+end
+
+local playerName = stage:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+local playerInfo = stage:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+
+-- An icon with a border in the color of its state.
+local function Icon(parent, size)
+    local b = CreateFrame("Button", nil, parent)
+    b:SetSize(size, size)
+    b.border = b:CreateTexture(nil, "BACKGROUND")
+    b.border:SetAllPoints()
+    b.border:SetTexture(WHITE)
+    b.icon = b:CreateTexture(nil, "ARTWORK")
+    b.icon:SetPoint("TOPLEFT", 1.5, -1.5)
+    b.icon:SetPoint("BOTTOMRIGHT", -1.5, 1.5)
+    b.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+    b:SetScript("OnLeave", GameTooltip_Hide)
+    return b
+end
+
+local wornIcons = {} -- the worn out pieces, next to the character
+for i = 1, MAX_WORN do
+    local b = Icon(stage, 30)
+    b:SetFrameLevel(stage:GetFrameLevel() + 10)
+    b:SetPoint("TOPLEFT", 8, -8 - (i - 1) * 44)
+    b.text = b:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    b.text:SetPoint("TOP", b, "BOTTOM", 0, -1)
+    b:SetScript("OnEnter", function(self)
+        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        GameTooltip:SetInventoryItem("player", self.slot)
+        GameTooltip:Show()
+    end)
+    b:Hide()
+    wornIcons[i] = b
+end
+
+-- Left: the wax seal, a disk with uneven edges and the score pressed in it ---------
+
+local function Disk(parent, size, r, g, b, a, sub)
+    local t = parent:CreateTexture(nil, "BACKGROUND", nil, sub)
+    t:SetTexture(CIRCLE)
     t:SetSize(size, size)
     t:SetPoint("CENTER")
     t:SetVertexColor(r, g, b, a)
     return t
 end
-local outerLine = Disk(140, GOLD[1], GOLD[2], GOLD[3], 0.55, 1)
-Disk(136, 0.07, 0.04, 0.02, 0.95, 2)           -- dark disk
-local innerLine = Disk(98, GOLD[1], GOLD[2], GOLD[3], 0.35, 3)
-Disk(95, 0.1, 0.06, 0.03, 1, 4)
-
-local ticks = {}
-for i = 1, TICKS do
-    local angle = (i - 1) / TICKS * 2 * math.pi
-    local t = ring:CreateTexture(nil, "ARTWORK")
-    t:SetColorTexture(1, 1, 1, 1)
-    t:SetSize(3, 10)
-    t:SetPoint("CENTER", ring, "CENTER", math.sin(angle) * 57, math.cos(angle) * 57)
-    t:SetRotation(-angle)
-    ticks[i] = t
-end
-
--- Round class emblem in the centre, with the level in a small gold badge below it.
-local emblem = ring:CreateTexture(nil, "ARTWORK", nil, 2)
-emblem:SetTexture("Interface\\TargetingFrame\\UI-Classes-Circles")
-emblem:SetSize(64, 64)
-emblem:SetPoint("CENTER")
-local dieGlow = ring:CreateTexture(nil, "ARTWORK", nil, 1) -- halo behind the emblem
-dieGlow:SetTexture("Interface\\CharacterFrame\\TempPortraitAlphaMask")
-dieGlow:SetBlendMode("ADD")
-dieGlow:SetSize(78, 78)
-dieGlow:SetPoint("CENTER")
-
-local badge = CreateFrame("Frame", nil, ring)
-badge:SetSize(22, 22)
-badge:SetPoint("CENTER", ring, "CENTER", 0, -30) -- stays inside the inner gold circle
-badge:SetFrameLevel(ring:GetFrameLevel() + 2)
-local badgeRim = badge:CreateTexture(nil, "BACKGROUND")
-badgeRim:SetTexture("Interface\\CharacterFrame\\TempPortraitAlphaMask")
-badgeRim:SetAllPoints()
-badgeRim:SetVertexColor(GOLD[1], GOLD[2], GOLD[3], 1)
-local badgeBg = badge:CreateTexture(nil, "BORDER")
-badgeBg:SetTexture("Interface\\CharacterFrame\\TempPortraitAlphaMask")
-badgeBg:SetSize(18, 18)
-badgeBg:SetPoint("CENTER")
-badgeBg:SetVertexColor(0.12, 0.07, 0.03, 1)
-local levelText = badge:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-levelText:SetPoint("CENTER", 0, 1)
-levelText:SetTextColor(1, 0.95, 0.8)
-
-local scoreText = win:CreateFontString(nil, "OVERLAY")
-scoreText:SetFont(TITLE_FONT, 30, "")
-scoreText:SetPoint("TOP", ring, "BOTTOM", 0, -10)
-local scoreLabel = win:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-scoreLabel:SetPoint("TOP", scoreText, "BOTTOM", 0, -2)
-scoreLabel:SetTextColor(0.75, 0.68, 0.55)
-scoreLabel:SetText(L["readiness"])
-
-local function SetRing(value, r, g, b)
-    local filled = math.floor(value / 100 * TICKS + 0.5)
-    for i, t in ipairs(ticks) do
-        if i <= filled then t:SetVertexColor(r, g, b, 1) else t:SetVertexColor(0.35, 0.28, 0.2, 0.6) end
+local seal = CreateFrame("Frame", nil, win)
+seal:SetSize(84, 84)
+seal:SetFrameLevel(win:GetFrameLevel() + 20) -- over the character when it comes down
+seal:SetPoint("CENTER", win, "BOTTOMLEFT", SEAL_X, SEAL_Y)
+local wax = { dark = {}, main = {} }
+do
+    local function Blob(list, size, x, y, sub)
+        local t = Disk(seal, size, 1, 1, 1, 1, sub)
+        t:ClearAllPoints()
+        t:SetPoint("CENTER", x, y)
+        list[#list + 1] = t
     end
-    scoreText:SetText(format("%d %%", value + 0.5))
-    scoreText:SetTextColor(r, g, b)
+    Blob(wax.dark, 80, 1, -2, 1)
+    Blob(wax.main, 78, 0, 0, 3)
+    for i = 1, 11 do
+        local angle = i / 11 * 2 * math.pi
+        local size = 22 + (i * 7) % 11
+        local away = 31 + (i * 5) % 4
+        local x, y = math.sin(angle) * away, math.cos(angle) * away
+        Blob(wax.dark, size, x + 1, y - 2, 1)
+        Blob(wax.main, size, x, y, 3)
+    end
+    Blob(wax.dark, 64, 0, 0, 4) -- the edge left by the stamp
+    Blob(wax.main, 61, 0, -1, 5)
 end
+local sealFlash = Disk(seal, 110, 1, 0.9, 0.6, 1, 7)
+sealFlash:SetBlendMode("ADD")
+
+local star = win:CreateTexture(nil, "ARTWORK") -- when everything is perfect
+star:SetTexture("Interface\\Cooldown\\starburst")
+star:SetBlendMode("ADD")
+star:SetSize(220, 220)
+star:SetPoint("CENTER", seal)
+star:SetAlpha(0)
+
+local scoreText = seal:CreateFontString(nil, "OVERLAY")
+scoreText:SetFont(TITLE_FONT, 20, "")
+scoreText:SetPoint("CENTER")
+scoreText:SetTextColor(1, 0.93, 0.8)
 
 -- Right: bilan -----------------------------------------------------------------
 
-local X = LEFT_W + 18
-local RIGHT_W = WIDTH - X - 22
+local right = CreateFrame("Frame", nil, win)
+right:SetWidth(RIGHT_W)
+right:SetPoint("TOPRIGHT", -24, 0)
+right:SetPoint("BOTTOMRIGHT", -24, 0)
 
-local subtitle = win:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-subtitle:SetPoint("TOPLEFT", X, -28)
-subtitle:SetTextColor(0.8, 0.7, 0.5)
+local subtitle = right:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+subtitle:SetPoint("TOPLEFT", 0, -28)
 
-local title = win:CreateFontString(nil, "OVERLAY")
+local title = right:CreateFontString(nil, "OVERLAY")
 title:SetFont(TITLE_FONT, 30, "")
 title:SetPoint("TOPLEFT", subtitle, "BOTTOMLEFT", 0, -2)
-title:SetTextColor(1, 0.9, 0.7)
 title:SetText(L["Summary"])
 
-local banner = CreateFrame("Frame", nil, win, "BackdropTemplate")
+local banner = CreateFrame("Frame", nil, right, "BackdropTemplate")
 banner:SetSize(RIGHT_W, 30)
-banner:SetPoint("TOPLEFT", X, -86)
-banner:SetBackdrop({
-    bgFile = "Interface\\Tooltips\\UI-Tooltip-Background",
-    edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
-    tile = true, tileSize = 16, edgeSize = 14,
-    insets = { left = 3, right = 3, top = 3, bottom = 3 },
-})
-banner:SetBackdropColor(0.3, 0.15, 0.05, 0.95)
-banner:SetBackdropBorderColor(GOLD[1], GOLD[2], GOLD[3], 1)
+banner:SetPoint("TOPLEFT", 0, -86)
 local bannerText = banner:CreateFontString(nil, "OVERLAY", "GameFontNormal")
 bannerText:SetPoint("CENTER")
 local bannerFlash = banner:CreateTexture(nil, "OVERLAY")
@@ -644,58 +750,81 @@ bannerFlash:SetBlendMode("ADD")
 bannerFlash:SetPoint("TOPLEFT", -40, 26)
 bannerFlash:SetPoint("BOTTOMRIGHT", 40, -26)
 
-local scanning = win:CreateFontString(nil, "OVERLAY")
+local scanning = right:CreateFontString(nil, "OVERLAY")
 scanning:SetFont(TITLE_FONT, 15, "")
-scanning:SetTextColor(GOLD[1], GOLD[2], GOLD[3])
 scanning:SetPoint("CENTER", banner, "CENTER")
 scanning:SetText(L["Inspecting your pack..."])
 
+local function CategoryTooltip(self)
+    local cat = self.cat
+    if not cat then return end
+    GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+    if cat.item then
+        GameTooltip:SetItemByID(cat.item)
+        GameTooltip:AddLine(" ")
+    else
+        GameTooltip:AddLine(cat.name)
+    end
+    for _, line in ipairs(cat.lines) do GameTooltip:AddLine(line, 1, 1, 1) end
+    for _, tip in ipairs(cat.tips) do GameTooltip:AddLine(tip.text, 1, 0.82, 0, true) end
+    GameTooltip:Show()
+end
+
+-- A problem: icon, name, count, bar and advice.
 local rows = {}
 local function Row(i)
     if rows[i] then return rows[i] end
-    local r = CreateFrame("Button", nil, win)
-    r:SetSize(RIGHT_W, 18)
+    local r = CreateFrame("Button", nil, right)
+    r:SetWidth(RIGHT_W)
     r:SetHighlightTexture("Interface\\QuestFrame\\UI-QuestTitleHighlight", "ADD")
-    r.iconHolder = CreateFrame("Frame", nil, r)
-    r.iconHolder:SetSize(15, 15)
-    r.iconHolder:SetPoint("LEFT", 4, 0)
-    r.icon = r.iconHolder:CreateTexture(nil, "ARTWORK")
-    r.icon:SetAllPoints()
-    r.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+    r.box = Icon(r, 28)
+    r.box:EnableMouse(false)
+    r.box:SetPoint("CENTER", r, "TOPLEFT", 16, -17)
+    r.value = r:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    r.value:SetPoint("TOPRIGHT", -4, -3)
+    r.value:SetJustifyH("RIGHT")
     r.name = r:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-    r.name:SetPoint("LEFT", r.iconHolder, "RIGHT", 6, 0)
-    r.pct = r:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    r.pct:SetPoint("RIGHT", -4, 0)
-    r.pct:SetJustifyH("RIGHT")
-    r.dots = r:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
-    r.dots:SetPoint("LEFT", r.name, "RIGHT", 4, -1)
-    r.dots:SetPoint("RIGHT", r, "RIGHT", -44, -1)
-    r.dots:SetWordWrap(false)
-    r.dots:SetJustifyH("LEFT")
-    r.dots:SetText(string.rep(" .", 80))
-    r:SetScript("OnEnter", function(self)
-        if not self.cat then return end
-        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-        GameTooltip:AddLine(self.cat.name)
-        for _, line in ipairs(self.cat.lines) do GameTooltip:AddLine(line, 1, 1, 1) end
-        GameTooltip:Show()
-    end)
+    r.name:SetPoint("TOPLEFT", 37, -3)
+    r.name:SetPoint("RIGHT", r.value, "LEFT", -6, 0)
+    r.name:SetJustifyH("LEFT")
+    r.name:SetWordWrap(false)
+    r.barBg = r:CreateTexture(nil, "BACKGROUND")
+    r.barBg:SetColorTexture(0, 0, 0, 0.5)
+    r.barBg:SetHeight(6)
+    r.barBg:SetPoint("TOPLEFT", 37, -21)
+    r.barBg:SetPoint("TOPRIGHT", -4, -21)
+    r.bar = r:CreateTexture(nil, "ARTWORK")
+    r.bar:SetTexture("Interface\\TargetingFrame\\UI-StatusBar")
+    r.bar:SetPoint("TOPLEFT", r.barBg)
+    r.bar:SetPoint("BOTTOMLEFT", r.barBg)
+    r.tip = r:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    r.tip:SetPoint("TOPLEFT", 37, -31)
+    r.tip:SetWidth(RIGHT_W - 41)
+    r.tip:SetJustifyH("LEFT")
+    r.tip:SetTextColor(0.9, 0.84, 0.72)
+    r:SetScript("OnEnter", CategoryTooltip)
     r:SetScript("OnLeave", GameTooltip_Hide)
     rows[i] = r
     return r
 end
 
+-- A check that passed.
+local passed = {}
+local function Passed(i)
+    if passed[i] then return passed[i] end
+    local b = Icon(right, PASSED_SIZE)
+    b.check = b:CreateTexture(nil, "OVERLAY")
+    b.check:SetSize(14, 14)
+    b.check:SetPoint("BOTTOMRIGHT", 4, -4)
+    b.check:SetTexture(STATUS_ICON[OK])
+    b:SetScript("OnEnter", CategoryTooltip)
+    passed[i] = b
+    return b
+end
+
 -- Notice under the list, only when talent points are left to spend.
-local talentNote = CreateFrame("Frame", nil, win, "BackdropTemplate")
+local talentNote = CreateFrame("Frame", nil, right, "BackdropTemplate")
 talentNote:SetSize(RIGHT_W, 26)
-talentNote:SetBackdrop({
-    bgFile = "Interface\\Tooltips\\UI-Tooltip-Background",
-    edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
-    tile = true, tileSize = 16, edgeSize = 12,
-    insets = { left = 3, right = 3, top = 3, bottom = 3 },
-})
-talentNote:SetBackdropColor(0.3, 0.15, 0.05, 0.6)
-talentNote:SetBackdropBorderColor(1, 0.63, 0.13, 0.9)
 local talentIcon = talentNote:CreateTexture(nil, "ARTWORK")
 talentIcon:SetSize(15, 15)
 talentIcon:SetPoint("LEFT", 7, 0)
@@ -734,33 +863,13 @@ talentNote:SetScript("OnLeave", function(self)
     GameTooltip:Hide()
 end)
 
-local tipsTitle = win:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-tipsTitle:SetText(Spaced("CONSEILS"))
-tipsTitle:SetTextColor(GOLD[1], GOLD[2], GOLD[3])
+local tipsTitle = right:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+tipsTitle:SetText(Spaced(L["ADVICE"]))
 
--- Gold or class colors (Core.lua, TW:OnTheme).
-TW:OnTheme(function(theme)
-    GOLD = theme.accent
-    local a, t, m = theme.accent, theme.title, theme.muted
-    win:SetBackdropColor(theme.backdrop[1], theme.backdrop[2], theme.backdrop[3], 1)
-    winSolid:SetColorTexture(theme.solid[1], theme.solid[2], theme.solid[3], 0.96)
-    sep:SetColorTexture(a[1], a[2], a[3], 0.3)
-    outerLine:SetVertexColor(a[1], a[2], a[3], 0.55)
-    innerLine:SetVertexColor(a[1], a[2], a[3], 0.35)
-    badgeRim:SetVertexColor(a[1], a[2], a[3], 1)
-    scoreLabel:SetTextColor(m[1], m[2], m[3])
-    subtitle:SetTextColor(m[1], m[2], m[3])
-    title:SetTextColor(t[1], t[2], t[3])
-    banner:SetBackdropColor(theme.banner[1], theme.banner[2], theme.banner[3], 0.95)
-    banner:SetBackdropBorderColor(a[1], a[2], a[3], 1)
-    scanning:SetTextColor(a[1], a[2], a[3])
-    talentNote:SetBackdropColor(theme.banner[1], theme.banner[2], theme.banner[3], 0.6)
-    tipsTitle:SetTextColor(a[1], a[2], a[3])
-end)
 local tipLines = {}
 local function TipLine(i)
     if tipLines[i] then return tipLines[i] end
-    local fs = win:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    local fs = right:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
     fs:SetWidth(RIGHT_W)
     fs:SetJustifyH("LEFT")
     fs:SetTextColor(0.9, 0.84, 0.72)
@@ -779,33 +888,93 @@ closeButton:SetText(L["Close"])
 closeButton:SetScript("OnClick", function() win:Hide() end)
 refresh:SetPoint("RIGHT", closeButton, "LEFT", -6, 0)
 
+-- Backdrops and colors (gold or the class's: Core.lua, TW:OnTheme) ---------------
+
+local function NoteBackdrop(edge)
+    return {
+        bgFile = "Interface\\Tooltips\\UI-Tooltip-Background",
+        edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+        tile = true, tileSize = 16, edgeSize = edge,
+        insets = { left = 3, right = 3, top = 3, bottom = 3 },
+    }
+end
+
+win:SetBackdrop({
+    bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
+    edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border",
+    tile = true, tileSize = 32, edgeSize = 32,
+    insets = { left = 11, right = 12, top = 12, bottom = 11 },
+})
+banner:SetBackdrop(NoteBackdrop(14))
+talentNote:SetBackdrop(NoteBackdrop(12))
+stage:SetPoint("TOPLEFT", 16, -16)
+stage:SetPoint("BOTTOMRIGHT", win, "BOTTOMLEFT", LEFT_W + 16, 96)
+playerName:SetPoint("BOTTOMLEFT", win, "BOTTOMLEFT", 112, 58)
+playerName:SetWidth(144)
+playerName:SetJustifyH("LEFT")
+playerName:SetWordWrap(false)
+playerInfo:SetPoint("TOPLEFT", playerName, "BOTTOMLEFT", 0, -3)
+
+TW:OnTheme(function(theme)
+    GOLD = theme.accent
+    local a, t, m = theme.accent, theme.title, theme.muted
+    win:SetBackdropColor(theme.backdrop[1], theme.backdrop[2], theme.backdrop[3], 1)
+    winSolid:SetColorTexture(theme.solid[1], theme.solid[2], theme.solid[3], 0.96)
+    banner:SetBackdropColor(theme.banner[1], theme.banner[2], theme.banner[3], 0.95)
+    banner:SetBackdropBorderColor(a[1], a[2], a[3], 1)
+    talentNote:SetBackdropColor(theme.banner[1], theme.banner[2], theme.banner[3], 0.6)
+    talentNote:SetBackdropBorderColor(1, 0.63, 0.13, 0.9)
+    if CreateColor then
+        pcall(stageBg.SetGradient, stageBg, "VERTICAL", CreateColor(a[1] * 0.35, a[2] * 0.35, a[3] * 0.35, 0.9),
+            CreateColor(0, 0, 0, 0.35))
+    else
+        stageBg:SetVertexColor(a[1] * 0.2, a[2] * 0.2, a[3] * 0.2, 0.8)
+    end
+    stageFloor:SetVertexColor(a[1], a[2], a[3], 0.25)
+    playerName:SetTextColor(t[1], t[2], t[3])
+    playerInfo:SetTextColor(m[1], m[2], m[3])
+    subtitle:SetTextColor(m[1], m[2], m[3])
+    title:SetTextColor(t[1], t[2], t[3])
+    scanning:SetTextColor(a[1], a[2], a[3])
+    tipsTitle:SetTextColor(a[1], a[2], a[3])
+end)
+
 -- Animation ----------------------------------------------------------------------
 
 local anim = { done = true }
 
 win:SetScript("OnUpdate", function(_, elapsed)
-    if anim.done then
-        -- slow breathing glow around the die once finished
-        anim.idle = (anim.idle or 0) + elapsed
-        dieGlow:SetAlpha(0.25 + 0.2 * math.sin(anim.idle * 2))
-        return
+    -- The burst of light of a perfect score, once everything is in.
+    if anim.star then
+        anim.star = anim.star + elapsed
+        local p = anim.star / STAR_SECONDS
+        star:SetAlpha(p < 0.2 and p / 0.2 or Clamp01((1 - p) / 0.8))
+        star:SetRotation(anim.star * 0.6)
+        if p >= 1 then
+            anim.star = nil
+            star:SetAlpha(0)
+        end
     end
+    if anim.done then return end
     local t = anim.t + elapsed
     anim.t = t
     local result, s = anim.result, anim.speed
-    local vr, vg, vb = PctColor(result.score)
 
-    -- 1. one category per beat, its percentage counting up
+    -- 1. one check per beat: the problems with their bar, then the icons of the others
     local started = 0
-    for i, cat in ipairs(result.cats) do
-        local row, u = rows[i], t - anim.rowStart[i]
+    for i, item in ipairs(anim.items) do
+        local u = t - item.start
         if u >= 0 then
             started = started + 1
-            row:SetAlpha(Clamp01(u / 0.15))
-            row.iconHolder:SetScale(u < 0.25 and 1.8 - 0.8 * EaseOut(Clamp01(u / 0.25)) or 1)
-            local p = cat.pct * EaseOut(Clamp01(u / 0.4))
-            row.pct:SetText(format("%d %%", p + 0.5))
-            row.pct:SetTextColor(PctColor(cat.pct))
+            local frame, cat = item.frame, item.cat
+            frame:SetAlpha(Clamp01(u / 0.15))
+            local pop = u < 0.25 and 1.8 - 0.8 * EaseOut(Clamp01(u / 0.25)) or 1
+            if frame.box then
+                frame.box:SetScale(pop)
+                frame.box:SetPoint("CENTER", frame, "TOPLEFT", 16 / pop, -17 / pop)
+                local width = frame.barBg:GetWidth() * cat.pct / 100 * EaseOut(Clamp01(u / 0.4))
+                frame.bar:SetWidth(math.max(width, 0.01))
+            end
             if not anim.played[i] then
                 anim.played[i] = true
                 Snd(cat.status == BAD and SOUNDKIT.IG_QUEST_FAILED
@@ -816,26 +985,32 @@ win:SetScript("OnUpdate", function(_, elapsed)
     end
     subtitle:SetText(Spaced(format(L["%d STEPS CHECKED"], started)))
 
-    -- 2. the ring fills while the categories come in
-    local rp = Clamp01(t / anim.bannerStart)
-    SetRing(result.score * EaseOut(rp), vr, vg, vb)
-    dieGlow:SetVertexColor(vr, vg, vb)
-    dieGlow:SetAlpha(0.3 + 0.3 * math.sin(t * 6))
-
-    -- 3. the verdict banner lands
+    -- 2. the verdict banner lands, and the seal is stamped
     local v = t - anim.bannerStart
     scanning:SetAlpha(v < 0 and (0.55 + 0.45 * math.sin(t * 5)) or 0)
     if v >= 0 then
         if not anim.bannerPlayed then
             anim.bannerPlayed = true
-            Snd(result.score >= 85 and 888 or result.score >= 55 and 3081 or SOUNDKIT.IG_QUEST_FAILED)
+            Snd(result.score >= 100 and 888 or result.score >= 85 and 878 or result.score >= 55 and 3081
+                or SOUNDKIT.IG_QUEST_FAILED)
+            React(result.score)
+            if result.score >= 100 then anim.star = 0 end
         end
+        local p = Clamp01(v / STAMP_SECONDS)
+        seal:SetAlpha(Clamp01(p * 2))
+        seal:SetScale(1 + 1.5 * (1 - p * p))
+        seal:SetPoint("CENTER", win, "BOTTOMLEFT", SEAL_X / seal:GetScale(), SEAL_Y / seal:GetScale())
+        if p >= 1 and not anim.stamped then
+            anim.stamped = true
+            Snd(SOUNDKIT.IG_ABILITY_PAGE_TURN)
+        end
+        sealFlash:SetAlpha(p < 1 and 0 or 0.6 * Clamp01(1 - (v - STAMP_SECONDS) / 0.5))
         banner:SetAlpha(Clamp01(v / 0.15))
         banner:SetScale(1 + 0.35 * (1 - EaseOut(Clamp01(v / 0.3))))
         bannerFlash:SetAlpha(Clamp01(1 - v / 0.9))
     end
 
-    -- 4. tips
+    -- 3. other advice
     for i, fs in ipairs(anim.tips) do
         fs:SetAlpha(Clamp01((t - anim.tipStart - (i - 1) * 0.25 * s) / 0.3))
     end
@@ -848,46 +1023,118 @@ end)
 -- Click anywhere on the window to skip the animation.
 win:SetScript("OnMouseUp", function(_, mouse)
     if mouse == "LeftButton" and not anim.done then
-        for i in ipairs(anim.result.cats) do anim.played[i] = true end -- no burst of row sounds
+        for i in ipairs(anim.items) do anim.played[i] = true end -- no burst of sounds
         anim.t = anim.finish - 0.01
     end
 end)
 
+-- The most important advice of a check.
+local function FirstTip(cat)
+    local best
+    for _, tip in ipairs(cat.tips) do
+        if not best or tip.prio > best.prio then best = tip end
+    end
+    return best
+end
+
 local function Render(result)
     local s = db.quick and 0.4 or 1
     local label, vr, vg, vb = Verdict(result.score)
+    local verdict = result.score >= 85 and OK or result.score >= 55 and WARN or BAD
+    local wr, wg, wb = 0.62, 0.07, 0.06
+    if verdict == OK then wr, wg, wb = 0.16, 0.45, 0.12 elseif verdict == WARN then wr, wg, wb = 0.75, 0.38, 0.04 end
+    for _, blob in ipairs(wax.main) do blob:SetVertexColor(wr, wg, wb) end
+    for _, blob in ipairs(wax.dark) do blob:SetVertexColor(wr * 0.5, wg * 0.5, wb * 0.5) end
+    seal:SetAlpha(0)
+    sealFlash:SetAlpha(0)
     bannerText:SetText(label)
     bannerText:SetTextColor(vr, vg, vb)
     banner:SetAlpha(0)
     bannerFlash:SetVertexColor(vr, vg, vb)
     bannerFlash:SetAlpha(0)
-    levelText:SetText(UnitLevel("player"))
-    if db.centerIcon == "portrait" then
-        SetPortraitTexture(emblem, "player")
-        emblem:SetTexCoord(0, 1, 0, 1)
-    else
-        emblem:SetTexture("Interface\\TargetingFrame\\UI-Classes-Circles")
-        local coords = CLASS_ICON_TCOORDS[select(2, UnitClass("player"))]
-        if coords then emblem:SetTexCoord(unpack(coords)) end
+    star:SetAlpha(0)
+    star:SetVertexColor(vr, vg, vb)
+    playerName:SetText(TW:PlayerName())
+    playerInfo:SetText(format("%s · %d", UnitClass("player"), UnitLevel("player")))
+    scoreText:SetText(format("%d %%", result.score))
+
+    -- The problems first, the worst ones on top.
+    local problems, fine, worn = {}, {}, {}
+    for i, cat in ipairs(result.cats) do
+        local tip = FirstTip(cat)
+        local entry = { cat = cat, tip = tip, order = i }
+        if cat.status == BAD or cat.status == WARN then
+            problems[#problems + 1] = entry
+        else
+            fine[#fine + 1] = entry
+        end
+        if cat.worn then worn = cat.worn end
     end
-    SetRing(0, PctColor(result.score))
+    table.sort(problems, function(a, b)
+        if a.cat.status ~= b.cat.status then return a.cat.status < b.cat.status end
+        local pa, pb = a.tip and a.tip.prio or 0, b.tip and b.tip.prio or 0
+        if pa ~= pb then return pa > pb end
+        return a.order < b.order
+    end)
+
+    for i, b in ipairs(wornIcons) do
+        local piece = worn[i]
+        if piece then
+            b.slot = piece.slot
+            b.icon:SetTexture(GetInventoryItemTexture("player", piece.slot))
+            local r, g, bl = StatusColor(piece.pct < 10 and BAD or WARN)
+            b.border:SetVertexColor(r, g, bl)
+            b.text:SetText(format("%d %%", piece.pct + 0.5))
+            b.text:SetTextColor(r, g, bl)
+        end
+        b:SetShown(piece ~= nil)
+    end
 
     local y = -126
-    local rowStart = {}
-    for i, cat in ipairs(result.cats) do
-        local row = Row(i)
+    local items = {}
+    for i, entry in ipairs(problems) do
+        local cat, row = entry.cat, Row(i)
+        local r, g, b = StatusColor(cat.status)
         row.cat = cat
-        row.icon:SetTexture(cat.icon)
+        row.box.icon:SetTexture(cat.icon)
+        row.box.border:SetVertexColor(r, g, b)
         row.name:SetText(cat.name)
-        row.pct:SetText("")
+        row.value:SetText(cat.value or format("%d %%", cat.pct + 0.5))
+        row.value:SetTextColor(r, g, b)
+        row.bar:SetVertexColor(r, g, b)
+        row.bar:SetWidth(0.01)
+        row.tip:SetText(entry.tip and entry.tip.text or "")
+        local height = entry.tip and 31 + row.tip:GetStringHeight() + 3 or 34
+        row:SetHeight(math.max(height, 36))
         row:ClearAllPoints()
-        row:SetPoint("TOPLEFT", win, "TOPLEFT", X, y)
+        row:SetPoint("TOPLEFT", 0, y)
         row:SetAlpha(0)
         row:Show()
-        rowStart[i] = 0.4 + (i - 1) * 0.35 * s
-        y = y - 19
+        items[#items + 1] = { frame = row, cat = cat, start = 0.4 + (#items) * 0.35 * s }
+        y = y - row:GetHeight() - 4
     end
-    for i = #result.cats + 1, #rows do rows[i]:Hide(); rows[i].cat = nil end
+    for i = #problems + 1, #rows do rows[i]:Hide(); rows[i].cat = nil end
+
+    if #fine > 0 then
+        y = y - 4
+        local perLine = math.floor((RIGHT_W + PASSED_GAP) / (PASSED_SIZE + PASSED_GAP))
+        for i, entry in ipairs(fine) do
+            local cat, b = entry.cat, Passed(i)
+            b.cat = cat
+            b.icon:SetTexture(cat.icon)
+            b.border:SetVertexColor(StatusColor(cat.status))
+            b.check:SetShown(cat.status == OK)
+            b.icon:SetDesaturated(cat.status == nil and cat.pct == 0)
+            b:ClearAllPoints()
+            local column, line = (i - 1) % perLine, math.floor((i - 1) / perLine)
+            b:SetPoint("TOPLEFT", column * (PASSED_SIZE + PASSED_GAP), y - line * (PASSED_SIZE + 8))
+            b:SetAlpha(0)
+            b:Show()
+            items[#items + 1] = { frame = b, cat = cat, start = 0.4 + (#items) * 0.35 * s }
+        end
+        y = y - math.ceil(#fine / perLine) * (PASSED_SIZE + 8)
+    end
+    for i = #fine + 1, #passed do passed[i]:Hide(); passed[i].cat = nil end
 
     talentNote:SetShown(result.talentsToSpend)
     talentNote:SetAlpha(0)
@@ -896,41 +1143,52 @@ local function Render(result)
         talentText:SetText(points > 0 and format(L["%d talent point(s) to spend"], points)
             or L["Talent points left to spend"])
         talentNote:ClearAllPoints()
-        talentNote:SetPoint("TOPLEFT", win, "TOPLEFT", X, y - 8)
+        talentNote:SetPoint("TOPLEFT", 0, y - 4)
         y = y - 34
     end
 
+    -- The advice of the checks that passed; the others show it on their own line.
+    local extra = {}
+    for _, entry in ipairs(fine) do
+        for _, tip in ipairs(entry.cat.tips) do extra[#extra + 1] = tip end
+    end
+    table.sort(extra, function(a, b) return a.prio > b.prio end)
+    local texts = {}
+    for i = 1, math.min(2, #extra) do texts[i] = L["“"] .. extra[i].text .. L["”"] end
+    if #texts == 0 and #problems == 0 then texts[1] = L["“All in order. Good adventuring!”"] end
+
+    tipsTitle:SetShown(#texts > 0)
     tipsTitle:ClearAllPoints()
-    tipsTitle:SetPoint("TOPLEFT", win, "TOPLEFT", X, y - 10)
+    tipsTitle:SetPoint("TOPLEFT", 0, y - 6)
     tipsTitle:SetAlpha(0)
-    y = y - 28
+    if #texts > 0 then y = y - 24 end
     local shown = {}
-    local n = math.min(3, #result.tips)
-    for i = 1, math.max(n, 1) do
+    for i, text in ipairs(texts) do
         local fs = TipLine(i)
-        fs:SetText(n == 0 and L["“All in order. Good adventuring!”"] or (L["“"] .. result.tips[i].text .. L["”"]))
+        fs:SetText(text)
         fs:ClearAllPoints()
-        fs:SetPoint("TOPLEFT", win, "TOPLEFT", X, y)
+        fs:SetPoint("TOPLEFT", 0, y)
         fs:SetAlpha(0)
         fs:Show()
         shown[i] = fs
         y = y - fs:GetStringHeight() - 4
     end
-    for i = math.max(n, 1) + 1, #tipLines do tipLines[i]:Hide() end
-    win:SetHeight(math.max(300, -y + 52))
+    for i = #texts + 1, #tipLines do tipLines[i]:Hide() end
+    win:SetHeight(math.max(MIN_HEIGHT, -y + 52))
 
-    local rowsEnd = (rowStart[#rowStart] or 0) + 0.5 * s
+    local last = items[#items]
+    local itemsEnd = (last and last.start or 0) + 0.5 * s
     anim = {
-        t = 0, result = result, speed = s, rowStart = rowStart, played = {}, tips = shown,
-        bannerStart = rowsEnd,
+        t = 0, result = result, speed = s, items = items, played = {}, tips = shown, bannerStart = itemsEnd,
     }
-    anim.tipStart = rowsEnd + 0.5 * s
-    anim.finish = anim.tipStart + #shown * 0.25 * s + 0.6
+    anim.tipStart = itemsEnd + 0.5 * s
+    anim.finish = anim.tipStart + #shown * 0.25 * s + 1
 end
 
 local function Open()
     Render(RunScan())
     win:Show()
+    ShowCharacter() -- a model only loads once shown
 end
 
 refresh:SetScript("OnClick", Open)
@@ -1011,18 +1269,29 @@ local function WarnLeavingTown()
     for _, t in ipairs(bad) do TW:Print(RED .. t.text .. "|r") end
 end
 
+-- Which need an item of a merchant fills, and how many are missing; nil for none.
+local function Match(want, id)
+    if want.ammo == id then return "ammo", want.amount.ammo end
+    if want.reagents and want.reagents[id] then return "reagent" .. id, want.reagents[id] end
+    local kind = ConsumableKind(id)
+    if kind and want[kind] and MinLevel(id) == want[kind] and MinLevel(id) <= UnitLevel("player") then
+        return kind, want.amount[kind]
+    end
+end
+
+-- For Restock.lua.
+ns.CheckupMatch = Match
+function ns.CheckupWant() return db and RunScan().want end
+function ns.CheckupRestock() return db and TW.modules.Checkup.active and db.restock end
+
 local function MerchantHints()
     local want = RunScan().want
-    local level = UnitLevel("player")
     local links = {}
     for i = 1, GetMerchantNumItems() do
         local link = GetMerchantItemLink(i)
         local id = link and GetItemInfoInstant(link)
         if id then
-            local kind = ConsumableKind(id)
-            local match = (want.ammo == id)
-                or (want.reagents and want.reagents[id])
-                or (kind and want[kind] and MinLevel(id) == want[kind] and MinLevel(id) <= level)
+            local match = Match(want, id)
             if match then links[#links + 1] = link end
         end
     end
@@ -1110,7 +1379,8 @@ local mod = TW:NewModule("Checkup", {
     title = "Check-up",
     icon = "Interface\\Icons\\INV_Misc_Note_01",
     section = L["Preparation"],
-    desc = L["Checks that you're ready to go: durability and repair cost, food and water suited to your level, potions, ammo suited to your level, class reagents, elixirs, unspent talent points and bag space. Button above the chat, right-click on the minimap button, or /tw checkup."],
+    desc = L["Checks that you're ready to go: durability and repair cost, food and water suited to your level, potions, ammo suited to your level, class reagents, elixirs, unspent talent points and bag space. Button above the chat, right-click on the minimap button, or /tw checkup."]
+        .. " " .. L["At a merchant, a button buys what is missing, up to your thresholds and after showing the price."],
     defaults = DEFAULTS,
     options = {
         { type = "execute", label = L["Run the check-up"], editMode = "never", func = function() Open() end },
@@ -1121,6 +1391,7 @@ local mod = TW:NewModule("Checkup", {
         { type = "toggle", key = "checkDrink", label = L["Water"] },
         { type = "toggle", key = "checkPotions", label = "Potions" },
         { type = "toggle", key = "checkAmmo", label = L["Ammo"] },
+        { type = "toggle", key = "checkShards", label = L["Soul Shards"], class = "WARLOCK" },
         { type = "toggle", key = "checkReagents", label = L["Reagents"] },
         { type = "toggle", key = "checkElixirs", label = L["Elixirs"] },
         { type = "toggle", key = "checkBags", label = L["Bags"] },
@@ -1129,19 +1400,16 @@ local mod = TW:NewModule("Checkup", {
         { type = "slider", key = "dura", label = L["Minimum durability (%)"], min = 10, max = 90, step = 5 },
         { type = "slider", key = "food", label = L["Minimum food"], min = 0, max = 40, step = 1 },
         { type = "slider", key = "drink", label = L["Minimum drinks"], min = 0, max = 40, step = 1 },
-        { type = "slider", key = "ammo", label = L["Minimum ammo (hunter)"], min = 200, max = 3000, step = 100 },
+        { type = "slider", key = "elixirs", label = L["Minimum elixirs (0 = not counted)"], min = 0, max = 20, step = 1 },
         { type = "slider", key = "slots", label = L["Minimum free slots"], min = 0, max = 20, step = 1 },
         { type = "header", label = L["Automatic"] },
         { type = "toggle", key = "autoRest", label = L["Alert when leaving a city / inn"] },
         { type = "toggle", key = "autoInstance", label = L["Check-up when entering a dungeon / raid"] },
         { type = "toggle", key = "merchant", label = L["At a merchant, report what you need"] },
+        { type = "toggle", key = "restock", label = L["At a merchant, button that buys what is missing"] },
         { type = "toggle", key = "chatButton", label = L["Button above the chat"] },
         { type = "toggle", key = "sound", label = L["Sounds"] },
         { type = "toggle", key = "quick", label = L["Fast animation"] },
-        { type = "select", key = "centerIcon", label = L["Image in the center of the ring"], values = {
-            { "class", L["Class emblem"] },
-            { "portrait", L["My portrait"] },
-        } },
     },
 })
 
@@ -1160,31 +1428,78 @@ ns.AddToEditMode({
     Save = function(point, x, y) db.btnPoint, db.btnX, db.btnY = point, x, y end,
 })
 
+for i = #mod.options, 1, -1 do
+    local class = mod.options[i].class
+    if class and class ~= select(2, UnitClass("player")) then table.remove(mod.options, i) end
+end
+
+-- The thresholds of your class, in a card of their own before the automatic checks. 0: not checked.
+do
+    local class = select(2, UnitClass("player"))
+    local list = {}
+    local function Slider(key, label, max, step)
+        local opt = { type = "slider", key = key, label = label, min = 0, max = max, step = step or 1 }
+        list[#list + 1] = opt
+        return opt
+    end
+    if class == "HUNTER" then
+        Slider("ammo", L["Minimum ammo for your weapon (0 = ignore)"], 3000, 100)
+        Slider("petFood", L["Minimum pet food (0 = ignore)"], 40)
+    elseif class == "WARRIOR" or class == "ROGUE" then
+        Slider("ammoOther", L["Minimum ammo for your weapon (0 = ignore)"], 1000, 50)
+    end
+    for _, r in ipairs(REAGENTS[class] or {}) do
+        local id = r[1]
+        local opt = Slider("reagent" .. id, format(L["%s (0 = ignore)"], L["item #"] .. id), math.max(20, r[4] * 4))
+        -- The name comes from the server: before the panel is first opened, as a rule.
+        if Item and Item.CreateFromItemID then
+            Item:CreateFromItemID(id):ContinueOnItemLoad(function()
+                opt.label = format(L["%s (0 = ignore)"], GetItemInfo(id) or (L["item #"] .. id))
+            end)
+        end
+    end
+    if #list > 0 then
+        for i, opt in ipairs(mod.options) do
+            if opt.type == "header" and opt.label == L["Automatic"] then
+                table.insert(mod.options, i, { type = "header", label = L["Class reminders"] })
+                for j, added in ipairs(list) do table.insert(mod.options, i + j, added) end
+                break
+            end
+        end
+    end
+end
+
 function mod:Open() Open() end
 
 function mod:OnEnable()
     db = self.db
+    for _, r in ipairs(REAGENTS[select(2, UnitClass("player"))] or {}) do ItemName(r[1]) end
     for _, list in pairs(AMMO) do for _, a in ipairs(list) do ItemName(a[1]) end end -- warm item cache
     events:RegisterEvent("PLAYER_UPDATE_RESTING")
     events:RegisterEvent("PLAYER_ENTERING_WORLD")
     events:RegisterEvent("MERCHANT_SHOW")
     wasResting = IsResting()
+    ns.EnableRestock(db.restock)
     PlaceChatButton()
     chatButton:SetShown(db.chatButton and chatButtonReady)
-    if db.winPoint then
-        win:ClearAllPoints()
+    win:ClearAllPoints()
+    if not db.winPoint then
+        win:SetPoint("CENTER", 0, 40)
+    else
         win:SetPoint(db.winPoint, UIParent, db.winPoint, db.winX, db.winY)
     end
 end
 
 function mod:OnDisable()
     events:UnregisterAllEvents()
+    ns.EnableRestock(false)
     chatButton:Hide()
     win:Hide()
     ShowPreview(false)
 end
 
 function mod:OnOptionChanged(key)
+    if key == "restock" then ns.EnableRestock(db.restock) end
     if key == "chatButton" then chatButton:SetShown(db.chatButton) end
 end
 

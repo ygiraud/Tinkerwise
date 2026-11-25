@@ -6,6 +6,7 @@
 -- the settings stay in the module's own options, saved at once.
 
 local _, ns = ...
+local L = ns.L
 
 local systems = {}
 local active = false
@@ -314,11 +315,34 @@ function System:Update()
     if self.OnEditing and self.mod.active then self.OnEditing(wanted) end
 end
 
+-- The settings shown here are not repeated in the configuration window: a button leads to Edit Mode.
+local function KeepOutOfConfig(system)
+    local options = system.mod.options
+    local first
+    local inCard = system.card == nil
+    for i, opt in ipairs(options) do
+        if opt.type == "header" then
+            if inCard then break end
+            inCard = opt.label == system.card
+            if inCard then first = i + 1 end
+        elseif inCard then
+            if opt.toEditMode then return end -- done for another frame of the module
+            first = first or i
+            if opt.editMode ~= "never" then opt.editMode = "only" end
+        end
+    end
+    table.insert(options, first or 1, {
+        type = "execute", label = L["Settings in Edit Mode"], editMode = "never", toEditMode = true,
+        func = function() SlashCmdList.TINKERWISEEDIT() end,
+    })
+end
+
 -- info: frame, mod, label; and if needed card (the options to show: those under that header),
 -- IsAvailable(), OnEditing(on) (to show or hide a preview), OnMoved(), Save(point, x, y).
 -- While it is edited, a frame with the mover of TW:CreateMover answers true to IsUnlocked().
 function ns.AddToEditMode(info)
     local system = setmetatable(info, System)
+    KeepOutOfConfig(system)
     systems[#systems + 1] = system
     return system
 end

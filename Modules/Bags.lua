@@ -184,6 +184,7 @@ end
 
 local win, search, footer, listScroll, listChild
 local selectedKey -- nil = all characters
+local view = "items" -- or one of CharacterDetails.lua
 local charButtons, itemRows = {}, {}
 
 local function SortedKeys(isShown)
@@ -268,9 +269,20 @@ local function ItemRow(i)
     r.name:SetWordWrap(false)
     r.count = r:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
     r.count:SetPoint("RIGHT", -4, 0)
+    r.count:SetPoint("LEFT", r.name, "RIGHT", 6, 0)
+    r.count:SetJustifyH("RIGHT")
+    r.count:SetWordWrap(false)
     r:SetScript("OnEnter", function(self)
+        if not (self.itemID or self.spellID or self.full) then return end
         GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-        GameTooltip:SetHyperlink("item:" .. self.itemID)
+        if self.itemID then
+            GameTooltip:SetHyperlink("item:" .. self.itemID)
+        elseif self.spellID then
+            GameTooltip:SetSpellByID(self.spellID)
+            if self.full then GameTooltip:AddLine(self.full, 1, 1, 1, true) end
+        else
+            GameTooltip:AddLine(self.full, 1, 1, 1, true)
+        end
         GameTooltip:Show()
     end)
     r:SetScript("OnLeave", GameTooltip_Hide)
@@ -304,11 +316,36 @@ local function Build()
     hint:SetText(L["Search for an item"])
 
     listScroll = CreateFrame("ScrollFrame", nil, win, "UIPanelScrollFrameTemplate")
-    listScroll:SetPoint("TOPLEFT", LIST_W + 36, -78)
+    listScroll:SetPoint("TOPLEFT", LIST_W + 36, -104)
     listScroll:SetPoint("BOTTOMRIGHT", -40, 52)
     listChild = CreateFrame("Frame", nil, listScroll)
     listChild:SetSize(380, 1)
     listScroll:SetScrollChild(listChild)
+
+    -- What the list shows, see CharacterDetails.lua.
+    local x = LIST_W + 34
+    win.tabs = {}
+    for _, v in ipairs(ns.CharacterDetails.VIEWS) do
+        local tab = CreateFrame("Button", nil, win)
+        tab:SetNormalFontObject("GameFontNormalSmall")
+        tab:SetHighlightFontObject("GameFontHighlightSmall")
+        tab:SetDisabledFontObject("GameFontHighlightSmall")
+        tab:SetText(v[2])
+        tab:SetSize(tab:GetFontString():GetStringWidth() + 14, 20)
+        tab:SetPoint("TOPLEFT", x, -76)
+        tab.line = tab:CreateTexture(nil, "ARTWORK")
+        tab.line:SetColorTexture(1, 0.82, 0, 0.8)
+        tab.line:SetHeight(1)
+        tab.line:SetPoint("BOTTOMLEFT", 4, 0)
+        tab.line:SetPoint("BOTTOMRIGHT", -4, 0)
+        tab:SetScript("OnClick", function()
+            view = v[1]
+            listScroll:SetVerticalScroll(0)
+            Refresh()
+        end)
+        win.tabs[v[1]] = tab
+        x = x + tab:GetWidth() + 4
+    end
 
     footer = win:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     footer:SetPoint("BOTTOMLEFT", 26, 22)
@@ -404,6 +441,34 @@ function Refresh()
     allButton.money:SetText(GetCoinTextureString(gold))
 
     local query = strtrim(search:GetText() or ""):lower()
+    for key, tab in pairs(win.tabs) do tab.line:SetShown(key == view) end
+    local details = view ~= "items"
+    local selected = selectedKey and db.chars[selectedKey]
+    win.forget:SetShown(selected ~= nil)
+    if details then
+        local chars = {}
+        for _, key in ipairs(selectedKey and { selectedKey } or keys) do
+            if db.chars[key] and db.chars[key].name then chars[#chars + 1] = db.chars[key] end
+        end
+        local list = ns.CharacterDetails.Rows(view, chars, query)
+        listChild:SetHeight(math.max(#list * ROW_H, 1))
+        for i, row in ipairs(list) do
+            local r = ItemRow(i)
+            r.itemID, r.spellID, r.full = nil, row.spell, row.name .. "\n" .. row.text
+            r.icon:SetTexture(row.icon)
+            r.name:SetText(row.name)
+            r.name:SetTextColor(1, 1, 1)
+            r.count:SetText(row.text)
+            r:Show()
+        end
+        for i = #list + 1, #itemRows do itemRows[i]:Hide() end
+        footer:SetText(#list == 0 and query == "" and ns.CharacterDetails.EMPTY[view] or "")
+        footer:SetWidth(selected and 440 or 620)
+        footer:SetJustifyH("LEFT")
+        return
+    end
+    footer:SetWidth(0)
+
     local items = {}
     for id, t in pairs(Totals()) do
         local name, _, quality = API.GetItemInfo(id)
@@ -420,7 +485,7 @@ function Refresh()
     listChild:SetHeight(math.max(#items * ROW_H, 1))
     for i, item in ipairs(items) do
         local r = ItemRow(i)
-        r.itemID = item.id
+        r.itemID, r.spellID, r.full = item.id, nil, nil
         r.icon:SetTexture(API.GetItemIcon(item.id))
         r.name:SetText(item.name or L["Loading…"])
         if item.quality and GetItemQualityColor then
@@ -435,8 +500,6 @@ function Refresh()
     end
     for i = #items + 1, #itemRows do itemRows[i]:Hide() end
 
-    local selected = selectedKey and db.chars[selectedKey]
-    win.forget:SetShown(selected ~= nil)
     if selected and not selected.bankTime then
         footer:SetText(L["Bank not yet opened on this character"])
     elseif selected then
@@ -628,7 +691,8 @@ local mod = TW:NewModule("Bags", {
     accountWide = true,
     perCharacterToggle = true,
     desc = L["Shows in one window (/tw chars) your characters' level, gold and rested XP, and what they keep in their bags, keyring, gear, bank and mail, with search and tooltips showing who owns what. Hover over a character for their last login. A character appears after their first login. Bags and gear update when they play, bank and mail when they open them; only rested XP is estimated, from elapsed time."]
-        .. "\n\n" .. L["Characters are sorted by game mode (detected) and by the groups you create (/tw groups). The switch only applies to the current character, which stops recording its data when it is off."],
+        .. "\n\n" .. L["Characters are sorted by game mode (detected) and by the groups you create (/tw groups). The switch only applies to the current character, which stops recording its data when it is off."]
+        .. "\n\n" .. L["The window also lists their professions, recipes, recipe cooldowns and reputations. Recipes and cooldowns are read when you open a profession window."],
     defaults = { tooltip = true, showBags = true, showBank = true, showMail = false, showWorn = false },
     options = {
         { type = "toggle", key = "tooltip", label = L["Show owners in tooltips"] },
@@ -643,6 +707,7 @@ function mod:OnEnable()
     MergeEmptyRealms()
     ns.CharacterGroups.Enable(db)
     ns.CharacterList.Enable(db)
+    ns.CharacterDetails.Enable(db)
     HookTooltips()
     HookMoneyFrames()
     SetMoneyMouse(true)
@@ -656,6 +721,7 @@ end
 
 function mod:OnDisable()
     ns.CharacterList.Disable()
+    ns.CharacterDetails.Disable()
     ns.CharacterGroups.Disable()
     SetMoneyMouse(false)
     events:UnregisterAllEvents()

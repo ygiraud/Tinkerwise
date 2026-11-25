@@ -7,11 +7,12 @@ A toolbox for WoW Forever: independent modules you can turn on or off from a sin
 ## Modules
 
 **Preparation**
-- **Check-up:** durability, food, water, potions, ammo, reagents, elixirs, bag space and unspent talent points; each check can be turned off
+- **Check-up:** durability, food, water, potions, ammo, reagents, elixirs, bag space and unspent talent points; each check can be turned off. Thresholds for your class (soul shards, ammo for the weapon you wear, runes, pet food...), and a button at merchants that buys what is missing after showing the price
 - **Potion Reminder:** shows the best potion in your bags that isn't on your action bars
 
 **Character**
-- **My Characters:** gold, level, rested XP, bags, bank and mail across your characters in one window, with search. Characters are sorted by game mode (PvE, PvP, Hardcore, RP, RP-PvP, detected automatically) and by groups you create, for instance to keep a guild's characters apart. Can be turned on for each character
+- **My Characters:** gold, level, rested XP, bags, bank and mail across your characters in one window, with search. Characters are sorted by game mode (PvE, PvP, Hardcore, RP, RP-PvP, detected automatically) and by groups you create, for instance to keep a guild's characters apart. Can be turned on for each character. Also lists professions, recipes, recipe cooldowns and reputations
+- **Travel Journal:** the date of your new zones, levels, deaths and bosses, for each character (`/tw journal`)
 - **Stat Changes:** gains and losses when your gear, buffs, form or talents change, plus a summary panel on level up
 - **Class Bar:** your class utility spells on one more action bar (conjured food, portals, demons, stones, pet care, tracking...), with lists to choose from, the look and settings of the game's own bars and a box for each button and spell. It counts the soul shards of warlocks, and their soulstone button uses the stone in the bags or creates one
 
@@ -22,7 +23,7 @@ A toolbox for WoW Forever: independent modules you can turn on or off from a sin
 
 **Group**
 - **Group Comfort:** accepts invitations from friends and guildmates, resurrections and, optionally, summons, and can turn down duels
-- **Buffs and Thanks:** one button, outside combat, to buff yourself and your group, and to thank (and buff back) whoever buffs you, the thanks also going out by themselves if you like, to turn herb, mineral or treasure tracking back on and, for warlocks, to create a healthstone when they have none
+- **Buffs and Thanks:** one button, outside combat, to buff yourself and your group, and to thank (and buff back) whoever buffs you, the thanks also going out by themselves if you like, to turn herb, mineral or treasure tracking back on and, for warlocks, to create a healthstone when they have none. Away from rest areas, it also reminds you of weapon stones, oils and poisons, of food that gives a buff and of your pet or demon
 - **Trade Supplies:** for mages and warlocks, puts conjured water and food or a healthstone in the trade window, for the class and level of the other player. You always accept the trade yourself
 
 **Chat**
@@ -38,11 +39,12 @@ A toolbox for WoW Forever: independent modules you can turn on or off from a sin
 
 **Immersion**
 - **Immersion Mode:** when the game's key hides the interface, adds black bars, keeps the elements you choose on screen and brings the interface back with a fade; it can also stage your quests as cinematic scenes
+- **Death and Level Scenes:** black bands and a few words when you die or gain a level
 - **AFK and Flight Modes:** each can be turned on separately. When you're away, fades out the interface and slowly turns the camera around your character, showing your time away and the whispers you received. During a flight master trip, fades out the interface and shows your destination, the zone below and the flight time, with a progress bar when the scene is hidden and route durations on the flight map, shared by all your characters. In both, your bags and the world map open above the scene with their usual keys
 
 **Configuration**
 - **Default Settings:** keeps auto loot on, loots faster and sets up new characters
-- **Profiles:** saves a character's options, active modules and window positions under a name, to load them again later or on another character
+- **Profiles:** options, active modules and window positions, saved as you change them and shared by the characters using the same profile; give one to your new characters, or export it as a text to share
 - **Minimap Button:** quick access and customizable clicks
 
 ## Moving windows

@@ -19,6 +19,7 @@ local DEFAULTS = {
     buffBack = true,
     track = true,
     healthstone = true, -- warlocks
+    weapon = true, foodBuff = true, pet = true, demon = "any", -- see Reminders.lua
     size = 40,
     point = "TOP", x = 0, y = -140,
 }
@@ -684,6 +685,9 @@ local function NextAction()
         end
     end
 
+    local reminder = ns.Reminders.Next(db)
+    if reminder then return reminder end
+
     if db.track then
         local id = MissingTracking()
         local spell = id and SpellName(id)
@@ -803,7 +807,8 @@ local mod = TW:NewModule("Courtesy", {
     title = L["Buffs and Thanks"],
     icon = "Interface\\Icons\\Spell_Holy_WordFortitude",
     section = L["Group"],
-    desc = L["Shows a button, outside combat, to buff yourself, to buff the members of your group who lack your buff, to thank whoever buffs you (buffing them back when you can) and to turn tracking back on. Warlocks are also offered a healthstone when they have none. The thanks can also go out by themselves: the button then only offers to buff back."],
+    desc = L["Shows a button, outside combat, to buff yourself, to buff the members of your group who lack your buff, to thank whoever buffs you (buffing them back when you can) and to turn tracking back on. Warlocks are also offered a healthstone when they have none. The thanks can also go out by themselves: the button then only offers to buff back."]
+        .. " " .. L["Away from rest areas, it also reminds you of a weapon stone, oil or poison, of a food that gives a buff and of your pet, with what your bags hold."],
     defaults = DEFAULTS,
     options = {
         { type = "toggle", key = "self", label = L["Buff myself"] },

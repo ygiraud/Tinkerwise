@@ -15,6 +15,7 @@ Locales\frFR.lua
 Core.lua
 EditMode.lua
 Modules\Checkup.lua
+Modules\Restock.lua
 Modules\PotionReminder.lua
 Modules\Bags.lua
 Modules\Characters.lua
@@ -25,6 +26,9 @@ Modules\WowheadLinks.lua
 Modules\AutoVendor.lua
 Modules\GroupComfort.lua
 Modules\Courtesy.lua
+Modules\Reminders.lua
+Modules\CharacterDetails.lua
+Modules\Journal.lua
 Modules\ClassBar.lua
 Modules\TradeSupplies.lua
 Modules\SoulShards.lua
@@ -39,6 +43,7 @@ Modules\ErrorMessages.lua
 Modules\ImmersionScene.lua
 Modules\Immersion.lua
 Modules\QuestScene.lua
+Modules\Moments.lua
 Modules\AfkMode.lua
 Modules\FlightMode.lua
 Modules\AwayModes.lua

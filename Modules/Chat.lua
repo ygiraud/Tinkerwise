@@ -5,7 +5,7 @@ local L = ns.L
 local TW = ns.TW
 
 local HISTORY_SIZE = 50
-local URL_PREFIX = "twurl:"
+local URL_PREFIX = "addon:Tinkerwise:url:" -- "addon" links are the game's own kind for addons
 local COMBAT_LOG_INDEX = 2
 
 local URL_EVENTS = {
@@ -261,19 +261,16 @@ local function URLFilter(_, _, message, ...)
     if linked ~= message then return false, linked, ... end
 end
 
--- The game has no hook that runs before an unknown link type would raise an error.
+-- The game hands the clicks on "addon" links over: its own function is not replaced, which would run
+-- every other link, secret ones included, under the addon's taint.
 local linkHandlerInstalled
 local function InstallLinkHandler()
-    if linkHandlerInstalled then return end
+    if linkHandlerInstalled or not (EventRegistry and EventRegistry.RegisterCallback) then return end
     linkHandlerInstalled = true
-    local original = SetItemRef
-    SetItemRef = function(link, ...)
-        local readable = not (issecretvalue and issecretvalue(link)) and type(link) == "string"
-        if readable and link:sub(1, #URL_PREFIX) == URL_PREFIX then
-            return ShowCopyWindow(link:sub(#URL_PREFIX + 1))
-        end
-        return original(link, ...)
-    end
+    EventRegistry:RegisterCallback("SetItemRef", function(_, link)
+        if type(link) ~= "string" or (issecretvalue and issecretvalue(link)) then return end
+        if link:sub(1, #URL_PREFIX) == URL_PREFIX then ShowCopyWindow(link:sub(#URL_PREFIX + 1)) end
+    end, mod)
 end
 
 local function SetURLFilter(on)
@@ -823,6 +820,14 @@ function mod:OnEnable()
             RestoreSizes()
         end
     end)
+end
+
+-- Its tabs stay open when only its settings change.
+function mod:OnProfileChanged()
+    SetupHistory()
+    Apply()
+    SyncTabs()
+    RestoreSizes()
 end
 
 function mod:OnDisable()

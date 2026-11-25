@@ -262,6 +262,7 @@ loader:SetScript("OnEvent", function(_, event, arg1)
     if event == "ADDON_LOADED" and arg1 == ADDON then
         TinkerwiseDB = TinkerwiseDB or {}
         TinkerwiseDB.modules = TinkerwiseDB.modules or {}
+        TW.newCharacter = TinkerwiseCharDB == nil
         TinkerwiseCharDB = TinkerwiseCharDB or {}
         TinkerwiseCharDB.modules = TinkerwiseCharDB.modules or {}
         -- A module that took over older ones starts from their settings: their on/off choice becomes
@@ -336,6 +337,11 @@ loader:SetScript("OnEvent", function(_, event, arg1)
         if oldMinimap and oldMinimap.angle then TW.modules.MinimapButton.db.angle = oldMinimap.angle end
         TinkerwiseCharDB.minimap, TinkerwiseDB.minimap = nil, nil
     elseif event == "PLAYER_LOGIN" then
+        -- Before the modules start, so that no reload is needed.
+        if ns.LoadProfile then
+            local ok, err = pcall(ns.LoadProfile)
+            if not ok then geterrorhandler()(err) end
+        end
         for _, mod in ipairs(TW.order) do
             if mod.state.enabled then TW:SetModuleEnabled(mod, true) end
         end
