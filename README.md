@@ -44,7 +44,7 @@ Barre de classe montre les sorts utilitaires de votre classe sous forme de barre
 
 Buffs et remerciements propose aussi aux démonistes de créer une pierre de soins quand ils n'en ont pas et qu'il leur reste un fragment d'âme.
 
-Hors des zones de repos, la même carte rappelle une pierre, une huile ou un poison d'arme, une nourriture à buff et le familier (absent, mort ou mécontent) ou le démon voulu.
+Hors des zones de repos, la même carte rappelle une pierre, une huile ou un poison d'arme, une nourriture à buff et le familier (absent, mort ou mécontent) ou le démon préféré (avec, pour les démonistes, la pierre de sort ou de feu au choix, créée si besoin).
 
 Check-up a des seuils propres à chaque classe (fragments d'âme, munitions de l'arme portée, runes de téléportation et de portail, nourriture du familier...), 0 pour les ignorer. Chez un marchand, un bouton achète ce qui manque jusqu'à ces seuils, en affichant le prix avant. Sa fenêtre montre votre personnage en 3D, qui réagit au verdict, et le score sur un sceau de cire.
 

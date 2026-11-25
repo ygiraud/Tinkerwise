@@ -48,6 +48,12 @@ local DEMON_ORDER = { "imp", "voidwalker", "succubus", "felhunter" }
 local DEMON_FAMILY = { imp = 23, voidwalker = 16, succubus = 17, felhunter = 15 }
 local SACRIFICES = { 18789, 18790, 18791, 18792 } -- Demonic Sacrifice: no demon wanted
 
+-- A warlock's stones, best first. They enchant the weapon on WoW Forever: only one at a time.
+local STONES = {
+    spellstone = { items = { 13603, 13602, 5522 }, create = { 17728, 17727, 2362 }, other = "firestone" },
+    firestone = { items = { 13701, 13700, 13699, 1254 }, create = { 17953, 17952, 17951, 6366 }, other = "spellstone" },
+}
+
 local function HasAura(unit, spell)
     local name = Spells.Name(spell)
     if not name then return false end
@@ -106,7 +112,27 @@ local function Enchanted(slot)
     end
 end
 
-local function WeaponAction()
+-- The favorite stone from the bags, else created; the other one while the favorite is not learned.
+local function StoneAction(wanted)
+    local stone = STONES[wanted]
+    if not stone then return end
+    local function Learned(s)
+        for _, id in ipairs(s.create) do
+            if Spells.Known(id) then return id end
+        end
+    end
+    local spell = Learned(stone)
+    if not spell then
+        stone = STONES[stone.other]
+        spell = Learned(stone)
+    end
+    if not spell then return end
+    local id = FirstUsable(stone.items)
+    if id then return ItemAction(id, L["Enchant your weapon"], "/use item:" .. id .. "\n/use 16") end
+    if (Plain(GetItemCount(SOUL_SHARD)) or 0) > 0 then return SpellAction(spell, L["Create your stone"]) end
+end
+
+local function WeaponAction(db)
     for _, slot in ipairs({ 16, 17 }) do
         local weapon = GetInventoryItemID("player", slot)
         local _, _, _, _, _, classID, subclassID
@@ -118,6 +144,10 @@ local function WeaponAction()
                         if Spells.Known(id) then return slot == 16 and SpellAction(id, L["Enchant your weapon"]) or nil end
                     end
                 end
+            end
+            if class == "WARLOCK" then
+                local action = StoneAction(db.stone)
+                if action then return action end
             end
             local id
             if class == "ROGUE" then id = FirstUsable(POISONS) end
@@ -245,7 +275,7 @@ function ns.Reminders.Next(db)
         return
     end
     return db.pet and PetAction(db)
-        or db.weapon and WeaponAction()
+        or db.weapon and WeaponAction(db)
         or db.foodBuff and FoodAction()
         or nil
 end
@@ -265,7 +295,10 @@ local function Options()
         for _, key in ipairs(DEMON_ORDER) do
             values[#values + 1] = { key, Spells.Name(DEMONS[key]) or key }
         end
-        options[#options + 1] = { type = "select", key = "demon", label = L["Demon to have"], values = values }
+        options[#options + 1] = { type = "select", key = "demon", label = L["Favorite demon"], values = values }
+        options[#options + 1] = { type = "select", key = "stone", label = L["Favorite stone"], values = {
+            { "spellstone", L["Spellstone"] }, { "firestone", L["Firestone"] }, { "none", L["None (oils only)"] },
+        } }
     end
     return options
 end

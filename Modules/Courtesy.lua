@@ -19,7 +19,7 @@ local DEFAULTS = {
     buffBack = true,
     track = true,
     healthstone = true, -- warlocks
-    weapon = true, foodBuff = true, pet = true, demon = "any", -- see Reminders.lua
+    weapon = true, foodBuff = true, pet = true, demon = "any", stone = "spellstone", -- see Reminders.lua
     size = 40,
     point = "TOP", x = 0, y = -140,
 }
