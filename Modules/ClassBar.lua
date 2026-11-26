@@ -33,11 +33,11 @@ local CLASS_GROUPS = {
     },
     WARLOCK = {
         { label = L["Soul Shards"], item = 6265, level = 10, spells = {} }, -- a counter, nothing to cast
-        { label = L["Demons"], spells = { { 688 }, { 697 }, { 712 }, { 691 }, { 1122 }, { 18540 } } },
+        { label = L["Demons"], favorite = "demon", spells = { { 688 }, { 697 }, { 712 }, { 691 }, { 1122 }, { 18540 } } },
         { label = L["Healthstone"], spells = { { 6201, 6202, 5699, 11729, 11730 } } },
         { label = L["Soulstone"], spells = { { 693, 20752, 20755, 20756, 20757 } },
           items = { 16896, 16895, 16893, 16892, 5232 } }, -- best first: used when in the bags, else created
-        { label = L["Weapon stones"], spells = { { 6366, 17951, 17952, 17953 }, { 2362, 17727, 17728 } } },
+        { label = L["Weapon stones"], favorite = "stone", spells = { { 6366, 17951, 17952, 17953 }, { 2362, 17727, 17728 } } },
         { label = L["Ritual of Summoning"], spells = { { 698 } } },
         { label = L["Utility"], spells = { { 126 }, { 5697 }, { 132 }, { 5500 } } },
         { label = L["Mounts"], spells = { { 5784 }, { 23161 } } },
@@ -304,14 +304,28 @@ end
 ---------------------------------------------------------------------------
 
 -- The best rank known of each spell of the group, without those unticked in the options.
+-- The favorites chosen in the reminders of Buffs and Thanks (Reminders.lua): the first rank of their spell.
+local FAVORITES = {
+    demon = { imp = 688, voidwalker = 697, succubus = 712, felhunter = 691 },
+    stone = { spellstone = 2362, firestone = 6366 },
+}
+
+local function Favorite(group)
+    local courtesy = group.favorite and TW.modules.Courtesy
+    local choice = courtesy and courtesy.db and courtesy.db[group.favorite]
+    return choice and FAVORITES[group.favorite][choice]
+end
+
 local function KnownSpells(group)
     local known = {}
+    local favorite = Favorite(group)
     for _, ranks in ipairs(group.spells) do
         local name = #group.spells > 1 and Spells.Name(ranks[1])
         local skipped = name and db.skipSpells and db.skipSpells[name]
         for i = skipped and 0 or #ranks, 1, -1 do
             if Spells.Known(ranks[i]) then
-                known[#known + 1] = ranks[i]
+                -- The favorite comes first: on the button, and at the top of the list.
+                table.insert(known, ranks[1] == favorite and 1 or #known + 1, ranks[i])
                 break
             end
         end
@@ -624,6 +638,7 @@ end)
 local function Relayout()
     if mod.active then Apply() end
 end
+ns.RefreshClassBar = Relayout -- the favorites changed
 
 -- The names the game's Edit Mode gives to the settings of an action bar, in the game's language.
 local function GameText(key, fallback)

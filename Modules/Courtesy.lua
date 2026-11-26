@@ -868,6 +868,7 @@ function mod:OnDisable()
     end
 end
 
-function mod:OnOptionChanged()
+function mod:OnOptionChanged(key)
     Refresh()
+    if (key == "demon" or key == "stone") and ns.RefreshClassBar then ns.RefreshClassBar() end
 end
