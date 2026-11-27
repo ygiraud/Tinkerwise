@@ -41,20 +41,47 @@ local HAS_EDIT_MODE = C_EditMode and C_EditMode.GetLayouts and C_EditMode.SetAct
 local layoutNames = {} -- { name, name } for the select
 local layoutIndex = {} -- name -> index for SetActiveLayout
 
+local function Add(name, index)
+    if type(name) ~= "string" or name == "" or layoutIndex[name] then return end
+    layoutIndex[name] = index
+    layoutNames[#layoutNames + 1] = { name, name }
+end
+
+-- The list Blizzard's Edit Mode window shows: presets and saved layouts together, numbered as
+-- SetActiveLayout counts them. Only once the manager has read them.
+local function ReadManagerLayouts()
+    local manager = EditModeManagerFrame
+    local info = manager and manager.layoutInfo
+    if type(info) ~= "table" or type(info.layouts) ~= "table" or #info.layouts == 0 then return false end
+    -- The active one from the game itself: the manager's own copy can lag behind SetActiveLayout.
+    local activeIndex = info.activeLayout
+    local ok, api = pcall(C_EditMode.GetLayouts)
+    if ok and type(api) == "table" and api.activeLayout then activeIndex = api.activeLayout end
+    -- Only the layouts of the current interface style (keyboard 0, gamepad 1), as Blizzard's menu:
+    -- the style of the active layout.
+    local current = info.layouts[activeIndex or 0]
+    local style = current and current.interfaceStyle or 0
+    local active
+    for i, layout in ipairs(info.layouts) do
+        if (layout.interfaceStyle or 0) == style then
+            Add(layout.layoutName, i)
+            if activeIndex == i then active = layout.layoutName end
+        end
+    end
+    if db and active then db.thisLayout = active end -- unknown: the choice stays as it is
+    return true
+end
+
 local function ReadLayouts()
     wipe(layoutNames)
     wipe(layoutIndex)
     if not HAS_EDIT_MODE then return end
+    if ReadManagerLayouts() then return end
     local ok, info = pcall(C_EditMode.GetLayouts)
     if not ok or type(info) ~= "table" or type(info.layouts) ~= "table" then return end
     local presets = {}
     if EditModePresetLayoutManager and EditModePresetLayoutManager.GetCopyOfPresetLayouts then
         presets = EditModePresetLayoutManager:GetCopyOfPresetLayouts() or {}
-    end
-    local function Add(name, index)
-        if type(name) ~= "string" or name == "" or layoutIndex[name] then return end
-        layoutIndex[name] = index
-        layoutNames[#layoutNames + 1] = { name, name }
     end
     for i, layout in ipairs(presets) do Add(layout.layoutName, i) end
     local offset = #presets > 0 and #presets or 2
@@ -198,9 +225,14 @@ end
 
 -- The layouts come and go: the list follows, and the options with it.
 local layouts = CreateFrame("Frame")
-layouts:SetScript("OnEvent", function()
+local function RefreshLayouts()
     ReadLayouts()
     TW:RefreshConfig()
+end
+-- Again a moment later: Blizzard's manager may read the layouts after this frame got the event.
+layouts:SetScript("OnEvent", function()
+    RefreshLayouts()
+    C_Timer.After(0.5, RefreshLayouts)
 end)
 
 function mod:OnEnable()

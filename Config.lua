@@ -1528,6 +1528,7 @@ end
 local rebuilding -- a page is being built again by RefreshConfig
 
 function TW:RefreshConfig()
+    if ns.RefreshSetup then ns.RefreshSetup() end
     if not window then return end
     local query = Query()
     for _, row in ipairs(sideRows) do
@@ -1673,6 +1674,18 @@ local function NewModuleRow(parent, page)
 end
 
 local ShowStep
+
+-- Identifies the choices of a step's options: the Edit Mode layouts arrive after login, when the
+-- setup is often already open, and a select is built for the values it has.
+local function StepSignature(step)
+    local parts = {}
+    for _, pair in ipairs(step and step.opts or {}) do
+        if pair.opt.type == "select" then
+            for _, v in ipairs(pair.opt.values) do parts[#parts + 1] = tostring(v[2]) end
+        end
+    end
+    return table.concat(parts, "\n")
+end
 
 -- The options of a step under "Worth knowing", from y; returns the y under them.
 local function AddSetupOptions(content, opts, y, width)
@@ -1952,7 +1965,18 @@ function ShowStep(index)
     setup:SetHeight(-setup.contentY - y + 74)
     setup.fade = 0
     content:SetAlpha(0)
+    setup.signature = StepSignature(step)
     setup:Refresh()
+end
+
+-- The choices of the shown step changed (layouts loaded or renamed): the step is built again, in place.
+ns.RefreshSetup = function()
+    if not (setup and setup:IsShown() and setup.steps) then return end
+    local step = setup.steps[setupStep]
+    if not step or setup.signature == StepSignature(step) then return end
+    ShowStep(setupStep)
+    setup.fade = 1
+    setup.content:SetAlpha(1)
 end
 
 -- mode: quick (the default) or character (only the last step).
