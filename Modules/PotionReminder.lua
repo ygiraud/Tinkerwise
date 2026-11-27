@@ -188,7 +188,7 @@ events:SetScript("OnEvent", Schedule)
 local mod = TW:NewModule("PotionReminder", {
     title = L["Potion Reminder"],
     icon = "Interface\\Icons\\INV_Potion_54",
-    section = L["Preparation"],
+    section = L["Adventure"],
     desc = L["Shows the best usable healing / mana potion in your bags when it isn't on your action bars. Drag the icon onto a bar and it disappears."],
     defaults = DEFAULTS,
     options = {

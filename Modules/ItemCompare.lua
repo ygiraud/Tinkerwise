@@ -209,7 +209,9 @@ local mod = TW:NewModule("ItemCompare", {
         { type = "toggle", key = "compare", label = L["Compare with the worn item"] },
         { type = "toggle", key = "shiftOnly", label = L["Compare only while holding Shift"] },
         { type = "toggle", key = "percent", label = L["Show the change in %"] },
-        { type = "header", label = L["Wowhead Links"] },
+        { type = "header", label = L["Wowhead Links"], page = { key = "wowhead", title = L["Wowhead Links"],
+          icon = "Interface\\Icons\\INV_Scroll_03",
+          desc = L["Ctrl + C over the tooltip of an item, a spell, a quest or a creature gives its Wowhead address, ready to paste."] } },
         { type = "toggle", key = "wowhead", label = L["Ctrl + C over a tooltip gives its Wowhead address"] },
     },
 })

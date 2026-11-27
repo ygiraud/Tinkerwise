@@ -50,4 +50,6 @@ Modules\AwayModes.lua
 Modules\CharDefaults.lua
 Modules\Profiles.lua
 Config.lua
+Changelog.lua
+WhatsNew.lua
 Minimap.lua

@@ -1463,7 +1463,7 @@ end
 local mod = TW:NewModule("Checkup", {
     title = "Check-up",
     icon = "Interface\\Icons\\INV_Misc_Note_01",
-    section = L["Preparation"],
+    section = L["Adventure"],
     desc = L["Checks that you're ready to go: durability and repair cost, food and water suited to your level, potions, ammo suited to your level, class reagents, elixirs, unspent talent points and bag space. Button above the chat, right-click on the minimap button, or /tw checkup."]
         .. " " .. L["At a merchant, a button buys what is missing, up to your thresholds and after showing the price."],
     defaults = DEFAULTS,

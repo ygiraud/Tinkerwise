@@ -20,6 +20,7 @@ local DEFAULTS = {
     track = true,
     healthstone = true, -- warlocks
     weapon = true, foodBuff = true, pet = true, demon = "any", stone = "spellstone", -- see Reminders.lua
+    aspect = "any", -- hunters: the aspect offered first
     size = 40,
     point = "TOP", x = 0, y = -140,
 }
@@ -637,6 +638,15 @@ local function NextAction()
         -- to run out (REBUFF_SECONDS) is offered again, the same one you wear.
         for _, family in ipairs(OWN_BUFFS[class] or {}) do
             local worn, fading, offer = false, nil, nil
+            -- A hunter's favorite aspect is offered before the others.
+            local favorite = db.aspect and "aspect" .. db.aspect
+            if favorite and tContains(family, favorite) then
+                local order = { favorite }
+                for _, key in ipairs(family) do
+                    if key ~= favorite then order[#order + 1] = key end
+                end
+                family = order
+            end
             for _, key in ipairs(family) do
                 if WearsLasting("player", key) then worn = true break end
                 if not fading and Wears("player", key) and Knows(key) and Wanted(key) then fading = key end
@@ -807,8 +817,7 @@ local mod = TW:NewModule("Courtesy", {
     title = L["Buffs and Thanks"],
     icon = "Interface\\Icons\\Spell_Holy_WordFortitude",
     section = L["Group"],
-    desc = L["Shows a button, outside combat, to buff yourself, to buff the members of your group who lack your buff, to thank whoever buffs you (buffing them back when you can) and to turn tracking back on. Warlocks are also offered a healthstone when they have none. The thanks can also go out by themselves: the button then only offers to buff back."]
-        .. " " .. L["Away from rest areas, it also reminds you of a weapon stone, oil or poison, of a food that gives a buff and of your pet, with what your bags hold."],
+    desc = L["Shows a button, outside combat, to buff yourself, to buff the members of your group who lack your buff, to thank whoever buffs you (buffing them back when you can) and to turn tracking back on. Warlocks are also offered a healthstone when they have none. The thanks can also go out by themselves: the button then only offers to buff back."],
     defaults = DEFAULTS,
     options = {
         { type = "toggle", key = "self", label = L["Buff myself"] },
@@ -826,6 +835,16 @@ local mod = TW:NewModule("Courtesy", {
 
 if select(2, UnitClass("player")) == "WARLOCK" then
     table.insert(mod.options, 7, { type = "toggle", key = "healthstone", label = L["Create a healthstone when I have none"] })
+end
+
+-- A hunter's favorite aspect: offered first when none is worn, and first on the class bar.
+if select(2, UnitClass("player")) == "HUNTER" then
+    local values = { { "any", L["Any aspect"] } }
+    for _, key in ipairs({ "hawk", "monkey", "cheetah", "pack", "beast", "wild", "falcon", "viper" }) do
+        local ranks = BUFFS["aspect" .. key].ranks
+        values[#values + 1] = { key, SpellName(ranks[#ranks]) or key }
+    end
+    table.insert(mod.options, 2, { type = "select", key = "aspect", label = L["Favorite aspect"], values = values })
 end
 
 -- One box per buff of your class (none for a class without any): an unticked one is never
@@ -870,5 +889,5 @@ end
 
 function mod:OnOptionChanged(key)
     Refresh()
-    if (key == "demon" or key == "stone") and ns.RefreshClassBar then ns.RefreshClassBar() end
+    if (key == "demon" or key == "stone" or key == "aspect") and ns.RefreshClassBar then ns.RefreshClassBar() end
 end

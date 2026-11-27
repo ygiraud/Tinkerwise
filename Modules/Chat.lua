@@ -763,7 +763,7 @@ end)
 mod = TW:NewModule("Chat", {
     title = L["Chat"],
     icon = "Interface\\Icons\\INV_Letter_05",
-    section = L["Chat"],
+    section = L["Interface"],
     desc = L["Improves the chat: easier typing, more readable lines, copying a window's text and automatic tabs by theme."],
     defaults = {
         arrowKeys = true, keepHistory = true, links = true,

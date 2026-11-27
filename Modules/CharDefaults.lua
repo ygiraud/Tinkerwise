@@ -1,5 +1,5 @@
--- CharDefaults: keeps auto loot on and applies a default setup to new characters
--- (action bars, Blizzard edit mode layout). Each character is only set up once.
+-- CharDefaults: keeps auto loot on, sets up the action bars of new characters (each one only once),
+-- and picks the Edit Mode layout of this character (asked by the setup, which every new one goes through).
 
 local _, ns = ...
 local L = ns.L
@@ -35,34 +35,52 @@ local function ApplyActionBars()
     return changed
 end
 
--- Blizzard edit mode only exists on some game versions.
-local function ApplyLayout()
-    local wanted = strtrim(db.layout or "")
-    if wanted == "" then return true end
-    if not (C_EditMode and C_EditMode.GetLayouts and C_EditMode.SetActiveLayout) then
-        TW:Print(L["Blizzard's Edit Mode does not exist in this game version."])
-        return true
-    end
-    -- Active layout indexes count Blizzard's presets first, then the saved layouts.
+-- Blizzard's Edit Mode layouts, when this game version has them: Blizzard's presets first, then the
+-- saved ones, as the game counts them. Kept in place for the select of the options.
+local HAS_EDIT_MODE = C_EditMode and C_EditMode.GetLayouts and C_EditMode.SetActiveLayout
+local layoutNames = {} -- { name, name } for the select
+local layoutIndex = {} -- name -> index for SetActiveLayout
+
+local function ReadLayouts()
+    wipe(layoutNames)
+    wipe(layoutIndex)
+    if not HAS_EDIT_MODE then return end
+    local ok, info = pcall(C_EditMode.GetLayouts)
+    if not ok or type(info) ~= "table" or type(info.layouts) ~= "table" then return end
     local presets = {}
     if EditModePresetLayoutManager and EditModePresetLayoutManager.GetCopyOfPresetLayouts then
-        presets = EditModePresetLayoutManager:GetCopyOfPresetLayouts()
+        presets = EditModePresetLayoutManager:GetCopyOfPresetLayouts() or {}
     end
-    for i, layout in ipairs(presets) do
-        if layout.layoutName == wanted then
-            C_EditMode.SetActiveLayout(i)
-            return true
-        end
+    local function Add(name, index)
+        if type(name) ~= "string" or name == "" or layoutIndex[name] then return end
+        layoutIndex[name] = index
+        layoutNames[#layoutNames + 1] = { name, name }
     end
+    for i, layout in ipairs(presets) do Add(layout.layoutName, i) end
     local offset = #presets > 0 and #presets or 2
-    for i, layout in ipairs(C_EditMode.GetLayouts().layouts) do
-        if layout.layoutName == wanted then
-            C_EditMode.SetActiveLayout(i + offset)
-            return true
-        end
+    local active
+    for i, layout in ipairs(info.layouts) do
+        Add(layout.layoutName, i + offset)
+        if info.activeLayout == i + offset then active = layout.layoutName end
     end
-    TW:Print(format(L["Edit Mode profile \"%s\" not found."], wanted))
-    return false
+    if not active then
+        local preset = presets[info.activeLayout]
+        active = preset and preset.layoutName
+    end
+    if db then db.thisLayout = active or "" end
+end
+
+-- Uses the layout for this character, at once (the game keeps the choice per character).
+local function UseLayout(name)
+    local index = layoutIndex[name or ""]
+    if not index then return end
+    if InCombatLockdown() then
+        TW:Print(L["cannot apply settings in combat."])
+        ReadLayouts()
+        return
+    end
+    C_EditMode.SetActiveLayout(index)
+    TW:Print(format(L["Edit Mode layout \"%s\" used for this character."], name))
 end
 
 local function ApplyProfile()
@@ -71,7 +89,7 @@ local function ApplyProfile()
         return false
     end
     if ApplyActionBars() then TW:Print(L["action bars changed: they show after a /reload."]) end
-    return ApplyLayout() -- false: tried again at the next login
+    return true
 end
 
 local function CharacterKey()
@@ -128,10 +146,10 @@ end)
 local mod = TW:NewModule("CharDefaults", {
     title = L["Default Settings"],
     icon = "Interface\\Icons\\INV_Misc_Note_01",
-    section = "Configuration",
+    section = L["System"],
     alwaysEnabled = true,
     accountWide = true,
-    desc = L["Keeps auto loot on (and faster) and sets up new characters (level 1): action bars and Edit Mode profile. Existing characters only change if you click \"Apply to this character\"."],
+    desc = L["Keeps auto loot on (and faster), sets up the action bars of new characters (level 1) and picks the Edit Mode layout of this character. Existing characters only get the bars if you click \"Apply to this character\"."],
     defaults = {
         autoLoot = true,
         fastLoot = true,
@@ -143,7 +161,7 @@ local mod = TW:NewModule("CharDefaults", {
         bar6 = false,
         bar7 = false,
         bar8 = false,
-        layout = "",
+        thisLayout = "",
     },
     options = {
         { type = "toggle", key = "autoLoot", label = L["Always enable auto loot"] },
@@ -157,8 +175,6 @@ local mod = TW:NewModule("CharDefaults", {
         { type = "toggle", key = "bar6", label = L["Action bar 6"], recentOnly = true },
         { type = "toggle", key = "bar7", label = L["Action bar 7"], recentOnly = true },
         { type = "toggle", key = "bar8", label = L["Action bar 8"], recentOnly = true },
-        { type = "header", label = L["Blizzard Edit Mode"] },
-        { type = "input", key = "layout", label = L["Profile name (empty = change nothing)"] },
         { type = "execute", label = L["Apply to this character"], func = function()
             if not db then return end
             if ApplyProfile() then
@@ -166,30 +182,46 @@ local mod = TW:NewModule("CharDefaults", {
                 TW:Print(L["settings applied."])
             end
         end },
+        { type = "header", label = L["Blizzard Edit Mode"], editModeLayout = true },
+        { type = "select", key = "thisLayout", label = L["Edit Mode layout of this character"], values = layoutNames,
+          editModeLayout = true },
     },
 })
 
--- Bars 6 to 8 only exist on recent clients.
-if not _G.MultiBar5 then
-    for i = #mod.options, 1, -1 do
-        if mod.options[i].recentOnly then table.remove(mod.options, i) end
+-- Bars 6 to 8 only exist on recent clients, the layouts with Blizzard's Edit Mode.
+for i = #mod.options, 1, -1 do
+    local opt = mod.options[i]
+    if (opt.recentOnly and not _G.MultiBar5) or (opt.editModeLayout and not HAS_EDIT_MODE) then
+        table.remove(mod.options, i)
     end
 end
+
+-- The layouts come and go: the list follows, and the options with it.
+local layouts = CreateFrame("Frame")
+layouts:SetScript("OnEvent", function()
+    ReadLayouts()
+    TW:RefreshConfig()
+end)
 
 function mod:OnEnable()
     db = self.db
     db.seen = db.seen or {}
+    db.layout = nil -- the old layout name for new characters: the setup asks each one now
     events:RegisterEvent("PLAYER_ENTERING_WORLD")
+    if HAS_EDIT_MODE then layouts:RegisterEvent("EDIT_MODE_LAYOUTS_UPDATED") end
+    ReadLayouts()
     if IsLoggedIn() then CheckAutoLoot() end
     ApplyFastLoot()
 end
 
 function mod:OnDisable()
     events:UnregisterAllEvents()
+    layouts:UnregisterAllEvents()
     looter:UnregisterAllEvents()
 end
 
 function mod:OnOptionChanged(key)
     if key == "autoLoot" then CheckAutoLoot() end
     if key == "fastLoot" then ApplyFastLoot() end
+    if key == "thisLayout" then UseLayout(db.thisLayout) end
 end

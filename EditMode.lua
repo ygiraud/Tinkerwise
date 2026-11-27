@@ -64,7 +64,6 @@ local function BuildDialog(system)
                 w.mod = system.mod
                 d.widgets[#d.widgets + 1] = w
                 if w.MinWidth then width = math.max(width, w:MinWidth() + 48) end
-                if w.SetLayoutWidth then w:SetLayoutWidth(DIALOG_WIDTH - 48) end
                 if isButton and buttonX and buttonX + w:GetWidth() <= DIALOG_WIDTH - 24 then
                     w:SetPoint("TOPLEFT", buttonX, y + height) -- on the line of the previous button
                     buttonX = buttonX + w:GetWidth() + 6
@@ -75,6 +74,10 @@ local function BuildDialog(system)
                 end
             end
         end
+    end
+    -- The rows take the width of the widest one.
+    for _, w in ipairs(d.widgets) do
+        if w.SetLayoutWidth then w:SetLayoutWidth(width - 48) end
     end
     d:SetSize(width, -y + 24)
     return d

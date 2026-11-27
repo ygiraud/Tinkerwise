@@ -540,7 +540,7 @@ end
 mod = TW:NewModule("Profiles", {
     title = L["Profiles"],
     icon = "Interface\\Icons\\INV_Misc_Book_09",
-    section = "Configuration",
+    section = L["System"],
     alwaysEnabled = true,
     desc = L["A profile holds the options, the modules turned on or off and the window positions. Everything you change while using a profile is saved in it, and shared by all the characters using it. The settings shared by the whole account are not part of it. A profile picked in the list is applied at once."]
         .. " " .. L["The default profile cannot be deleted."]

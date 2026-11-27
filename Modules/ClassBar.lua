@@ -46,6 +46,8 @@ local CLASS_GROUPS = {
         { label = L["Call, revive or dismiss the pet"], spells = { { 883 }, { 982 }, { 2641 } } },
         { label = L["Mend the pet"], spells = { { 136, 3111, 3661, 3662, 13542, 13543, 13544 } } },
         { label = L["Feed the pet"], spells = { { 6991 } } },
+        { label = L["Aspects"], favorite = "aspect", spells = { { 13165, 14318, 14319, 14320, 14321, 14322, 25296 }, { 13163 },
+          { 5118 }, { 13159 }, { 13161, 1299445, 1299446, 1299447 }, { 20043, 20190 }, { 469145 }, { 415423 } } },
         { label = L["Taming and training"], spells = { { 5149 }, { 1515 }, { 1462 }, { 1002 } } },
         { label = L["Tracking"], spells = { { 1494 }, { 19883 }, { 19884 }, { 19885 }, { 19880 }, { 19878 }, { 19882 }, { 19879 } } },
         { label = L["Utility"], spells = { { 6197 }, { 1543 } } },
@@ -308,6 +310,8 @@ end
 local FAVORITES = {
     demon = { imp = 688, voidwalker = 697, succubus = 712, felhunter = 691 },
     stone = { spellstone = 2362, firestone = 6366 },
+    aspect = { hawk = 13165, monkey = 13163, cheetah = 5118, pack = 13159, beast = 13161, wild = 20043,
+               falcon = 469145, viper = 415423 },
 }
 
 local function Favorite(group)

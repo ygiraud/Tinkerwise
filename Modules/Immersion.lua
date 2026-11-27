@@ -403,7 +403,7 @@ end)
 local mod = TW:NewModule("Immersion", {
     title = L["Immersion Mode"],
     icon = "Interface\\Icons\\Spell_Shadow_Twilight",
-    section = "Immersion",
+    section = L["Ambiance"],
     desc = L["When the game's key hides the interface (Alt+Z by default), black bars come in and a few elements can stay on screen. Your loot shows for a few seconds, with item details on hover. The same key brings the interface back with a fade, in combat too.\n\nThe optional quest scene stages the quests you open or turn in, with the interface shown or hidden: black bars, a slowly turning camera and text that writes itself. Click the screen to show it all at once. Out of combat only. The camera uses the game's view slot 5."],
     defaults = DEFAULTS,
     options = {

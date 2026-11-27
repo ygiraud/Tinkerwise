@@ -16,6 +16,8 @@ Copiez le dossier dans `World of Warcraft\_forever_\Interface\AddOns\`. Il doit 
 | `/edit` | Ouvre le mode Édition du jeu, où les fenêtres de l'addon se déplacent aussi |
 | `/kb` | Ouvre le mode de raccourcis rapides de Blizzard |
 | `/cc` | Ouvre ou ferme la fenêtre des sorts à la souris |
+| `/tw setup` | Relance l'installation : rapide, ou outil par outil |
+| `/tw news` | Affiche l'historique des nouveautés ; celles d'une nouvelle version s'affichent une fois toutes seules |
 | `/tw checkup` | Lance le check-up |
 | `/tw chars` | Affiche Mes personnages : niveau, or, repos, sacs et banques de vos personnages |
 | `/tw journal` | Affiche le Journal de voyage : zones, niveaux, morts et boss, datés, par personnage |
@@ -25,14 +27,13 @@ Copiez le dossier dans `World of Warcraft\_forever_\Interface\AddOns\`. Il doit 
 
 Par section de la fenêtre `/tw` :
 
-- **Préparation :** Check-up, Rappel potion
+- **Interface :** Cadres de joueurs, Barres d'info, Minimap, Tchat, Éléments d'interface (minimenu, sacs, suivi des quêtes), Messages d'erreur, Thème sombre
 - **Personnage :** Mes personnages, Journal de voyage, Changements de stats, Barre de classe
-- **Objets :** Infobulles d'objets (comparaison et liens Wowhead), Vendeur automatique, Fragments d'âme (démonistes)
-- **Groupe :** Confort de groupe, Buffs et remerciements, Provisions en échange
-- **Tchat :** Tchat
-- **Interface :** Thème sombre, Apparence (fenêtres de Tinkerwise en or ou aux couleurs de la classe), Cadres de joueurs, Barres d'info, Minimap, Éléments d'interface (minimenu, sacs, suivi des quêtes et messages d'erreur)
-- **Immersion :** Mode immersion (avec la scène de quête), Scènes de mort et de niveau, Modes AFK et vol
-- **Configuration :** Réglages par défaut, Profils, Bouton de la minicarte
+- **Aventure :** Check-up, Rappels (pierre ou huile d'arme, nourriture, familier ou démon), Rappel potion
+- **Objets :** Vendeur automatique, Infobulles d'objets, Liens Wowhead, Fragments d'âme (démonistes)
+- **Groupe :** Buffs et remerciements, Confort de groupe, Provisions en échange
+- **Ambiance :** Mode immersion (avec la scène de quête), Scènes de mort et de niveau, Modes AFK et vol
+- **Système :** Apparence (style nuit ou grimoire, or ou couleurs de la classe), Profils, Réglages par défaut, Bouton de la minicarte
 
 ## Déplacer les fenêtres
 
@@ -44,7 +45,7 @@ Barre de classe montre les sorts utilitaires de votre classe sous forme de barre
 
 Buffs et remerciements propose aussi aux démonistes de créer une pierre de soins quand ils n'en ont pas et qu'il leur reste un fragment d'âme.
 
-Hors des zones de repos, la même carte rappelle une pierre, une huile ou un poison d'arme, une nourriture à buff et le familier (absent, mort ou mécontent) ou le démon préféré (avec, pour les démonistes, la pierre de sort ou de feu au choix, créée si besoin).
+Hors des zones de repos, la même carte rappelle une pierre, une huile ou un poison d'arme, une nourriture à buff et le familier (absent, mort ou mécontent) ou le démon préféré (avec, pour les démonistes, la pierre de sort ou de feu au choix, créée si besoin). Les chasseurs choisissent leur aspect préféré, proposé quand ils n'en portent aucun ; la barre de classe met ces favoris en premier.
 
 Check-up a des seuils propres à chaque classe (fragments d'âme, munitions de l'arme portée, runes de téléportation et de portail, nourriture du familier...), 0 pour les ignorer. Chez un marchand, un bouton achète ce qui manque jusqu'à ces seuils, en affichant le prix avant. Sa fenêtre montre votre personnage en 3D, qui réagit au verdict, et le score sur un sceau de cire.
 
@@ -58,7 +59,7 @@ Mes personnages classe vos personnages par mode de jeu (PvE, PvP, Hardcore, RP, 
 
 ## Réglages
 
-Les réglages sont enregistrés par personnage, sauf ceux d'Apparence, de Réglages par défaut et de Mes personnages, communs au compte, comme les durées de vol apprises. Tous les modules sont activés par défaut : désactivez ceux dont vous ne voulez pas dans `/tw`. Sa fenêtre affiche une page par section, un onglet par module et une recherche qui retrouve n'importe quel réglage. Apparence, Réglages par défaut, Profils et Bouton de la minicarte restent toujours actifs.
+Les réglages sont enregistrés par personnage, sauf ceux d'Apparence, de Réglages par défaut et de Mes personnages, communs au compte, comme les durées de vol apprises. Au premier lancement, une installation rapide propose le style et ce qui concerne le personnage (profil du mode édition, barres d'action), en gardant les outils tels quels ; « Choisir outil par outil » ajoute une étape par section. Chaque nouveau personnage ne revoit que la dernière étape. Elle se relance avec `/tw setup`. La fenêtre `/tw` liste toutes les pages par section, avec une pastille pour activer ou désactiver chaque module, une page d'accueil en tuiles et une recherche qui retrouve n'importe quel réglage. Apparence, Réglages par défaut, Profils et Bouton de la minicarte restent toujours actifs.
 
 Un profil contient les options, les modules activés et la position des fenêtres. Chaque personnage garde ses réglages propres ou utilise un profil : ses changements y sont alors enregistrés et partagés avec les autres personnages qui l'utilisent. Le profil Défaut ne peut pas être supprimé. On peut aussi copier un profil, ou les réglages d'origine, dans ses réglages. Un profil choisi dans la liste est appliqué aussitôt, sans recharger l'interface. Un profil peut être donné d'office aux nouveaux personnages, ou exporté en texte pour le partager. La destruction des fragments d'âme n'en fait jamais partie.
 

@@ -45,7 +45,6 @@ local UNHAPPY = 1
 local SOUL_SHARD = 6265
 local DEMONS = { imp = 688, voidwalker = 697, succubus = 712, felhunter = 691 }
 local DEMON_ORDER = { "imp", "voidwalker", "succubus", "felhunter" }
-local DEMON_FAMILY = { imp = 23, voidwalker = 16, succubus = 17, felhunter = 15 }
 local SACRIFICES = { 18789, 18790, 18791, 18792 } -- Demonic Sacrifice: no demon wanted
 
 -- A warlock's stones, best first. They enchant the weapon on WoW Forever: only one at a time.
@@ -228,22 +227,13 @@ local function DemonAction(wanted)
     for _, id in ipairs(SACRIFICES) do
         if HasAura("player", id) then return end
     end
-    local out = UnitExists("pet") and not Plain(UnitIsDead("pet"))
-    if out then
-        if wanted == "any" then return end
-        local _, family = UnitCreatureFamily("pet")
-        family = Plain(family)
-        if not family or family == DEMON_FAMILY[wanted] then return end -- untold: taken as the right one
-        local known = false
-        for _, id in pairs(DEMON_FAMILY) do known = known or id == family end
-        if not known then return end -- an infernal, a doomguard, an enslaved demon
-    end
+    -- Only when no demon is out: another one than the favorite is the player's choice.
+    if UnitExists("pet") and not Plain(UnitIsDead("pet")) then return end
     local shards = Plain(GetItemCount(SOUL_SHARD)) or 0
     local function Can(key)
         return Spells.Known(DEMONS[key]) and (key == "imp" or shards > 0)
     end
     if wanted ~= "any" and Can(wanted) then return SpellAction(DEMONS[wanted], L["Summon your demon"]) end
-    if out then return end
     for _, key in ipairs(DEMON_ORDER) do
         if Can(key) then return SpellAction(DEMONS[key], L["Summon your demon"]) end
     end
@@ -283,7 +273,9 @@ end
 -- The options for this class, after Courtesy's own.
 local function Options()
     local options = {
-        { type = "header", label = L["Reminders (away from rest areas)"] },
+        { type = "header", label = L["Reminders (away from rest areas)"], page = { key = "reminders", title = L["Reminders"],
+          icon = "Interface\\Icons\\INV_Misc_PocketWatch_01",
+          desc = L["Away from rest areas, the Buffs and Thanks card also reminds you of a weapon stone, oil or poison, of a food that gives a buff and of your pet or demon, with what your bags hold."] } },
         { type = "toggle", key = "weapon", label = L["Weapon stones, oils and poisons"] },
         { type = "toggle", key = "foodBuff", label = L["Food that gives a buff"] },
     }

@@ -89,7 +89,7 @@ end)
 local mod = TW:NewModule("Moments", {
     title = L["Death and Level Scenes"],
     icon = "Interface\\Icons\\Spell_Holy_GuardianSpirit",
-    section = "Immersion",
+    section = L["Ambiance"],
     desc = L["Black bands at the top and bottom of the screen with a few words when you die or gain a level, then a fade back. They go under the interface, which stays usable. The Travel Journal gives them the number of deaths and the time since the previous level."],
     defaults = { death = true, level = true },
     options = {

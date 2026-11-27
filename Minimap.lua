@@ -77,7 +77,7 @@ button:SetScript("OnLeave", GameTooltip_Hide)
 mod = TW:NewModule("MinimapButton", {
     title = L["Minimap Button"],
     icon = "Interface\\Icons\\INV_Misc_Wrench_01",
-    section = "Configuration",
+    section = L["System"],
     alwaysEnabled = true,
     desc = L["Shows the Tinkerwise button around the minimap and sets the right-click and Ctrl + click action. If that action's module is disabled, these clicks open the configuration."],
     defaults = { clickAction = "checkup", angle = 200 },
